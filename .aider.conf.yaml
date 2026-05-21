@@ -1,0 +1,7 @@
+model: openai/Qwen3.6-35B-A3B-MTP-UD-IQ3_XXS.gguf
+openai-api-base: http://127.0.0.1:8080/v1
+openai-api-key: none
+auto-commits: false
+pretty: true
+stream: true
+no-show-model-warnings: true
