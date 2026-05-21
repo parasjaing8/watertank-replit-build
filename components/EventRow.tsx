@@ -7,9 +7,10 @@ import {
   WaterEvent,
   EVENT_LABELS,
   STOP_REASON_LABELS,
+  HIDDEN_EVENT_TYPES,
 } from "@/models/Event";
 import { useColors } from "@/hooks/useColors";
-import { formatTime, formatDuration } from "@/utils/formatters";
+import { formatTime, formatDuration, formatTankPct } from "@/utils/formatters";
 
 interface EventRowProps {
   event: WaterEvent;
@@ -51,11 +52,12 @@ function getStopReasonColor(
 }
 
 export function EventRow({ event }: EventRowProps) {
+  if (HIDDEN_EVENT_TYPES.includes(event.type)) return null;
   const colors = useColors();
   const borderColor = getLeftBorderColor(event, colors);
   const timeStr = formatTime(event.epoch);
   const label = EVENT_LABELS[event.type] ?? `Event ${event.type}`;
-  const tankStr = `${event.tankPct.toFixed(1)}%`;
+  const tankStr = formatTankPct(event.tankPct);
   const showStopReason = event.type === EventType.MOTOR_OFF && event.stopReason !== StopReason.NONE;
   const showDuration = event.type === EventType.MOTOR_OFF && event.durationSec > 0;
 

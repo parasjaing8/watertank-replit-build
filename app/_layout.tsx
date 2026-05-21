@@ -4,16 +4,18 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
   useFonts,
-} from "@expo-google-fonts/inter";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+} from '@expo-google-fonts/inter';
+import { Stack, router } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { DeviceProvider } from "@/context/DeviceContext";
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { DeviceProvider } from '@/context/DeviceContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,8 +23,29 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
     </Stack>
   );
+}
+
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const done = await AsyncStorage.getItem('onboarding_done');
+        if (done !== '1') {
+          // Defer navigation until layout is mounted
+          setTimeout(() => router.replace('/onboarding'), 0);
+        }
+      } catch {}
+      setChecked(true);
+    })();
+  }, []);
+
+  if (!checked) return null;
+  return <>{children}</>;
 }
 
 export default function RootLayout() {
@@ -44,13 +67,17 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <DeviceProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <RootLayoutNav />
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </DeviceProvider>
+        <LanguageProvider>
+          <DeviceProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <OnboardingGate>
+                  <RootLayoutNav />
+                </OnboardingGate>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </DeviceProvider>
+        </LanguageProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

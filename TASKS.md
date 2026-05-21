@@ -9,7 +9,7 @@
 # FIELD NAMES (never deviate): event.epoch, event.tankPct, event.durationSec, event.flowLpm
 # DO NOT modify: services/BLEService.ts (complex BLE API — Sonnet only)
 
-## TASK-030: [TODO] Update color palette — PennyWise-inspired dark theme
+## TASK-030: [DONE] Update color palette — PennyWise-inspired dark theme
 **Files:** `constants/colors.ts`
 **Model:** local
 **Message:**
@@ -72,7 +72,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-031: [TODO] Create i18n translations file
+## TASK-031: [DONE] Create i18n translations file
 **Files:** `constants/i18n.ts`
 **Model:** local
 **Message:**
@@ -431,7 +431,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-032: [TODO] Create LanguageContext
+## TASK-032: [DONE] Create LanguageContext
 **Files:** `context/LanguageContext.tsx`
 **Model:** local
 **Message:**
@@ -505,7 +505,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-033: [TODO] Update Event model labels and add HIDDEN_EVENT_TYPES
+## TASK-033: [DONE] Update Event model labels and add HIDDEN_EVENT_TYPES
 **Files:** `models/Event.ts`
 **Model:** local
 **Message:**
@@ -548,7 +548,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-034: [TODO] Update formatters (12-hour time, no decimals)
+## TASK-034: [DONE] Update formatters (12-hour time, no decimals)
 **Files:** `utils/formatters.ts`
 **Model:** local
 **Message:**
@@ -614,7 +614,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-035: [TODO] Create WaterTankWidget component (SVG cylinder)
+## TASK-035: [DONE] Create WaterTankWidget component (SVG cylinder)
 **Files:** `components/WaterTankWidget.tsx`
 **Model:** local
 **Message:**
@@ -796,7 +796,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-036: [TODO] Update StatusDot to use translations
+## TASK-036: [DONE] Update StatusDot to use translations
 **Files:** `components/StatusDot.tsx`
 **Model:** local
 **Message:**
@@ -837,7 +837,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-037: [TODO] Update EventRow — hide BLE_SYNCED, 12h time, rounded tank%
+## TASK-037: [DONE] Update EventRow — hide BLE_SYNCED, 12h time, rounded tank%
 **Files:** `components/EventRow.tsx`
 **Model:** local
 **Message:**
@@ -881,7 +881,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-038: [TODO] Create combined Records screen
+## TASK-038: [DONE] Create combined Records screen
 **Files:** `app/(tabs)/records.tsx`
 **Model:** local
 **Message:**
@@ -1062,7 +1062,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-039: [TODO] Update Dashboard — WaterTankWidget, friendly labels, remove Pump State card
+## TASK-039: [DONE] Update Dashboard — WaterTankWidget, friendly labels, remove Pump State card
 **Files:** `app/(tabs)/index.tsx`
 **Model:** local
 **Message:**
@@ -1179,7 +1179,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-040: [TODO] Update Settings — language picker, hide DEBUG, friendly labels
+## TASK-040: [DONE] Update Settings — language picker, hide DEBUG, friendly labels
 **Files:** `app/(tabs)/settings.tsx`
 **Model:** local
 **Message:**
@@ -1324,7 +1324,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-041: [TODO] Reduce to 3 tabs and delete old tab files
+## TASK-041: [DONE] Reduce to 3 tabs and delete old tab files
 **Files:** `app/(tabs)/_layout.tsx` `app/(tabs)/today.tsx` `app/(tabs)/history.tsx` `app/(tabs)/stats.tsx`
 **Model:** local
 **Message:**
@@ -1421,7 +1421,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-042: [TODO] Create Onboarding screen
+## TASK-042: [DONE] Create Onboarding screen
 **Files:** `app/onboarding.tsx`
 **Model:** local
 **Message:**
@@ -1628,7 +1628,7 @@ WaterEvent field names (never deviate): id, epoch, type, tankPct, flowLpm, stopR
 
 ---
 
-## TASK-043: [TODO] Wire onboarding gate and LanguageProvider into root layout
+## TASK-043: [DONE] Wire onboarding gate and LanguageProvider into root layout
 **Files:** `app/_layout.tsx`
 **Model:** local
 **Message:**

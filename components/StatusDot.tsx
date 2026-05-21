@@ -10,6 +10,7 @@ import Animated, {
 
 import { useColors } from "@/hooks/useColors";
 import { formatRelativeTime } from "@/utils/formatters";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface StatusDotProps {
   connected: boolean;
@@ -19,6 +20,7 @@ interface StatusDotProps {
 
 export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
   const colors = useColors();
+  const { t } = useLanguage();
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -44,8 +46,8 @@ export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
   const label = connected
     ? simMode
       ? "Simulating"
-      : "Connected"
-    : "Searching...";
+      : t("connected")
+    : t("lookingForDevice");
 
   return (
     <View style={styles.container}>
@@ -58,7 +60,7 @@ export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
       )}
       {connected && lastSyncAt && (
         <Text style={[styles.syncTime, { color: colors.mutedForeground }]}>
-          synced {formatRelativeTime(lastSyncAt)}
+          {t("lastUpdated").replace("%t", formatRelativeTime(lastSyncAt))}
         </Text>
       )}
     </View>

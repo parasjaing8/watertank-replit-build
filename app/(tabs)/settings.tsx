@@ -16,6 +16,8 @@ import { useDevice } from "@/context/DeviceContext";
 import { useColors } from "@/hooks/useColors";
 import { EVENT_LABELS, STOP_REASON_LABELS } from "@/models/Event";
 import { formatDate, formatDuration } from "@/utils/formatters";
+import { useLanguage } from '@/context/LanguageContext';
+import { Lang } from '@/constants/i18n';
 
 function SectionHeader({ title, colors }: { title: string; colors: ReturnType<typeof useColors> }) {
   return (
@@ -73,6 +75,7 @@ function ActionRow({
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const { t, lang, setLanguage } = useLanguage();
   const {
     settings,
     updateSettings,
@@ -83,13 +86,26 @@ export default function SettingsScreen() {
     clearData,
     exportData,
     getDbInfo,
-    triggerSync,
   } = useDevice();
 
   const [showBleLog, setShowBleLog] = useState(false);
+  const [versionTaps, setVersionTaps] = useState(0);
+  const [devMode, setDevMode] = useState(false);
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+
+  const onVersionTap = useCallback(() => {
+    setVersionTaps((n) => {
+      const next = n + 1;
+      if (next >= 7) {
+        setDevMode(true);
+        Alert.alert('Developer mode', 'Developer options unlocked.');
+        return 0;
+      }
+      return next;
+    });
+  }, []);
 
   const handleExport = useCallback(async () => {
     try {
@@ -113,21 +129,21 @@ export default function SettingsScreen() {
 
   const handleClearData = useCallback(() => {
     Alert.alert(
-      "Clear All Data",
-      "This will permanently delete all recorded events and sync history. This cannot be undone.",
+      t('clearConfirmTitle'),
+      t('clearConfirmMsg'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: "Delete All",
-          style: "destructive",
+          text: t('deleteAll'),
+          style: 'destructive',
           onPress: () => {
             clearData();
-            Alert.alert("Cleared", "All data has been deleted.");
+            Alert.alert(t('cleared'));
           },
         },
       ],
     );
-  }, [clearData]);
+  }, [clearData, t]);
 
   const retentionOptions = [30, 60, 90];
 
@@ -136,10 +152,38 @@ export default function SettingsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
+      <SectionHeader title={t('language').toUpperCase()} colors={colors} />
+      <View style={[styles.section, { borderColor: colors.border }]}>
+        <View style={[styles.row, { borderBottomColor: 'transparent', backgroundColor: colors.card, flexWrap: 'wrap', gap: 8 }]}>
+          {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
+            const labels: Record<Lang, string> = { en: 'English', hi: 'हिन्दी', mr: 'मराठी', kn: 'ಕನ್ನಡ' };
+            const active = lang === code;
+            return (
+              <TouchableOpacity
+                key={code}
+                onPress={() => setLanguage(code)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 18,
+                  backgroundColor: active ? colors.primary : colors.muted,
+                }}
+              >
+                <Text style={{
+                  color: active ? colors.primaryForeground : colors.foreground,
+                  fontFamily: 'Inter_500Medium',
+                  fontSize: 14,
+                }}>{labels[code]}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       <SectionHeader title="NOTIFICATIONS" colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
         <SettingRow
-          label="Motor started"
+          label={t('notifyMotorOn')}
           colors={colors}
           right={
             <Switch
@@ -151,7 +195,7 @@ export default function SettingsScreen() {
           }
         />
         <SettingRow
-          label="Motor stopped"
+          label={t('notifyMotorOff')}
           colors={colors}
           right={
             <Switch
@@ -162,24 +206,12 @@ export default function SettingsScreen() {
             />
           }
         />
-        <SettingRow
-          label="Manual override"
-          colors={colors}
-          right={
-            <Switch
-              value={settings.notifyManualOverride}
-              onValueChange={(v) => updateSettings({ notifyManualOverride: v })}
-              trackColor={{ false: colors.muted, true: colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          }
-        />
       </View>
 
       <SectionHeader title="DATA" colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
         <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Retention period</Text>
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>{t('keepRecordsFor')}</Text>
           <View style={styles.retentionRow}>
             {retentionOptions.map((days) => (
               <TouchableOpacity
@@ -210,32 +242,14 @@ export default function SettingsScreen() {
             ))}
           </View>
         </View>
-        <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-          <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Events stored</Text>
-          <Text style={[styles.rowValue, { color: colors.foreground }]}>{dbInfo.totalEvents}</Text>
-        </View>
-        {dbInfo.oldestEpoch && (
-          <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-            <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Oldest event</Text>
-            <Text style={[styles.rowValue, { color: colors.foreground }]}>
-              {formatDate(dbInfo.oldestEpoch)}
-            </Text>
-          </View>
-        )}
         <ActionRow
-          label="Export data (CSV)"
+          label={t('shareRecords')}
           icon="share"
           onPress={handleExport}
           colors={colors}
         />
         <ActionRow
-          label="Sync now"
-          icon="refresh-cw"
-          onPress={triggerSync}
-          colors={colors}
-        />
-        <ActionRow
-          label="Clear all data"
+          label={t('clearAllData')}
           icon="trash-2"
           destructive
           onPress={handleClearData}
@@ -243,83 +257,87 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <SectionHeader title="DEBUG" colors={colors} />
-      <View style={[styles.section, { borderColor: colors.border }]}>
-        <TouchableOpacity
-          style={[
-            styles.row,
-            styles.demoRow,
-            {
-              borderBottomColor: colors.border,
-              backgroundColor: simMode ? colors.muted : colors.card,
-              opacity: simMode ? 0.6 : 1,
-            },
-          ]}
-          onPress={() => {
-            if (!simMode) runSimulation();
-          }}
-          activeOpacity={0.75}
-          disabled={simMode}
-        >
-          <View style={styles.demoTextCol}>
-            <Text style={[styles.rowLabel, { color: simMode ? colors.mutedForeground : colors.foreground }]}>
-              {simMode ? "Demo running…" : "Run demo cycle"}
-            </Text>
-            <Text style={[styles.demoSub, { color: colors.mutedForeground }]}>
-              {simMode
-                ? "One complete pump cycle is being simulated"
-                : "Simulates one full pump cycle for testing"}
-            </Text>
-          </View>
-          {!simMode && (
-            <Feather name="play" size={18} color={colors.primary} />
-          )}
-          {simMode && (
-            <View style={[styles.simBadge, { backgroundColor: colors.warning }]}>
-              <Text style={styles.simBadgeText}>SIM</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        {!bleAvailable && (
-          <View style={[styles.bleNote, { backgroundColor: colors.muted }]}>
-            <Text style={[styles.bleNoteText, { color: colors.mutedForeground }]}>
-              BLE requires a native Android build with react-native-ble-plx. This app will stay idle until real hardware connects.
-            </Text>
-          </View>
-        )}
-        <ActionRow
-          label={showBleLog ? "Hide BLE log" : "Show BLE log"}
-          icon="radio"
-          onPress={() => setShowBleLog((v) => !v)}
-          colors={colors}
-        />
-        {showBleLog && (
-          <View style={[styles.bleLog, { backgroundColor: colors.background }]}>
-            {bleLog.length === 0 ? (
-              <Text style={[styles.bleLogEmpty, { color: colors.mutedForeground }]}>
-                No BLE events yet
-              </Text>
-            ) : (
-              bleLog.slice(0, 50).map((line, i) => (
-                <Text key={i} style={[styles.bleLogLine, { color: colors.foreground }]}>
-                  {line}
+      {devMode && (
+        <>
+          <SectionHeader title="DEBUG" colors={colors} />
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={[
+                styles.row,
+                styles.demoRow,
+                {
+                  borderBottomColor: colors.border,
+                  backgroundColor: simMode ? colors.muted : colors.card,
+                  opacity: simMode ? 0.6 : 1,
+                },
+              ]}
+              onPress={() => {
+                if (!simMode) runSimulation();
+              }}
+              activeOpacity={0.75}
+              disabled={simMode}
+            >
+              <View style={styles.demoTextCol}>
+                <Text style={[styles.rowLabel, { color: simMode ? colors.mutedForeground : colors.foreground }]}>
+                  {simMode ? "Demo running…" : "Run demo cycle"}
                 </Text>
-              ))
+                <Text style={[styles.demoSub, { color: colors.mutedForeground }]}>
+                  {simMode
+                    ? "One complete pump cycle is being simulated"
+                    : "Simulates one full pump cycle for testing"}
+                </Text>
+              </View>
+              {!simMode && (
+                <Feather name="play" size={18} color={colors.primary} />
+              )}
+              {simMode && (
+                <View style={[styles.simBadge, { backgroundColor: colors.warning }]}>
+                  <Text style={styles.simBadgeText}>SIM</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {!bleAvailable && (
+              <View style={[styles.bleNote, { backgroundColor: colors.muted }]}>
+                <Text style={[styles.bleNoteText, { color: colors.mutedForeground }]}>
+                  BLE requires a native Android build with react-native-ble-plx. This app will stay idle until real hardware connects.
+                </Text>
+              </View>
+            )}
+            <ActionRow
+              label={showBleLog ? "Hide BLE log" : "Show BLE log"}
+              icon="radio"
+              onPress={() => setShowBleLog((v) => !v)}
+              colors={colors}
+            />
+            {showBleLog && (
+              <View style={[styles.bleLog, { backgroundColor: colors.background }]}>
+                {bleLog.length === 0 ? (
+                  <Text style={[styles.bleLogEmpty, { color: colors.mutedForeground }]}>
+                    No BLE events yet
+                  </Text>
+                ) : (
+                  bleLog.slice(0, 50).map((line, i) => (
+                    <Text key={i} style={[styles.bleLogLine, { color: colors.foreground }]}>
+                      {line}
+                    </Text>
+                  ))
+                )}
+              </View>
             )}
           </View>
-        )}
-      </View>
+        </>
+      )}
 
       <SectionHeader title="ABOUT" colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
-        <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-          <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>App version</Text>
+        <TouchableOpacity
+          style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
+          onPress={onVersionTap}
+          activeOpacity={1}
+        >
+          <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>{t('appVersion')}</Text>
           <Text style={[styles.rowValue, { color: colors.foreground }]}>{appVersion}</Text>
-        </View>
-        <View style={[styles.row, { borderBottomColor: "transparent", backgroundColor: colors.card }]}>
-          <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Device</Text>
-          <Text style={[styles.rowValue, { color: colors.foreground }]}>WaterTank v3 (ESP32)</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

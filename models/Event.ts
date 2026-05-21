@@ -42,20 +42,20 @@ export interface DailyStats {
 }
 
 export const EVENT_LABELS: Record<EventType, string> = {
-  [EventType.WATER_ARRIVED]: "Supply Arrived",
-  [EventType.MOTOR_ON]: "Motor Started",
-  [EventType.MOTOR_OFF]: "Motor Stopped",
-  [EventType.ALREADY_FULL]: "Tank Full — Skipped",
-  [EventType.MANUAL_ON]: "Manual Override ON",
-  [EventType.MANUAL_OFF]: "Manual Override OFF",
-  [EventType.BLE_SYNCED]: "Synced to Phone",
+  [EventType.WATER_ARRIVED]: 'Water Arrived',
+  [EventType.MOTOR_ON]: 'Motor Started',
+  [EventType.MOTOR_OFF]: 'Motor Stopped',
+  [EventType.ALREADY_FULL]: 'Water Arrived (tank was already full)',
+  [EventType.MANUAL_ON]: 'Pump set to manual',
+  [EventType.MANUAL_OFF]: 'Manual mode turned off',
+  [EventType.BLE_SYNCED]: 'Synced to Phone',
 };
 
 export const STOP_REASON_LABELS: Record<StopReason, string> = {
-  [StopReason.NONE]: "—",
-  [StopReason.TANK_FULL]: "Tank Full",
-  [StopReason.SUPPLY_CUT]: "Supply Cut",
-  [StopReason.ALREADY_FULL]: "Already Full",
+  [StopReason.NONE]: '—',
+  [StopReason.TANK_FULL]: 'Tank Full',
+  [StopReason.SUPPLY_CUT]: 'Water supply ended',
+  [StopReason.ALREADY_FULL]: 'Already full',
 };
 
 export const PUMP_STATE_LABELS: Record<number, string> = {
@@ -73,3 +73,5 @@ export const DEFAULT_DEVICE_STATE: DeviceState = {
   pumpState: 0,
   lastSyncAt: null,
 };
+
+export const HIDDEN_EVENT_TYPES: EventType[] = [EventType.BLE_SYNCED];

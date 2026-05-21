@@ -1,11 +1,10 @@
 export function formatTime(epoch: number): string {
-  if (!epoch || epoch < 1000000) return "Time unknown";
+  if (!epoch || epoch < 1000000) return 'Time unknown';
   const d = new Date(epoch * 1000);
-  return d.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
+  return d.toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   });
 }
 
@@ -55,21 +54,30 @@ export function formatDuration(seconds: number): string {
 }
 
 export function formatRelativeTime(epoch: number | null): string {
-  if (!epoch) return "never";
+  if (!epoch) return 'never';
   const diff = Math.floor(Date.now() / 1000) - epoch;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 60) return 'just now';
+  if (diff < 120) return '1 min ago';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 7200) return '1 hour ago';
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+export function formatTankPct(pct: number): string {
+  if (pct === null || pct === undefined || isNaN(pct)) return '—';
+  return `${Math.round(pct)}%`;
 }
 
 export function getTankColor(
   pct: number,
-  theme: { tankGreen: string; tankOrange: string; tankRed: string },
+  theme: { tankEmpty: string; tankLow: string; tankMid: string; tankHigh: string; tankFull: string },
 ): string {
-  if (pct >= 95) return theme.tankRed;
-  if (pct >= 80) return theme.tankOrange;
-  return theme.tankGreen;
+  if (pct >= 95) return theme.tankFull;
+  if (pct >= 60) return theme.tankHigh;
+  if (pct >= 30) return theme.tankMid;
+  if (pct >= 10) return theme.tankLow;
+  return theme.tankEmpty;
 }
 
 export function getDayBounds(date: Date): { start: number; end: number } {

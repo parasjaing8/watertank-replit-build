@@ -1,16 +1,16 @@
-import { Feather } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import React from "react";
-import { Platform, StyleSheet, useColorScheme } from "react-native";
-import { BlurView } from "expo-blur";
+import { Feather } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import React from 'react';
+import { Platform, StyleSheet, useColorScheme } from 'react-native';
+import { BlurView } from 'expo-blur';
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from '@/hooks/useColors';
 
 export default function TabLayout() {
   const colors = useColors();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const isIOS = Platform.OS === "ios";
+  const isDark = colorScheme === 'dark';
+  const isIOS = Platform.OS === 'ios';
 
   return (
     <Tabs
@@ -18,29 +18,27 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         headerShown: true,
-        headerStyle: {
-          backgroundColor: colors.background,
-        },
+        headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.foreground,
         headerShadowVisible: false,
         tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.background,
+          position: 'absolute',
+          backgroundColor: isIOS ? 'transparent' : colors.background,
           borderTopWidth: 0,
           elevation: 0,
-          ...(Platform.OS === "web" ? { height: 84 } : {}),
+          ...(Platform.OS === 'web' ? { height: 84 } : {}),
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
               intensity={80}
-              tint={isDark ? "dark" : "light"}
+              tint={isDark ? 'dark' : 'light'}
               style={StyleSheet.absoluteFill}
             />
           ) : null,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontFamily: "Inter_500Medium",
+          fontFamily: 'Inter_500Medium',
           marginBottom: 2,
         },
       }}
@@ -48,49 +46,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
-          headerTitle: "WaterTank",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="droplet" size={size} color={color} />
-          ),
+          title: 'Dashboard',
+          headerTitle: 'WaterTank',
+          tabBarIcon: ({ color, size }) => <Feather name="droplet" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="today"
+        name="records"
         options={{
-          title: "Today",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="list" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: "History",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="calendar" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          title: "Stats",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="bar-chart-2" size={size} color={color} />
-          ),
+          title: 'Records',
+          tabBarIcon: ({ color, size }) => <Feather name="list" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="settings" size={size} color={color} />
-          ),
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => <Feather name="settings" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen name="today" options={{ href: null }} />
+      <Tabs.Screen name="history" options={{ href: null }} />
+      <Tabs.Screen name="stats" options={{ href: null }} />
     </Tabs>
   );
 }
