@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "WaterTank",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#060E18"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.watertank.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "WaterTank uses Bluetooth to connect to the ESP32 water pump controller.",
+        "NSBluetoothPeripheralUsageDescription": "WaterTank uses Bluetooth to connect to the ESP32 water pump controller."
+      }
+    },
+    "android": {
+      "package": "com.watertank.app",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "react-native-ble-plx"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
