@@ -97,3 +97,8 @@
 - Tricky: 
 - Learned: 
 - Deviation: none
+
+## v5 release — Reanimated bridgeless crash fix
+- Tricky: `useAnimatedStyle` and `useAnimatedProps` both crash at module load time in RN 0.76 bridgeless mode with `TypeError: Object is not a function` on the UI thread worklet. ErrorBoundary cannot catch it — the JS runtime dies before render.
+- Learned: In RN 0.76 bridgeless (default), ALL Reanimated worklets are registered at module load — even from unrendered components. Built-in `Animated` API with `useNativeDriver: true` is safe. Fix: PulsingDots → `Animated.Value`/`Animated.loop`/`Animated.sequence`; WaterTankWidget → `useState`+`setInterval` interpolation (30 steps × 20ms).
+- Deviation: WaterTankWidget no longer uses SVG AnimatedRect/AnimatedEllipse — uses plain `Rect`/`Path` driven by state interpolation instead.
