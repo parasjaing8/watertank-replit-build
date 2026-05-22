@@ -112,6 +112,11 @@ export interface Translations {
   configureTankSize: string;
   // dev mode
   hideDeveloperOptions: string;
+  // tank status labels
+  tankHealthy: string;
+  tankEmpty: string;
+  tankFilling: string;
+  waitingForWaterSupply: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -217,6 +222,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizePlaceholder: '1000',
     configureTankSize: 'Set tank size to see litres',
     hideDeveloperOptions: 'Hide developer options',
+    tankHealthy: 'Tank Healthy',
+    tankEmpty: 'Tank Empty',
+    tankFilling: 'Tank Filling',
+    waitingForWaterSupply: 'Waiting for Water Supply',
   },
   hi: {
     appName: 'WaterTank',
@@ -320,6 +329,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizePlaceholder: '1000',
     configureTankSize: 'लीटर देखने के लिए टंकी का आकार सेट करें',
     hideDeveloperOptions: 'डेवलपर विकल्प छुपाएँ',
+    tankHealthy: 'टंकी ठीक है',
+    tankEmpty: 'टंकी खाली है',
+    tankFilling: 'टंकी भर रही है',
+    waitingForWaterSupply: 'पानी की सप्लाई का इंतज़ार',
   },
   mr: {
     appName: 'WaterTank',
@@ -423,6 +436,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizePlaceholder: '1000',
     configureTankSize: 'लीटर पाहण्यासाठी टाकीचा आकार सेट करा',
     hideDeveloperOptions: 'डेव्हलपर पर्याय लपवा',
+    tankHealthy: 'टाकी ठीक आहे',
+    tankEmpty: 'टाकी रिकामी आहे',
+    tankFilling: 'टाकी भरत आहे',
+    waitingForWaterSupply: 'पाण्याच्या पुरवठ्याची वाट',
   },
   kn: {
     appName: 'WaterTank',
@@ -526,5 +543,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizePlaceholder: '1000',
     configureTankSize: 'ಲೀಟರ್ ನೋಡಲು ಟ್ಯಾಂಕ್ ಗಾತ್ರವನ್ನು ಹೊಂದಿಸಿ',
     hideDeveloperOptions: 'ಡೆವಲಪರ್ ಆಯ್ಕೆಗಳನ್ನು ಮರೆಮಾಡಿ',
+    tankHealthy: 'ಟ್ಯಾಂಕ್ ಸ್ವಸ್ಥವಾಗಿದೆ',
+    tankEmpty: 'ಟ್ಯಾಂಕ್ ಖಾಲಿಯಾಗಿದೆ',
+    tankFilling: 'ಟ್ಯಾಂಕ್ ತುಂಬುತ್ತಿದೆ',
+    waitingForWaterSupply: 'ನೀರಿನ ಪೂರೈಕೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ',
   },
 };

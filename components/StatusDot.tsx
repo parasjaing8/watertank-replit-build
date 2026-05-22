@@ -1,12 +1,5 @@
-import React, { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { formatRelativeTime } from "@/utils/formatters";
@@ -23,26 +16,21 @@ export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
   const colors = useColors();
   const { t } = useLanguage();
   const font = useAppFont();
-  const opacity = useSharedValue(1);
+  const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!connected) {
-      opacity.value = withRepeat(
-        withSequence(
-          withTiming(0.3, { duration: 600 }),
-          withTiming(1, { duration: 600 }),
-        ),
-        -1,
-        false,
-      );
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
     } else {
-      opacity.value = withTiming(1, { duration: 200 });
+      opacity.stopAnimation();
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     }
   }, [connected]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
 
   const dotColor = connected ? colors.success : colors.mutedForeground;
   const label = connected
@@ -53,11 +41,11 @@ export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.dot, { backgroundColor: dotColor }, animStyle]} />
+      <Animated.View style={[styles.dot, { backgroundColor: dotColor }, { opacity }]} />
       <Text style={[styles.label, { color: colors.foreground, fontFamily: font.medium }]}>{label}</Text>
       {simMode && (
-        <View style={[styles.simBadge, { backgroundColor: colors.warning }]}>
-          <Text style={styles.simBadgeText}>SIM</Text>
+        <View style={[styles.demoBadge, { backgroundColor: '#F59E0B' }]}>
+          <Text style={styles.demoBadgeText}>DEMO</Text>
         </View>
       )}
       {connected && lastSyncAt && (
@@ -86,16 +74,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  simBadge: {
-    paddingHorizontal: 6,
+  demoBadge: {
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
-  simBadgeText: {
+  demoBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   syncTime: {
     fontSize: 12,

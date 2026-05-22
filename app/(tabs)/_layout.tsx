@@ -18,20 +18,22 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarShowIcon: true,
+        tabBarActiveTintColor: '#2563EB',
+        tabBarInactiveTintColor: '#94A3B8',
         headerShown: true,
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.foreground,
         headerShadowVisible: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : colors.card,
+          backgroundColor: isIOS ? 'transparent' : '#FFFFFF',
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.border,
-          elevation: 0,
-          shadowOpacity: 0,
+          borderTopColor: '#E2E8F0',
+          elevation: 2,
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: -2 },
           height: 56 + bottomPad,
           paddingBottom: bottomPad,
           paddingTop: 6,
@@ -54,8 +56,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Dashboard',
-          headerTitle: 'WaterTank',
-          tabBarIcon: ({ color, size }) => <Feather name="droplet" size={size} color={color} />,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Feather name="home" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
