@@ -60,8 +60,8 @@ export const STOP_REASON_LABELS: Record<StopReason, string> = {
 
 export const PUMP_STATE_LABELS: Record<number, string> = {
   0: "Idle",
-  1: "Supply Detected",
-  2: "Air Purge (45s)",
+  1: "Water Arrived",
+  2: "Motor Starting",
   3: "Pumping",
 };
 

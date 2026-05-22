@@ -8,9 +8,11 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { DATA_RETENTION_DEFAULT_DAYS } from "@/constants/thresholds";
+import { DATA_RETENTION_DEFAULT_DAYS, TANK_LOW_PCT } from "@/constants/thresholds";
 import { DEFAULT_DEVICE_STATE, DeviceState, WaterEvent } from "@/models/Event";
 import { BLEService, bleModuleAvailable } from "@/services/BLEService";
+import * as NotificationService from "@/services/NotificationService";
+import { useLanguage } from "@/context/LanguageContext";
 import { IDeviceService } from "@/services/IDeviceService";
 import { SimulationService } from "@/services/SimulationService";
 import {
@@ -73,6 +75,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [refreshKey, setRefreshKey] = useState(0);
   const serviceRef = useRef<IDeviceService | null>(null);
+  const { t } = useLanguage();
+  const prevPumpStateRef = useRef<number>(0);
+  const tankLowFiredRef = useRef<boolean>(false);
 
   // Initialise DB and load persisted settings on mount.
   // simMode is intentionally NOT persisted — the app always starts idle.
@@ -167,6 +172,35 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     },
     [settings],
   );
+
+  useEffect(() => {
+    const prev = prevPumpStateRef.current;
+    const cur = deviceState.pumpState;
+    if (prev !== 3 && cur === 3 && settings.notifyMotorOn) {
+      NotificationService.scheduleMotorOn(deviceState.tank, t);
+    }
+    if (prev === 3 && cur !== 3 && settings.notifyMotorOff) {
+      NotificationService.scheduleMotorOff(deviceState.tank, 0, t);
+    }
+    prevPumpStateRef.current = cur;
+  }, [deviceState.pumpState, deviceState.tank, settings.notifyMotorOn, settings.notifyMotorOff, t]);
+
+  useEffect(() => {
+    if (
+      deviceState.connected &&
+      !deviceState.motorOn &&
+      deviceState.tank > 0 &&
+      deviceState.tank < TANK_LOW_PCT &&
+      settings.notifyMotorOn
+    ) {
+      if (!tankLowFiredRef.current) {
+        tankLowFiredRef.current = true;
+        NotificationService.scheduleTankLow(t);
+      }
+    } else if (deviceState.tank >= TANK_LOW_PCT) {
+      tankLowFiredRef.current = false;
+    }
+  }, [deviceState.tank, deviceState.motorOn, deviceState.connected, settings.notifyMotorOn, t]);
 
   const triggerSync = useCallback(() => {
     serviceRef.current?.triggerSync?.();

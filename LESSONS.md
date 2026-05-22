@@ -75,3 +75,10 @@
 - Tricky: 
 - Learned: 
 - Deviation: none
+
+## TASK-044 through TASK-062: v3 redesign (full Sonnet pass)
+- Learned: ollama-27b via aider is too slow for large message tasks (TASK-044's message was ~7KB). Killed runner, switched to Sonnet direct.
+- Learned: `Translator = (key: string) => string` conflicts with LanguageContext `t: (key: keyof Translations) => string`. Fix: import Translations type and use `keyof Translations` in all Translator type definitions.
+- Learned: expo-notifications scheduleNotificationAsync trigger:null works fine for immediate; no need for null cast.
+- Learned: formatters.ts importing `type { Translations }` from i18n creates a circular-ish dep at type level only — it's fine at runtime.
+- Deviation: TASK-049, 050, 051 absorbed into Sonnet TASK-055/056/settings rewrite (combined to avoid merge conflicts).

@@ -12,6 +12,8 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo-google-fonts/noto-sans-devanagari": "^0.4.1",
+    "@expo-google-fonts/noto-sans-kannada": "^0.4.3",
     "buffer": "^6.0.3",
     "expo": "~52.0.46",
     "expo-asset": "~10.0.10",
@@ -21,6 +23,7 @@
     "expo-haptics": "~14.0.1",
     "expo-linear-gradient": "~14.0.2",
     "expo-linking": "~7.0.5",
+    "expo-notifications": "^0.29.14",
     "expo-router": "~4.0.17",
     "expo-splash-screen": "~0.29.21",
     "expo-sqlite": "~15.1.2",

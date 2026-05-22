@@ -11,6 +11,7 @@ import Animated, {
 import { useColors } from "@/hooks/useColors";
 import { formatRelativeTime } from "@/utils/formatters";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAppFont } from "@/hooks/useAppFont";
 
 interface StatusDotProps {
   connected: boolean;
@@ -21,6 +22,7 @@ interface StatusDotProps {
 export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
   const colors = useColors();
   const { t } = useLanguage();
+  const font = useAppFont();
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -45,22 +47,22 @@ export function StatusDot({ connected, simMode, lastSyncAt }: StatusDotProps) {
   const dotColor = connected ? colors.success : colors.mutedForeground;
   const label = connected
     ? simMode
-      ? "Simulating"
+      ? t("simulating")
       : t("connected")
     : t("lookingForDevice");
 
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.dot, { backgroundColor: dotColor }, animStyle]} />
-      <Text style={[styles.label, { color: colors.foreground }]}>{label}</Text>
+      <Text style={[styles.label, { color: colors.foreground, fontFamily: font.medium }]}>{label}</Text>
       {simMode && (
         <View style={[styles.simBadge, { backgroundColor: colors.warning }]}>
           <Text style={styles.simBadgeText}>SIM</Text>
         </View>
       )}
       {connected && lastSyncAt && (
-        <Text style={[styles.syncTime, { color: colors.mutedForeground }]}>
-          {t("lastUpdated").replace("%t", formatRelativeTime(lastSyncAt))}
+        <Text style={[styles.syncTime, { color: colors.mutedForeground, fontFamily: font.regular }]}>
+          {t("lastUpdated").replace("%t", formatRelativeTime(lastSyncAt, t))}
         </Text>
       )}
     </View>

@@ -40,25 +40,24 @@ export default function OnboardingScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.body}>
+        {/* Page 0: Language picker — shows all 4 scripts so any user recognises it */}
         {page === 0 && (
           <View style={styles.pageContent}>
-            <Text style={styles.bigIcon}>💧</Text>
-            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob1Title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob1Subtitle')}</Text>
-          </View>
-        )}
-        {page === 1 && (
-          <View style={styles.pageContent}>
-            <Text style={styles.bigIcon}>⚡</Text>
-            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob2Title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob2Subtitle')}</Text>
-          </View>
-        )}
-        {page === 2 && (
-          <View style={styles.pageContent}>
             <Text style={styles.bigIcon}>🌐</Text>
-            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob3Title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob3Subtitle')}</Text>
+            <View style={styles.langHeader}>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                Choose your language
+              </Text>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                अपनी भाषा चुनें
+              </Text>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                तुमची भाषा निवडा
+              </Text>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ
+              </Text>
+            </View>
             <View style={styles.langGrid}>
               {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
                 const active = lang === code;
@@ -86,6 +85,24 @@ export default function OnboardingScreen() {
                 );
               })}
             </View>
+          </View>
+        )}
+
+        {/* Page 1: Your water tank, always watched */}
+        {page === 1 && (
+          <View style={styles.pageContent}>
+            <Text style={styles.bigIcon}>💧</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob1Title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob1Subtitle')}</Text>
+          </View>
+        )}
+
+        {/* Page 2: Works automatically */}
+        {page === 2 && (
+          <View style={styles.pageContent}>
+            <Text style={styles.bigIcon}>⚡</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob2Title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob2Subtitle')}</Text>
           </View>
         )}
       </View>
@@ -144,6 +161,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     maxWidth: 320,
+  },
+  langHeader: {
+    gap: 6,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  langHeaderText: {
+    fontSize: 20,
+    fontFamily: 'Inter_600SemiBold',
+    textAlign: 'center',
   },
   langGrid: {
     flexDirection: 'row',

@@ -5,11 +5,11 @@ import {
   EventType,
   StopReason,
   WaterEvent,
-  EVENT_LABELS,
-  STOP_REASON_LABELS,
   HIDDEN_EVENT_TYPES,
 } from "@/models/Event";
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAppFont } from "@/hooks/useAppFont";
 import { formatTime, formatDuration, formatTankPct } from "@/utils/formatters";
 
 interface EventRowProps {
@@ -54,9 +54,27 @@ function getStopReasonColor(
 export function EventRow({ event }: EventRowProps) {
   if (HIDDEN_EVENT_TYPES.includes(event.type)) return null;
   const colors = useColors();
+  const { t } = useLanguage();
+  const font = useAppFont();
   const borderColor = getLeftBorderColor(event, colors);
   const timeStr = formatTime(event.epoch);
-  const label = EVENT_LABELS[event.type] ?? `Event ${event.type}`;
+
+  const eventLabelMap: Partial<Record<EventType, string>> = {
+    [EventType.WATER_ARRIVED]: t("evWaterArrived"),
+    [EventType.MOTOR_ON]: t("evMotorOn"),
+    [EventType.MOTOR_OFF]: t("evMotorOff"),
+    [EventType.ALREADY_FULL]: t("evAlreadyFull"),
+    [EventType.MANUAL_ON]: t("evManualOn"),
+    [EventType.MANUAL_OFF]: t("evManualOff"),
+  };
+  const label = eventLabelMap[event.type] ?? `Event ${event.type}`;
+
+  const stopReasonLabelMap: Partial<Record<StopReason, string>> = {
+    [StopReason.TANK_FULL]: t("stopTankFull"),
+    [StopReason.SUPPLY_CUT]: t("stopSupplyCut"),
+    [StopReason.ALREADY_FULL]: t("stopAlreadyFull"),
+  };
+
   const tankStr = formatTankPct(event.tankPct);
   const showStopReason = event.type === EventType.MOTOR_OFF && event.stopReason !== StopReason.NONE;
   const showDuration = event.type === EventType.MOTOR_OFF && event.durationSec > 0;
@@ -66,11 +84,11 @@ export function EventRow({ event }: EventRowProps) {
       <View style={[styles.leftBorder, { backgroundColor: borderColor }]} />
       <View style={styles.content}>
         <View style={styles.mainRow}>
-          <Text style={[styles.time, { color: colors.mutedForeground }]}>{timeStr}</Text>
-          <Text style={[styles.label, { color: colors.foreground }]} numberOfLines={1}>
+          <Text style={[styles.time, { color: colors.mutedForeground, fontFamily: font.regular }]}>{timeStr}</Text>
+          <Text style={[styles.label, { color: colors.foreground, fontFamily: font.medium }]} numberOfLines={1}>
             {label}
           </Text>
-          <Text style={[styles.tank, { color: colors.mutedForeground }]}>{tankStr}</Text>
+          <Text style={[styles.tank, { color: colors.mutedForeground, fontFamily: font.regular }]}>{tankStr}</Text>
         </View>
         {(showStopReason || showDuration) && (
           <View style={styles.subRow}>
@@ -87,15 +105,15 @@ export function EventRow({ event }: EventRowProps) {
                 <Text
                   style={[
                     styles.chipText,
-                    { color: getStopReasonColor(event.stopReason, colors) },
+                    { color: getStopReasonColor(event.stopReason, colors), fontFamily: font.semiBold },
                   ]}
                 >
-                  {STOP_REASON_LABELS[event.stopReason]}
+                  {stopReasonLabelMap[event.stopReason] ?? "—"}
                 </Text>
               </View>
             )}
             {showDuration && (
-              <Text style={[styles.duration, { color: colors.mutedForeground }]}>
+              <Text style={[styles.duration, { color: colors.mutedForeground, fontFamily: font.regular }]}>
                 {formatDuration(event.durationSec)}
               </Text>
             )}
@@ -128,13 +146,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   time: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
     width: 72,
   },
   label: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Inter_500Medium",
   },
   tank: {

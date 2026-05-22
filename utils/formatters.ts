@@ -1,17 +1,34 @@
-export function formatTime(epoch: number): string {
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-IN',
+  hi: 'hi-IN',
+  mr: 'mr-IN',
+  kn: 'kn-IN',
+};
+
+import type { Translations } from '@/constants/i18n';
+
+type Lang = 'en' | 'hi' | 'mr' | 'kn';
+type Translator = (key: keyof Translations) => string;
+
+function resolveLocale(lang?: Lang | string): string {
+  if (!lang) return 'en-IN';
+  return LOCALE_MAP[lang] ?? 'en-IN';
+}
+
+export function formatTime(epoch: number, lang?: Lang): string {
   if (!epoch || epoch < 1000000) return 'Time unknown';
   const d = new Date(epoch * 1000);
-  return d.toLocaleTimeString('en-IN', {
+  return d.toLocaleTimeString(resolveLocale(lang), {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
   });
 }
 
-export function formatDate(epoch: number): string {
+export function formatDate(epoch: number, lang?: Lang): string {
   if (!epoch || epoch < 1000000) return "Unknown date";
   const d = new Date(epoch * 1000);
-  return d.toLocaleDateString("en-IN", {
+  return d.toLocaleDateString(resolveLocale(lang), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -19,10 +36,10 @@ export function formatDate(epoch: number): string {
   });
 }
 
-export function formatShortDate(epoch: number): string {
+export function formatShortDate(epoch: number, lang?: Lang): string {
   if (!epoch || epoch < 1000000) return "Unknown";
   const d = new Date(epoch * 1000);
-  return d.toLocaleDateString("en-IN", {
+  return d.toLocaleDateString(resolveLocale(lang), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -30,7 +47,7 @@ export function formatShortDate(epoch: number): string {
   });
 }
 
-export function formatDayLabel(dayStr: string): string {
+export function formatDayLabel(dayStr: string, lang?: Lang): string {
   const d = new Date(dayStr + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -38,29 +55,32 @@ export function formatDayLabel(dayStr: string): string {
   yesterday.setDate(yesterday.getDate() - 1);
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-IN", {
+  return d.toLocaleDateString(resolveLocale(lang), {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
 }
 
-export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+export function formatDuration(seconds: number, t?: Translator): string {
+  const s = t ? t('sec') : 's';
+  const m = t ? t('min') : 'm';
+  const h = t ? t('hr') : 'h';
+  if (seconds < 60) return `${seconds}${s}`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}${m}`;
+  const hh = Math.floor(seconds / 3600);
+  const mm = Math.floor((seconds % 3600) / 60);
+  return mm > 0 ? `${hh}${h} ${mm}${m}` : `${hh}${h}`;
 }
 
-export function formatRelativeTime(epoch: number | null): string {
-  if (!epoch) return 'never';
+export function formatRelativeTime(epoch: number | null, t?: Translator): string {
+  if (!epoch) return t ? t('justNow') : 'just now';
   const diff = Math.floor(Date.now() / 1000) - epoch;
-  if (diff < 60) return 'just now';
-  if (diff < 120) return '1 min ago';
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 7200) return '1 hour ago';
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 60) return t ? t('justNow') : 'just now';
+  if (diff < 120) return t ? t('minuteAgo') : '1 min ago';
+  if (diff < 3600) return (t ? t('minutesAgo') : '%n min ago').replace('%n', String(Math.floor(diff / 60)));
+  if (diff < 7200) return t ? t('hourAgoOne') : '1 hour ago';
+  if (diff < 86400) return (t ? t('hoursAgo') : '%n hours ago').replace('%n', String(Math.floor(diff / 3600)));
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
@@ -103,8 +123,8 @@ export function isToday(date: Date): boolean {
   );
 }
 
-export function formatHeaderDate(date: Date): string {
-  return date.toLocaleDateString("en-IN", {
+export function formatHeaderDate(date: Date, lang?: Lang): string {
+  return date.toLocaleDateString(resolveLocale(lang), {
     weekday: "long",
     day: "numeric",
     month: "long",

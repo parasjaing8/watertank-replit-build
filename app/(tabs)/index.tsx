@@ -5,19 +5,81 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import { StatusDot } from "@/components/StatusDot";
-import { WaterTankWidget } from '@/components/WaterTankWidget';
+import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { useDevice } from "@/context/DeviceContext";
 import { useColors } from "@/hooks/useColors";
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage } from "@/context/LanguageContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TANK_LOW_PCT } from "@/constants/thresholds";
+
+function PulsingDots({ color }: { color: string }) {
+  const a = useSharedValue(0.3);
+  const b = useSharedValue(0.3);
+  const c = useSharedValue(0.3);
+
+  useEffect(() => {
+    a.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 400 }),
+        withTiming(0.3, { duration: 400 }),
+        withTiming(0.3, { duration: 800 })
+      ),
+      -1,
+      false
+    );
+    b.value = withRepeat(
+      withSequence(
+        withTiming(0.3, { duration: 400 }),
+        withTiming(1, { duration: 400 }),
+        withTiming(0.3, { duration: 800 })
+      ),
+      -1,
+      false
+    );
+    c.value = withRepeat(
+      withSequence(
+        withTiming(0.3, { duration: 800 }),
+        withTiming(1, { duration: 400 }),
+        withTiming(0.3, { duration: 400 })
+      ),
+      -1,
+      false
+    );
+  }, []);
+
+  const sa = useAnimatedStyle(() => ({ opacity: a.value }));
+  const sb = useAnimatedStyle(() => ({ opacity: b.value }));
+  const sc = useAnimatedStyle(() => ({ opacity: c.value }));
+
+  return (
+    <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
+      <Animated.View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, sa]} />
+      <Animated.View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, sb]} />
+      <Animated.View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, sc]} />
+    </View>
+  );
+}
 
 export default function DashboardScreen() {
   const colors = useColors();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { deviceState, simMode } = useDevice();
+
   const [countdown, setCountdown] = useState(45);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevPumpStateRef = useRef<number>(deviceState.pumpState);
+  const [showFullToast, setShowFullToast] = useState(false);
+  const [disconnectedSec, setDisconnectedSec] = useState(0);
+  const [tankSize, setTankSize] = useState<number>(0);
 
   const isStartupDelay = deviceState.pumpState === 2;
 
@@ -36,60 +98,119 @@ export default function DashboardScreen() {
     };
   }, [isStartupDelay]);
 
+  useEffect(() => {
+    if (prevPumpStateRef.current === 3 && deviceState.pumpState === 0) {
+      setShowFullToast(true);
+      const timer = setTimeout(() => setShowFullToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    prevPumpStateRef.current = deviceState.pumpState;
+  }, [deviceState.pumpState]);
+
+  useEffect(() => {
+    AsyncStorage.getItem("@watertank_tank_size_litres").then((v) => {
+      const n = parseInt(v || "0", 10);
+      if (!isNaN(n)) setTankSize(n);
+    });
+  }, [deviceState.tank]);
+
+  useEffect(() => {
+    if (!deviceState.connected && !simMode) {
+      setDisconnectedSec(0);
+      const id = setInterval(() => setDisconnectedSec((s) => s + 1), 1000);
+      return () => clearInterval(id);
+    }
+    setDisconnectedSec(0);
+  }, [deviceState.connected, simMode]);
+
   const motorColor = deviceState.motorOn ? colors.motorOn : colors.motorOff;
 
+  const showLowWarning =
+    deviceState.connected &&
+    !deviceState.motorOn &&
+    deviceState.tank < TANK_LOW_PCT &&
+    deviceState.tank > 0;
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-      scrollEnabled={false}
-    >
-      <StatusDot
-        connected={deviceState.connected}
-        simMode={simMode}
-        lastSyncAt={deviceState.lastSyncAt}
-      />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        scrollEnabled={false}
+      >
+        <StatusDot
+          connected={deviceState.connected}
+          simMode={simMode}
+          lastSyncAt={deviceState.lastSyncAt}
+        />
 
-      {/* Manual override banner */}
-      {deviceState.manual && (
-        <View style={[styles.manualBanner, { backgroundColor: colors.destructive }]}>
-          <Text style={styles.manualBannerText}>{t('pumpManual')}</Text>
-        </View>
-      )}
+        {/* Manual override banner */}
+        {deviceState.manual && (
+          <View style={[styles.manualBanner, { backgroundColor: colors.destructive }]}>
+            <Text style={[styles.manualBannerText, { letterSpacing: lang === "en" ? 1 : 0 }]}>{t("pumpManual")}</Text>
+          </View>
+        )}
 
-      <View style={styles.tankSection}>
-        <WaterTankWidget pct={deviceState.tank} connected={deviceState.connected} />
-      </View>
+        {/* Tank low warning banner */}
+        {showLowWarning && (
+          <View style={[styles.lowBanner, { backgroundColor: colors.warning }]}>
+            <Text style={styles.lowBannerText}>{t("tankLow")}</Text>
+          </View>
+        )}
 
-      {!deviceState.connected && (
-        <View style={[styles.disconnectedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.disconnectedTitle, { color: colors.mutedForeground }]}>
-            {simMode ? 'Demo running…' : t('lookingForDevice')}
-          </Text>
-          {!simMode && (
-            <Text style={[styles.disconnectedSub, { color: colors.mutedForeground }]}>
-              {t('waitingForWater')}
+        <View style={styles.tankSection}>
+          <WaterTankWidget pct={deviceState.tank} connected={deviceState.connected} />
+          {tankSize > 0 && deviceState.connected && (
+            <Text style={[styles.litresText, { color: colors.foreground }]}>
+              {Math.round((tankSize * deviceState.tank) / 100)} {t("litres")}
             </Text>
           )}
         </View>
-      )}
 
-      {deviceState.connected && (
-        <View style={[styles.motorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.motorIndicator, { backgroundColor: motorColor }]} />
-          <View style={styles.motorInfo}>
-            <Text style={[styles.motorLabel, { color: colors.foreground }]}>
-              {deviceState.motorOn ? t('motorRunning') : t('motorOff')}
+        {!deviceState.connected && (
+          <View style={[styles.disconnectedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.disconnectedTitle, { color: colors.foreground }]}>
+              {simMode ? t("demoRunning") : t("lookingForDevice")}
             </Text>
-            {isStartupDelay && (
-              <Text style={[styles.motorSub, { color: colors.mutedForeground }]}>
-                {t('motorStarting')} {countdown}s
-              </Text>
+            {!simMode && (
+              <>
+                <Text style={[styles.disconnectedSub, { color: colors.mutedForeground }]}>
+                  {t("deviceConnecting")}
+                </Text>
+                <PulsingDots color={colors.primary} />
+                {disconnectedSec > 30 && (
+                  <Text style={[styles.disconnectedHint, { color: colors.mutedForeground }]}>
+                    {t("checkDevicePower")}
+                  </Text>
+                )}
+              </>
             )}
           </View>
+        )}
+
+        {deviceState.connected && (
+          <View style={[styles.motorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.motorIndicator, { backgroundColor: motorColor }]} />
+            <View style={styles.motorInfo}>
+              <Text style={[styles.motorLabel, { color: colors.foreground }]}>
+                {deviceState.motorOn ? t("motorRunning") : t("motorOff")}
+              </Text>
+              {isStartupDelay && (
+                <Text style={[styles.motorSub, { color: colors.mutedForeground }]}>
+                  {t("motorStarting")} {countdown}s
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {showFullToast && (
+        <View style={[styles.toast, { backgroundColor: colors.success }]}>
+          <Text style={styles.toastText}>{t("tankFullCelebration")}</Text>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -115,6 +236,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1,
   },
+  lowBanner: {
+    width: "100%",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  lowBannerText: {
+    color: "#FFFFFF",
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
   tankSection: {
     alignItems: "center",
     paddingVertical: 8,
@@ -128,8 +261,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   disconnectedTitle: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
     textAlign: "center",
   },
   disconnectedSub: {
@@ -137,6 +270,14 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     lineHeight: 18,
+  },
+  disconnectedHint: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 8,
+    opacity: 0.85,
   },
   motorCard: {
     width: "100%",
@@ -158,4 +299,27 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   motorSub: { fontSize: 13 },
+  litresText: {
+    fontSize: 22,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: -4,
+  },
+  toast: {
+    position: "absolute",
+    bottom: 120,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 22,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  toastText: {
+    color: "#FFFFFF",
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+  },
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -6,22 +6,33 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 
 import { useDevice } from "@/context/DeviceContext";
 import { useColors } from "@/hooks/useColors";
 import { EVENT_LABELS, STOP_REASON_LABELS } from "@/models/Event";
 import { formatDate, formatDuration } from "@/utils/formatters";
-import { useLanguage } from '@/context/LanguageContext';
-import { Lang } from '@/constants/i18n';
+import { useLanguage } from "@/context/LanguageContext";
+import { Lang } from "@/constants/i18n";
 
-function SectionHeader({ title, colors }: { title: string; colors: ReturnType<typeof useColors> }) {
+function SectionHeader({
+  title,
+  colors,
+}: {
+  title: string;
+  colors: ReturnType<typeof useColors>;
+}) {
   return (
-    <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>{title}</Text>
+    <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>
+      {title}
+    </Text>
   );
 }
 
@@ -35,7 +46,12 @@ function SettingRow({
   right: React.ReactNode;
 }) {
   return (
-    <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+    <View
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border, backgroundColor: colors.card },
+      ]}
+    >
       <Text style={[styles.rowLabel, { color: colors.foreground }]}>{label}</Text>
       {right}
     </View>
@@ -57,11 +73,19 @@ function ActionRow({
 }) {
   return (
     <TouchableOpacity
-      style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border, backgroundColor: colors.card },
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.rowLabel, { color: destructive ? colors.destructive : colors.foreground }]}>
+      <Text
+        style={[
+          styles.rowLabel,
+          { color: destructive ? colors.destructive : colors.foreground },
+        ]}
+      >
         {label}
       </Text>
       <Feather
@@ -91,16 +115,30 @@ export default function SettingsScreen() {
   const [showBleLog, setShowBleLog] = useState(false);
   const [versionTaps, setVersionTaps] = useState(0);
   const [devMode, setDevMode] = useState(false);
+  const [tankSize, setTankSize] = useState<string>("");
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+
+  useEffect(() => {
+    AsyncStorage.getItem("@watertank_tank_size_litres").then((v) => {
+      if (v) setTankSize(v);
+    });
+  }, []);
+
+  const saveTankSize = useCallback(async (v: string) => {
+    const clean = v.replace(/[^0-9]/g, "").slice(0, 6);
+    setTankSize(clean);
+    if (clean) await AsyncStorage.setItem("@watertank_tank_size_litres", clean);
+    else await AsyncStorage.removeItem("@watertank_tank_size_litres");
+  }, []);
 
   const onVersionTap = useCallback(() => {
     setVersionTaps((n) => {
       const next = n + 1;
       if (next >= 7) {
         setDevMode(true);
-        Alert.alert('Developer mode', 'Developer options unlocked.');
+        Alert.alert("Developer mode", "Developer options unlocked.");
         return 0;
       }
       return next;
@@ -110,15 +148,17 @@ export default function SettingsScreen() {
   const handleExport = useCallback(async () => {
     try {
       const events = exportData();
-      const rows = events.map((e) => [
-        e.id,
-        e.epoch,
-        formatDate(e.epoch),
-        EVENT_LABELS[e.type] ?? e.type,
-        e.tankPct.toFixed(1),
-        STOP_REASON_LABELS[e.stopReason] ?? e.stopReason,
-        e.durationSec > 0 ? formatDuration(e.durationSec) : "",
-      ].join(","));
+      const rows = events.map((e) =>
+        [
+          e.id,
+          e.epoch,
+          formatDate(e.epoch),
+          EVENT_LABELS[e.type] ?? e.type,
+          e.tankPct.toFixed(1),
+          STOP_REASON_LABELS[e.stopReason] ?? e.stopReason,
+          e.durationSec > 0 ? formatDuration(e.durationSec) : "",
+        ].join(",")
+      );
       const header = "ID,Epoch,Date,Event,Tank%,StopReason,Duration";
       const csv = [header, ...rows].join("\n");
       await Share.share({ message: csv, title: "WaterTank Events" });
@@ -128,21 +168,17 @@ export default function SettingsScreen() {
   }, [exportData]);
 
   const handleClearData = useCallback(() => {
-    Alert.alert(
-      t('clearConfirmTitle'),
-      t('clearConfirmMsg'),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('deleteAll'),
-          style: 'destructive',
-          onPress: () => {
-            clearData();
-            Alert.alert(t('cleared'));
-          },
+    Alert.alert(t("clearConfirmTitle"), t("clearConfirmMsg"), [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("deleteAll"),
+        style: "destructive",
+        onPress: () => {
+          clearData();
+          Alert.alert(t("cleared"));
         },
-      ],
-    );
+      },
+    ]);
   }, [clearData, t]);
 
   const retentionOptions = [30, 60, 90];
@@ -152,11 +188,27 @@ export default function SettingsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <SectionHeader title={t('language').toUpperCase()} colors={colors} />
+      {/* Language */}
+      <SectionHeader title={t("language").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
-        <View style={[styles.row, { borderBottomColor: 'transparent', backgroundColor: colors.card, flexWrap: 'wrap', gap: 8 }]}>
-          {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
-            const labels: Record<Lang, string> = { en: 'English', hi: 'हिन्दी', mr: 'मराठी', kn: 'ಕನ್ನಡ' };
+        <View
+          style={[
+            styles.row,
+            {
+              borderBottomColor: "transparent",
+              backgroundColor: colors.card,
+              flexWrap: "wrap",
+              gap: 8,
+            },
+          ]}
+        >
+          {(["en", "hi", "mr", "kn"] as Lang[]).map((code) => {
+            const labels: Record<Lang, string> = {
+              en: "English",
+              hi: "हिन्दी",
+              mr: "मराठी",
+              kn: "ಕನ್ನಡ",
+            };
             const active = lang === code;
             return (
               <TouchableOpacity
@@ -169,21 +221,26 @@ export default function SettingsScreen() {
                   backgroundColor: active ? colors.primary : colors.muted,
                 }}
               >
-                <Text style={{
-                  color: active ? colors.primaryForeground : colors.foreground,
-                  fontFamily: 'Inter_500Medium',
-                  fontSize: 14,
-                }}>{labels[code]}</Text>
+                <Text
+                  style={{
+                    color: active ? colors.primaryForeground : colors.foreground,
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 14,
+                  }}
+                >
+                  {labels[code]}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
       </View>
 
-      <SectionHeader title="NOTIFICATIONS" colors={colors} />
+      {/* Notifications */}
+      <SectionHeader title={t("notifications").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
         <SettingRow
-          label={t('notifyMotorOn')}
+          label={t("notifyMotorOn")}
           colors={colors}
           right={
             <Switch
@@ -195,7 +252,7 @@ export default function SettingsScreen() {
           }
         />
         <SettingRow
-          label={t('notifyMotorOff')}
+          label={t("notifyMotorOff")}
           colors={colors}
           right={
             <Switch
@@ -208,10 +265,61 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <SectionHeader title="DATA" colors={colors} />
+      {/* Data */}
+      <SectionHeader title={t("data").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
-        <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-          <Text style={[styles.rowLabel, { color: colors.foreground }]}>{t('keepRecordsFor')}</Text>
+        {/* Tank size */}
+        <View
+          style={[
+            styles.row,
+            { borderBottomColor: colors.border, backgroundColor: colors.card },
+          ]}
+        >
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+            {t("tankSizeLabel")}
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TextInput
+              value={tankSize}
+              onChangeText={saveTankSize}
+              placeholder={t("tankSizePlaceholder")}
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="numeric"
+              style={{
+                minWidth: 80,
+                textAlign: "right",
+                color: colors.foreground,
+                fontFamily: "Inter_500Medium",
+                fontSize: 15,
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 6,
+              }}
+            />
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "Inter_400Regular",
+                fontSize: 14,
+              }}
+            >
+              {t("litres")}
+            </Text>
+          </View>
+        </View>
+
+        {/* Retention */}
+        <View
+          style={[
+            styles.row,
+            { borderBottomColor: colors.border, backgroundColor: colors.card },
+          ]}
+        >
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+            {t("keepRecordsFor")}
+          </Text>
           <View style={styles.retentionRow}>
             {retentionOptions.map((days) => (
               <TouchableOpacity
@@ -221,7 +329,9 @@ export default function SettingsScreen() {
                   styles.retentionChip,
                   {
                     backgroundColor:
-                      settings.retentionDays === days ? colors.primary : colors.muted,
+                      settings.retentionDays === days
+                        ? colors.primary
+                        : colors.muted,
                   },
                 ]}
               >
@@ -242,14 +352,15 @@ export default function SettingsScreen() {
             ))}
           </View>
         </View>
+
         <ActionRow
-          label={t('shareRecords')}
+          label={t("shareRecords")}
           icon="share"
           onPress={handleExport}
           colors={colors}
         />
         <ActionRow
-          label={t('clearAllData')}
+          label={t("clearAllData")}
           icon="trash-2"
           destructive
           onPress={handleClearData}
@@ -257,6 +368,33 @@ export default function SettingsScreen() {
         />
       </View>
 
+      {/* About */}
+      <SectionHeader title={t("about").toUpperCase()} colors={colors} />
+      <View style={[styles.section, { borderColor: colors.border }]}>
+        <ActionRow
+          label={t("helpTitle")}
+          icon="help-circle"
+          onPress={() => router.push("/help")}
+          colors={colors}
+        />
+        <TouchableOpacity
+          style={[
+            styles.row,
+            { borderBottomColor: colors.border, backgroundColor: colors.card },
+          ]}
+          onPress={onVersionTap}
+          activeOpacity={1}
+        >
+          <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>
+            {t("appVersion")}
+          </Text>
+          <Text style={[styles.rowValue, { color: colors.foreground }]}>
+            {appVersion}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Debug (dev mode only) */}
       {devMode && (
         <>
           <SectionHeader title="DEBUG" colors={colors} />
@@ -278,8 +416,17 @@ export default function SettingsScreen() {
               disabled={simMode}
             >
               <View style={styles.demoTextCol}>
-                <Text style={[styles.rowLabel, { color: simMode ? colors.mutedForeground : colors.foreground }]}>
-                  {simMode ? "Demo running…" : "Run demo cycle"}
+                <Text
+                  style={[
+                    styles.rowLabel,
+                    {
+                      color: simMode
+                        ? colors.mutedForeground
+                        : colors.foreground,
+                    },
+                  ]}
+                >
+                  {simMode ? t("demoRunning") : "Run demo cycle"}
                 </Text>
                 <Text style={[styles.demoSub, { color: colors.mutedForeground }]}>
                   {simMode
@@ -291,15 +438,20 @@ export default function SettingsScreen() {
                 <Feather name="play" size={18} color={colors.primary} />
               )}
               {simMode && (
-                <View style={[styles.simBadge, { backgroundColor: colors.warning }]}>
+                <View
+                  style={[styles.simBadge, { backgroundColor: colors.warning }]}
+                >
                   <Text style={styles.simBadgeText}>SIM</Text>
                 </View>
               )}
             </TouchableOpacity>
             {!bleAvailable && (
               <View style={[styles.bleNote, { backgroundColor: colors.muted }]}>
-                <Text style={[styles.bleNoteText, { color: colors.mutedForeground }]}>
-                  BLE requires a native Android build with react-native-ble-plx. This app will stay idle until real hardware connects.
+                <Text
+                  style={[styles.bleNoteText, { color: colors.mutedForeground }]}
+                >
+                  BLE requires a native Android build with react-native-ble-plx.
+                  This app will stay idle until real hardware connects.
                 </Text>
               </View>
             )}
@@ -310,43 +462,45 @@ export default function SettingsScreen() {
               colors={colors}
             />
             {showBleLog && (
-              <View style={[styles.bleLog, { backgroundColor: colors.background }]}>
+              <View
+                style={[styles.bleLog, { backgroundColor: colors.background }]}
+              >
                 {bleLog.length === 0 ? (
-                  <Text style={[styles.bleLogEmpty, { color: colors.mutedForeground }]}>
+                  <Text
+                    style={[
+                      styles.bleLogEmpty,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
                     No BLE events yet
                   </Text>
                 ) : (
                   bleLog.slice(0, 50).map((line, i) => (
-                    <Text key={i} style={[styles.bleLogLine, { color: colors.foreground }]}>
+                    <Text
+                      key={i}
+                      style={[styles.bleLogLine, { color: colors.foreground }]}
+                    >
                       {line}
                     </Text>
                   ))
                 )}
               </View>
             )}
+            <ActionRow
+              label={t("hideDeveloperOptions")}
+              icon="eye-off"
+              onPress={() => setDevMode(false)}
+              colors={colors}
+            />
           </View>
         </>
       )}
-
-      <SectionHeader title="ABOUT" colors={colors} />
-      <View style={[styles.section, { borderColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
-          onPress={onVersionTap}
-          activeOpacity={1}
-        >
-          <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>{t('appVersion')}</Text>
-          <Text style={[styles.rowValue, { color: colors.foreground }]}>{appVersion}</Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   content: {
     paddingBottom: 100,
     paddingTop: 8,
