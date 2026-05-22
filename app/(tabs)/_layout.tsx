@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet, useColorScheme } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
 
@@ -11,12 +12,15 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
+  const insets = useSafeAreaInsets();
+  const bottomPad = isIOS ? insets.bottom : Math.max(insets.bottom, 8);
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarShowIcon: true,
         headerShown: true,
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.foreground,
@@ -28,10 +32,9 @@ export default function TabLayout() {
           borderTopColor: colors.border,
           elevation: 0,
           shadowOpacity: 0,
-          height: 60 + (Platform.OS === 'ios' ? 0 : 0),
-          paddingBottom: 8,
+          height: 56 + bottomPad,
+          paddingBottom: bottomPad,
           paddingTop: 6,
-          ...(Platform.OS === 'web' ? { height: 84 } : {}),
         },
         tabBarBackground: () =>
           isIOS ? (
@@ -44,7 +47,6 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: 'Inter_500Medium',
-          marginBottom: 4,
         },
       }}
     >
