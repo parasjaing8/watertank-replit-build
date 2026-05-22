@@ -17,6 +17,7 @@ import { router } from "expo-router";
 
 import { useDevice } from "@/context/DeviceContext";
 import { useColors } from "@/hooks/useColors";
+import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
 import { EVENT_LABELS, STOP_REASON_LABELS } from "@/models/Event";
 import { formatDate, formatDuration } from "@/utils/formatters";
 import { useLanguage } from "@/context/LanguageContext";
@@ -184,6 +185,7 @@ export default function SettingsScreen() {
   const retentionOptions = [30, 60, 90];
 
   return (
+    <TabSwipeWrapper index={2}>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
@@ -496,6 +498,7 @@ export default function SettingsScreen() {
         </>
       )}
     </ScrollView>
+    </TabSwipeWrapper>
   );
 }
 

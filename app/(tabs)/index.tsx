@@ -3,6 +3,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import Animated, {
@@ -14,12 +15,14 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { StatusDot } from "@/components/StatusDot";
+import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
 import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { useDevice } from "@/context/DeviceContext";
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TANK_LOW_PCT } from "@/constants/thresholds";
+import { formatTankPct, getTankColor } from "@/utils/formatters";
 
 function PulsingDots({ color }: { color: string }) {
   const a = useSharedValue(0.3);
@@ -72,7 +75,7 @@ function PulsingDots({ color }: { color: string }) {
 export default function DashboardScreen() {
   const colors = useColors();
   const { t, lang } = useLanguage();
-  const { deviceState, simMode } = useDevice();
+  const { deviceState, simMode, runSimulation } = useDevice();
 
   const [countdown, setCountdown] = useState(45);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -132,6 +135,7 @@ export default function DashboardScreen() {
     deviceState.tank > 0;
 
   return (
+    <TabSwipeWrapper index={0}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         style={styles.container}
@@ -160,6 +164,11 @@ export default function DashboardScreen() {
 
         <View style={styles.tankSection}>
           <WaterTankWidget pct={deviceState.tank} connected={deviceState.connected} />
+          {deviceState.connected && (
+            <Text style={[styles.bigPct, { color: getTankColor(deviceState.tank, colors) }]}>
+              {formatTankPct(deviceState.tank)}
+            </Text>
+          )}
           {tankSize > 0 && deviceState.connected && (
             <Text style={[styles.litresText, { color: colors.foreground }]}>
               {Math.round((tankSize * deviceState.tank) / 100)} {t("litres")}
@@ -183,6 +192,15 @@ export default function DashboardScreen() {
                     {t("checkDevicePower")}
                   </Text>
                 )}
+                <TouchableOpacity
+                  onPress={runSimulation}
+                  style={[styles.demoBtn, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.demoBtnText, { color: colors.primaryForeground }]}>
+                    Try Demo
+                  </Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
@@ -211,6 +229,7 @@ export default function DashboardScreen() {
         </View>
       )}
     </View>
+    </TabSwipeWrapper>
   );
 }
 
@@ -299,10 +318,26 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   motorSub: { fontSize: 13 },
-  litresText: {
-    fontSize: 22,
-    fontFamily: "Inter_600SemiBold",
+  bigPct: {
+    fontSize: 42,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -1.5,
     marginTop: -4,
+  },
+  litresText: {
+    fontSize: 18,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: -2,
+  },
+  demoBtn: {
+    marginTop: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 22,
+  },
+  demoBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
   toast: {
     position: "absolute",

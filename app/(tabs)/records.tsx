@@ -13,6 +13,7 @@ import * as Haptics from "expo-haptics";
 
 import { EmptyState } from "@/components/EmptyState";
 import { EventRow } from "@/components/EventRow";
+import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
@@ -63,6 +64,7 @@ export default function RecordsScreen() {
   })();
 
   return (
+    <TabSwipeWrapper index={1}>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Today / This Week tab toggle */}
       <View style={styles.tabRow}>
@@ -262,6 +264,7 @@ export default function RecordsScreen() {
         );
       })()}
     </View>
+    </TabSwipeWrapper>
   );
 }
 

@@ -82,3 +82,8 @@
 - Learned: expo-notifications scheduleNotificationAsync trigger:null works fine for immediate; no need for null cast.
 - Learned: formatters.ts importing `type { Translations }` from i18n creates a circular-ish dep at type level only — it's fine at runtime.
 - Deviation: TASK-049, 050, 051 absorbed into Sonnet TASK-055/056/settings rewrite (combined to avoid merge conflicts).
+
+## TASK-064: Groww-style bottom tab bar — height, border, no shadow
+- Tricky: 
+- Learned: 
+- Deviation: none

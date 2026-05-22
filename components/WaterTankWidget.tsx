@@ -5,13 +5,21 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, Ellipse, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
-import { formatTankPct, getTankColor } from '@/utils/formatters';
+import { getTankColor } from '@/utils/formatters';
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
 interface WaterTankWidgetProps {
   pct: number;
@@ -19,13 +27,48 @@ interface WaterTankWidgetProps {
   animated?: boolean;
 }
 
-const TANK_W = 140;
-const TANK_H = 220;
-const TANK_X = 10;
-const TANK_Y = 20;
-const INNER_W = TANK_W - 20;
-const INNER_H = TANK_H - 40;
-const ELLIPSE_RY = 12;
+// Tank geometry constants
+const SVG_W = 200;
+const SVG_H = 260;
+const BODY_W = 160;
+const BODY_H = 190;
+const BODY_X = (SVG_W - BODY_W) / 2;       // 20
+const BODY_Y = 50;                           // starts below dome
+const DOME_H = 30;
+const DOME_CX = SVG_W / 2;
+const DOME_CY = BODY_Y;                      // dome sits at top of body
+const KNOB_R = 7;
+const KNOB_CY = BODY_Y - DOME_H;            // peak of dome
+
+// Ring positions (4 rings, evenly spaced across body height)
+const RING_Y_OFFSETS = [0.22, 0.40, 0.58, 0.76]; // fractions of BODY_H
+
+function buildDomePath(): string {
+  // Arc from body-left to body-right, curving up by DOME_H
+  const x1 = BODY_X;
+  const x2 = BODY_X + BODY_W;
+  const y = BODY_Y;
+  const rx = BODY_W / 2;
+  const ry = DOME_H;
+  // SVG arc: from (x1,y) to (x2,y) via an elliptical arc going upward
+  return `M ${x1} ${y} A ${rx} ${ry} 0 0 1 ${x2} ${y}`;
+}
+
+function buildWavePath(waterY: number, bodyX: number, bodyW: number, bodyH: number, bodyY: number): string {
+  if (waterY <= bodyY) return '';
+  const step = 10;
+  const amp = 4;
+  const freq = 0.045;
+  let d = `M ${bodyX} ${waterY}`;
+  for (let x = 0; x <= bodyW; x += step) {
+    const wx = bodyX + x;
+    const wy = waterY + Math.sin(x * freq) * amp;
+    d += ` L ${wx} ${wy}`;
+  }
+  const bottom = bodyY + bodyH;
+  d += ` L ${bodyX + bodyW} ${bottom} L ${bodyX} ${bottom} Z`;
+  return d;
+}
 
 export function WaterTankWidget({ pct, connected, animated = true }: WaterTankWidgetProps) {
   const colors = useColors();
@@ -41,107 +84,151 @@ export function WaterTankWidget({ pct, connected, animated = true }: WaterTankWi
   }, [clamped, animated]);
 
   const waterColor = getTankColor(clamped, colors);
+  const tankStroke = '#0F172A';
+  const tankFill = colors.card;
+  const ringColor = '#0F172A';
 
+  // Animated rect clip (fills body from bottom up)
   const animatedRectProps = useAnimatedProps(() => {
-    const h = (fillPct.value / 100) * INNER_H;
+    const h = (fillPct.value / 100) * BODY_H;
     return {
-      y: TANK_Y + (INNER_H - h),
-      height: h,
+      y: BODY_Y + (BODY_H - h),
+      height: Math.max(0, h),
     } as any;
   });
 
-  const animatedEllipseProps = useAnimatedProps(() => {
-    const h = (fillPct.value / 100) * INNER_H;
+  // Animated wave path
+  const animatedWaveProps = useAnimatedProps(() => {
+    const h = (fillPct.value / 100) * BODY_H;
+    const waterY = BODY_Y + (BODY_H - h);
     return {
-      cy: TANK_Y + (INNER_H - h),
+      d: buildWavePath(waterY, BODY_X, BODY_W, BODY_H, BODY_Y),
     } as any;
   });
+
+  const domePath = buildDomePath();
 
   if (!connected) {
     return (
       <View style={styles.container}>
-        <Svg width={TANK_W + 20} height={TANK_H + 20}>
+        <Svg width={SVG_W} height={SVG_H}>
+          {/* Body */}
           <Rect
-            x={TANK_X}
-            y={TANK_Y}
-            width={INNER_W}
-            height={INNER_H}
+            x={BODY_X} y={BODY_Y}
+            width={BODY_W} height={BODY_H}
             rx={8}
             fill={colors.muted}
             stroke={colors.border}
-            strokeWidth={2}
+            strokeWidth={2.5}
           />
-          <Ellipse
-            cx={TANK_X + INNER_W / 2}
-            cy={TANK_Y}
-            rx={INNER_W / 2}
-            ry={ELLIPSE_RY}
+          {/* Rings */}
+          {RING_Y_OFFSETS.map((frac, i) => (
+            <Rect
+              key={i}
+              x={BODY_X}
+              y={BODY_Y + frac * BODY_H - 2}
+              width={BODY_W}
+              height={5}
+              fill={colors.border}
+              opacity={0.6}
+            />
+          ))}
+          {/* Dome */}
+          <Path
+            d={domePath}
             fill={colors.muted}
             stroke={colors.border}
-            strokeWidth={2}
+            strokeWidth={2.5}
+          />
+          {/* Knob */}
+          <Circle
+            cx={DOME_CX} cy={KNOB_CY}
+            r={KNOB_R}
+            fill={colors.border}
+            stroke={colors.border}
+            strokeWidth={1.5}
           />
         </Svg>
-        <Text style={[styles.bigPct, { color: colors.mutedForeground }]}>—</Text>
-        <Text style={[styles.subText, { color: colors.mutedForeground }]}>No data</Text>
+        <Text style={[styles.noDataText, { color: colors.mutedForeground }]}>No data</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Svg width={TANK_W + 20} height={TANK_H + 20}>
+      <Svg width={SVG_W} height={SVG_H}>
         <Defs>
-          <LinearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+          <LinearGradient id="waterGrad4" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={waterColor} stopOpacity="0.95" />
             <Stop offset="1" stopColor={waterColor} stopOpacity="0.65" />
           </LinearGradient>
         </Defs>
 
-        {/* Tank background (empty interior) */}
+        {/* Tank body background */}
         <Rect
-          x={TANK_X}
-          y={TANK_Y}
-          width={INNER_W}
-          height={INNER_H}
+          x={BODY_X} y={BODY_Y}
+          width={BODY_W} height={BODY_H}
           rx={8}
-          fill="#0F172A"
-          stroke="#334155"
-          strokeWidth={2}
+          fill={tankFill}
+          stroke={tankStroke}
+          strokeWidth={2.5}
         />
 
-        {/* Water fill (animated rect from bottom up) */}
+        {/* Water fill (animated rect from bottom up, clipped to body) */}
         <AnimatedRect
-          x={TANK_X}
-          width={INNER_W}
+          x={BODY_X}
+          width={BODY_W}
           rx={8}
-          fill="url(#waterGrad)"
+          fill="url(#waterGrad4)"
           animatedProps={animatedRectProps}
         />
 
-        {/* Water surface ellipse (top of water) */}
+        {/* Wavy water surface */}
         {clamped > 1 && (
-          <AnimatedEllipse
-            cx={TANK_X + INNER_W / 2}
-            rx={INNER_W / 2}
-            ry={ELLIPSE_RY * 0.6}
-            fill={waterColor}
-            animatedProps={animatedEllipseProps}
+          <AnimatedPath
+            fill="url(#waterGrad4)"
+            animatedProps={animatedWaveProps}
           />
         )}
 
-        {/* Tank top ellipse (rim) */}
-        <Ellipse
-          cx={TANK_X + INNER_W / 2}
-          cy={TANK_Y}
-          rx={INNER_W / 2}
-          ry={ELLIPSE_RY}
+        {/* Horizontal rings — drawn on top of water so they stay visible */}
+        {RING_Y_OFFSETS.map((frac, i) => (
+          <Rect
+            key={i}
+            x={BODY_X}
+            y={BODY_Y + frac * BODY_H - 2}
+            width={BODY_W}
+            height={5}
+            fill={ringColor}
+            opacity={0.18}
+          />
+        ))}
+
+        {/* Body outline (drawn last so it sits on top of fill) */}
+        <Rect
+          x={BODY_X} y={BODY_Y}
+          width={BODY_W} height={BODY_H}
+          rx={8}
           fill="none"
-          stroke="#334155"
-          strokeWidth={2}
+          stroke={tankStroke}
+          strokeWidth={2.5}
+        />
+
+        {/* Dome */}
+        <Path
+          d={domePath}
+          fill={tankStroke}
+          stroke={tankStroke}
+          strokeWidth={2.5}
+        />
+
+        {/* Knob handle on dome peak */}
+        <Circle
+          cx={DOME_CX} cy={KNOB_CY}
+          r={KNOB_R}
+          fill={tankStroke}
         />
       </Svg>
-
-      <Text style={[styles.bigPct, { color: waterColor }]}>{formatTankPct(clamped)}</Text>
     </View>
   );
 }
@@ -149,14 +236,9 @@ export function WaterTankWidget({ pct, connected, animated = true }: WaterTankWi
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
-  bigPct: {
-    fontSize: 42,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -1.5,
-  },
-  subText: {
+  noDataText: {
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
   },

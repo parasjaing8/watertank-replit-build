@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
+  Dimensions,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,7 +13,11 @@ import { router } from 'expo-router';
 
 import { Lang } from '@/constants/i18n';
 import { useLanguage } from '@/context/LanguageContext';
+import { useDevice } from '@/context/DeviceContext';
 import { useColors } from '@/hooks/useColors';
+import { BlePairingSheet } from '@/components/BlePairingSheet';
+
+const { width } = Dimensions.get('window');
 
 const LANG_LABELS: Record<Lang, string> = {
   en: 'English',
@@ -23,7 +29,12 @@ const LANG_LABELS: Record<Lang, string> = {
 export default function OnboardingScreen() {
   const colors = useColors();
   const { t, lang, setLanguage } = useLanguage();
+  const { bleAvailable } = useDevice();
   const [page, setPage] = useState(0);
+  const [showPairing, setShowPairing] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const TOTAL_PAGES = 4;
 
   async function finish() {
     try {
@@ -33,83 +44,126 @@ export default function OnboardingScreen() {
   }
 
   function next() {
-    if (page < 2) setPage((p) => p + 1);
-    else finish();
+    if (page < TOTAL_PAGES - 1) {
+      scrollRef.current?.scrollTo({ x: (page + 1) * width, animated: true });
+    } else {
+      finish();
+    }
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.body}>
-        {/* Page 0: Language picker — shows all 4 scripts so any user recognises it */}
-        {page === 0 && (
-          <View style={styles.pageContent}>
-            <Text style={styles.bigIcon}>🌐</Text>
-            <View style={styles.langHeader}>
-              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-                Choose your language
-              </Text>
-              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-                अपनी भाषा चुनें
-              </Text>
-              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-                तुमची भाषा निवडा
-              </Text>
-              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-                ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ
-              </Text>
-            </View>
-            <View style={styles.langGrid}>
-              {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
-                const active = lang === code;
-                return (
-                  <Pressable
-                    key={code}
-                    onPress={() => setLanguage(code)}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(e) => {
+          const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+          setPage(idx);
+        }}
+        style={styles.scrollView}
+      >
+        {/* Page 0: Language picker */}
+        <View style={[styles.pageWrapper, { width }]}>
+          <Text style={styles.bigIcon}>🌐</Text>
+          <View style={styles.langHeader}>
+            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+              Choose your language
+            </Text>
+            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+              अपनी भाषा चुनें
+            </Text>
+            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+              तुमची भाषा निवडा
+            </Text>
+            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+              ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ
+            </Text>
+          </View>
+          <View style={styles.langGrid}>
+            {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
+              const active = lang === code;
+              return (
+                <Pressable
+                  key={code}
+                  onPress={() => setLanguage(code)}
+                  style={[
+                    styles.langChip,
+                    {
+                      backgroundColor: active ? colors.primary : colors.card,
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
                     style={[
-                      styles.langChip,
-                      {
-                        backgroundColor: active ? colors.primary : colors.card,
-                        borderColor: active ? colors.primary : colors.border,
-                      },
+                      styles.langChipText,
+                      { color: active ? colors.primaryForeground : colors.foreground },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.langChipText,
-                        { color: active ? colors.primaryForeground : colors.foreground },
-                      ]}
-                    >
-                      {LANG_LABELS[code]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                    {LANG_LABELS[code]}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        )}
+        </View>
 
         {/* Page 1: Your water tank, always watched */}
-        {page === 1 && (
-          <View style={styles.pageContent}>
-            <Text style={styles.bigIcon}>💧</Text>
-            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob1Title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob1Subtitle')}</Text>
-          </View>
-        )}
+        <View style={[styles.pageWrapper, { width }]}>
+          <Text style={styles.bigIcon}>💧</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('ob1Title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob1Subtitle')}</Text>
+        </View>
 
         {/* Page 2: Works automatically */}
-        {page === 2 && (
-          <View style={styles.pageContent}>
-            <Text style={styles.bigIcon}>⚡</Text>
-            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob2Title')}</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob2Subtitle')}</Text>
-          </View>
-        )}
-      </View>
+        <View style={[styles.pageWrapper, { width }]}>
+          <Text style={styles.bigIcon}>⚡</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('ob2Title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob2Subtitle')}</Text>
+        </View>
 
+        {/* Page 3: Hardware setup */}
+        <View style={[styles.pageWrapper, { width }]}>
+          <Text style={styles.bigIcon}>📡</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Set up your device</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+            Pair your WaterTank hardware over Bluetooth, or skip for now and try the demo.
+          </Text>
+          <View style={{ gap: 12, marginTop: 24, width: '100%' }}>
+            {bleAvailable && (
+              <TouchableOpacity
+                onPress={() => setShowPairing(true)}
+                style={[styles.cta, { backgroundColor: colors.primary }]}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
+                  Set up now
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={finish}
+              style={[
+                styles.cta,
+                { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.border },
+              ]}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.ctaText, { color: colors.foreground }]}>
+                {bleAvailable ? 'Skip for now / Try demo' : 'Continue / Try demo'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Footer: dots + next/skip button */}
       <View style={styles.footer}>
         <View style={styles.dots}>
-          {[0, 1, 2].map((i) => (
+          {Array.from({ length: TOTAL_PAGES }).map((_, i) => (
             <View
               key={i}
               style={[
@@ -125,10 +179,17 @@ export default function OnboardingScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
-            {page === 2 ? t('getStarted') : t('next')}
+            {page === TOTAL_PAGES - 1 ? 'Skip' : t('next')}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {showPairing && (
+        <BlePairingSheet
+          onClose={() => setShowPairing(false)}
+          onSuccess={() => { setShowPairing(false); finish(); }}
+        />
+      )}
     </View>
   );
 }
@@ -138,10 +199,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingBottom: 40,
-    paddingHorizontal: 24,
   },
-  body: { flex: 1, justifyContent: 'center' },
-  pageContent: {
+  scrollView: {
+    flex: 1,
+  },
+  pageWrapper: {
+    paddingHorizontal: 24,
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 18,
   },
@@ -194,6 +258,7 @@ const styles = StyleSheet.create({
   footer: {
     gap: 16,
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
   dots: {
     flexDirection: 'row',

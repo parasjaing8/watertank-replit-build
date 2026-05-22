@@ -23,9 +23,14 @@ export default function TabLayout() {
         headerShadowVisible: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : colors.background,
-          borderTopWidth: 0,
+          backgroundColor: isIOS ? 'transparent' : colors.card,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
           elevation: 0,
+          shadowOpacity: 0,
+          height: 60 + (Platform.OS === 'ios' ? 0 : 0),
+          paddingBottom: 8,
+          paddingTop: 6,
           ...(Platform.OS === 'web' ? { height: 84 } : {}),
         },
         tabBarBackground: () =>
@@ -39,7 +44,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: 'Inter_500Medium',
-          marginBottom: 2,
+          marginBottom: 4,
         },
       }}
     >
