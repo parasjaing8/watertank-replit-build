@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import Svg, {
-  Circle,
   ClipPath,
   Defs,
   Ellipse,
   LinearGradient,
+  Mask,
   Path,
   Rect,
   Stop,
+  G,
 } from 'react-native-svg';
 
 interface WaterTankWidgetProps {
@@ -18,64 +19,75 @@ interface WaterTankWidgetProps {
   animated?: boolean;
 }
 
-// Canvas
+// ─── Canvas ─────────────────────────────────────────────────────────────────
 const W = 260;
 const H = 300;
 
-// Tank body
-const TX = 20;
-const TY = 52;
-const TW = 220;
-const TH = 208;
-const TRX = 22;
+// ─── Tank body ──────────────────────────────────────────────────────────────
+const BX = 22;   // body x
+const BY = 64;   // body y (dome sits above this)
+const BW = 216;  // body width
+const BH = 210;  // body height
+const BRX = 20;  // body corner radius
 
-// Dome (semi-ellipse above body top)
-const DOME_H = 30;
+// ─── Dome cap (overhanging ellipse above body) ───────────────────────────────
+const DOME_CX = BX + BW / 2;  // 130
+const DOME_CY = BY;            // 64 – sits exactly on top of body
+const DOME_RX = BW / 2 + 4;   // 112 – slightly wider than body
+const DOME_RY = 18;            // dome height
 
-// Cutaway window inside tank
-const CX = TX + 28;
-const CY = TY + 28;
-const CW = TW - 56;
-const CH = TH - 60;
-const CRX = 12;
+// ─── Knobs on dome ───────────────────────────────────────────────────────────
+const KNOBS = [
+  { x: DOME_CX - 38, y: BY - DOME_RY + 2, w: 16, h: 9 },
+  { x: DOME_CX - 9,  y: BY - DOME_RY - 2, w: 18, h: 11 },
+  { x: DOME_CX + 24, y: BY - DOME_RY + 2, w: 16, h: 9 },
+];
 
-// Horizontal ribs
-const RIB_FRACS = [0.25, 0.50, 0.75];
-const RIB_H = 7;
+// ─── Inlet pipe (LEFT side) ───────────────────────────────────────────────────
+const PIPE_Y   = BY + 52;   // ~25% from body top
+const PIPE_H   = 14;
+const PIPE_X1  = 0;
+const PIPE_X2  = BX + 2;    // just inside tank left edge
 
-// Inlet pipe (top-right, horizontal bar entering from right side)
-const PIPE_Y = TY + 44;
-const PIPE_ENTRY_X = TX + TW; // right wall of tank
-const PIPE_X2 = W - 4;        // pipe extends to right edge
+// ─── Cutaway window ───────────────────────────────────────────────────────────
+const CX  = BX + 26;        // 48
+const CY  = BY + 30;        // 94
+const CW  = BW - 52;        // 164
+const CH  = BH - 68;        // 142
+const CRX = 10;
 
-// Tank colors (fixed dark navy, same in both themes)
-const C_BODY = '#1C2B46';
-const C_BODY_DARK = '#0D1826';
-const C_BODY_HIGHLIGHT = '#243850';
-const C_RIB = '#0D1826';
-const C_INNER = '#0A1520';
-const C_PIPE = '#C8D6EA';
-const C_WATER_BASE = '#2563EB';
-const C_WATER_TOP = '#3B82F6';
-const C_GLOW = '#3B82F6';
+// ─── Rib positions ────────────────────────────────────────────────────────────
+const RIBS = [0.22, 0.44, 0.66, 0.88].map(f => BY + f * BH);
+const RIB_H = 6;
 
-function buildWavePath(
-  waterSurfaceY: number,
-  clipX: number,
-  clipW: number,
-  clipBottomY: number,
+// ─── Colors (tank is always dark navy regardless of app theme) ────────────────
+const C_DOME       = '#1A2B44';
+const C_DOME_DARK  = '#0E1A2D';
+const C_INNER      = '#090F1C';
+const C_PIPE       = '#C5D4E6';
+const C_PIPE_DARK  = '#8FA3BA';
+const C_RIB        = '#0C1826';
+const C_WATER_TOP  = '#3A80D2';
+const C_WATER_BOT  = '#1A4D8A';
+const C_GLOW       = '#6AAEE8';
+
+function buildWaveSurface(
+  surfaceY: number,
+  cx: number,
+  cw: number,
+  cbottomY: number,
   phase: number,
-  amplitude: number,
+  amp: number,
 ): string {
-  const step = 8;
-  const freq = 0.045;
-  let d = `M ${clipX} ${waterSurfaceY}`;
-  for (let x = 0; x <= clipW; x += step) {
-    const wx = clipX + x;
-    const wy = waterSurfaceY + Math.sin(x * freq + phase) * amplitude;
+  const step = 10;
+  const freq = 0.040;
+  let d = `M ${cx} ${surfaceY}`;
+  for (let x = 0; x <= cw; x += step) {
+    const wx = cx + x;
+    const wy = surfaceY + Math.sin(x * freq + phase) * amp;
     d += ` L ${wx} ${wy}`;
   }
-  d += ` L ${clipX + clipW} ${clipBottomY} L ${clipX} ${clipBottomY} Z`;
+  d += ` L ${cx + cw} ${cbottomY} L ${cx} ${cbottomY} Z`;
   return d;
 }
 
@@ -88,208 +100,192 @@ export function WaterTankWidget({
   const clamped = Math.max(0, Math.min(100, pct));
   const [fillPct, setFillPct] = useState(animated ? 0 : clamped);
   const [wavePhase, setWavePhase] = useState(0);
-  const fillAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const waveAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fillRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const waveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fill animation
   useEffect(() => {
     if (!animated) { setFillPct(clamped); return; }
-    const start = fillPct;
-    const end = clamped;
+    const from = fillPct;
     const steps = 30;
     const ms = 600 / steps;
     let i = 0;
-    if (fillAnimRef.current) clearInterval(fillAnimRef.current);
-    fillAnimRef.current = setInterval(() => {
+    if (fillRef.current) clearInterval(fillRef.current);
+    fillRef.current = setInterval(() => {
       i++;
-      setFillPct(start + (end - start) * (i / steps));
-      if (i >= steps) { clearInterval(fillAnimRef.current!); fillAnimRef.current = null; }
+      setFillPct(from + (clamped - from) * (i / steps));
+      if (i >= steps) { clearInterval(fillRef.current!); fillRef.current = null; }
     }, ms);
-    return () => { if (fillAnimRef.current) clearInterval(fillAnimRef.current); };
+    return () => { if (fillRef.current) clearInterval(fillRef.current); };
   }, [clamped]);
 
-  // Wave animation
+  // Wave animation (no Reanimated – plain setInterval)
   useEffect(() => {
-    if (!connected || clamped <= 0) return;
-    const step = motorOn ? 0.10 : 0.035;
-    const ms = motorOn ? 50 : 100;
-    if (waveAnimRef.current) clearInterval(waveAnimRef.current);
-    waveAnimRef.current = setInterval(() => {
-      setWavePhase((p) => p + step);
-    }, ms);
-    return () => { if (waveAnimRef.current) clearInterval(waveAnimRef.current); };
+    if (!connected || clamped <= 0) { return; }
+    const step = motorOn ? 0.09 : 0.030;
+    const ms   = motorOn ? 45   : 90;
+    if (waveRef.current) clearInterval(waveRef.current);
+    waveRef.current = setInterval(() => setWavePhase(p => p + step), ms);
+    return () => { if (waveRef.current) clearInterval(waveRef.current); };
   }, [connected, motorOn, clamped]);
 
-  // Geometry
   const innerBottom = CY + CH;
-  const fillH = (fillPct / 100) * CH;
-  const waterSurfaceY = innerBottom - fillH;
-  const waveAmp = motorOn ? 5 : 2.5;
-  const wavePath = connected && fillPct > 0
-    ? buildWavePath(waterSurfaceY, CX, CW, innerBottom, wavePhase, waveAmp)
+  const fillH       = (fillPct / 100) * CH;
+  const surfaceY    = innerBottom - fillH;
+  const waveAmp     = motorOn ? 4.5 : 2;
+  const wavePath    = connected && fillPct > 0
+    ? buildWaveSurface(surfaceY, CX, CW, innerBottom, wavePhase, waveAmp)
     : '';
 
-  // Dome path (semi-ellipse sitting above tank body)
-  const domeTop = TY - DOME_H;
-  const domePath = `M ${TX} ${TY} A ${TW / 2} ${DOME_H} 0 0 1 ${TX + TW} ${TY}`;
-
-  // Motor-on: water-fall path from pipe inlet into water
-  const showFlow = connected && motorOn && fillPct > 0;
-  const flowX = PIPE_ENTRY_X - 2;
-  const flowPath = showFlow
-    ? `M ${flowX} ${PIPE_Y + 8} Q ${flowX - 6} ${waterSurfaceY - 20} ${flowX - 18} ${waterSurfaceY + 4}`
+  // Motor-on: water pour arc from pipe outlet into water
+  const pipeOutletX = PIPE_X2 + 4;
+  const pipeOutletY = PIPE_Y + PIPE_H / 2;
+  const pourPath = motorOn && connected && fillPct > 0
+    ? `M ${pipeOutletX} ${pipeOutletY} C ${pipeOutletX + 10} ${pipeOutletY + 30}, ${CX + 20} ${surfaceY - 20}, ${CX + 24} ${surfaceY + 6}`
     : '';
 
   return (
     <View style={{ alignItems: 'center' }}>
-      <Svg width={W} height={H}>
+      <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         <Defs>
-          {/* Water gradient */}
+          {/* ── Gradients ── */}
+
+          {/* Body: horizontal left-lighter → right-darker (3D cylinder illusion) */}
+          <LinearGradient id="wtBody" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0"    stopColor="#2C4060" />
+            <Stop offset="0.35" stopColor="#1C2E48" />
+            <Stop offset="0.65" stopColor="#152238" />
+            <Stop offset="1"    stopColor="#0A1520" />
+          </LinearGradient>
+
+          {/* Dome: slightly lighter than body */}
+          <LinearGradient id="wtDome" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0"    stopColor="#304870" />
+            <Stop offset="0.4"  stopColor="#1E3050" />
+            <Stop offset="1"    stopColor="#0C1828" />
+          </LinearGradient>
+
+          {/* Water: vertical bright-top → deep-bottom */}
           <LinearGradient id="wtWater" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={C_WATER_TOP} stopOpacity="1" />
-            <Stop offset="1" stopColor={C_WATER_BASE} stopOpacity="1" />
+            <Stop offset="0"   stopColor={C_WATER_TOP} />
+            <Stop offset="1"   stopColor={C_WATER_BOT} />
           </LinearGradient>
-          {/* Body left-edge highlight */}
-          <LinearGradient id="wtHighlight" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={C_BODY_HIGHLIGHT} stopOpacity="0.8" />
-            <Stop offset="0.15" stopColor={C_BODY} stopOpacity="0" />
+
+          {/* Pipe gradient: top-light → bottom-dark for cylindrical pipe look */}
+          <LinearGradient id="wtPipe" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0"   stopColor="#D8E8F4" />
+            <Stop offset="0.5" stopColor={C_PIPE} />
+            <Stop offset="1"   stopColor={C_PIPE_DARK} />
           </LinearGradient>
-          {/* Body right-edge shadow */}
-          <LinearGradient id="wtShadow" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0.85" stopColor={C_BODY} stopOpacity="0" />
-            <Stop offset="1" stopColor={C_BODY_DARK} stopOpacity="0.8" />
-          </LinearGradient>
-          {/* Clip for cutaway window */}
-          <ClipPath id="cutawayClip">
+
+          {/* ── ClipPath: water stays inside cutaway only ── */}
+          <ClipPath id="cutClip">
             <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} />
           </ClipPath>
+
+          {/* ── Mask: ribs render on body ONLY, not inside cutaway ── */}
+          <Mask id="ribMask">
+            <Rect x="0" y="0" width={W} height={H} fill="white" />
+            <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} fill="black" />
+          </Mask>
         </Defs>
 
-        {/* Ambient glow below tank */}
-        <Ellipse
-          cx={TX + TW / 2}
-          cy={TY + TH + 18}
-          rx={90}
-          ry={22}
-          fill={C_GLOW}
-          opacity={connected ? 0.12 : 0.04}
-        />
+        {/* ── Floor glow (behind tank) ── */}
+        <Ellipse cx={BX + BW / 2} cy={BY + BH + 22} rx={118} ry={22} fill={C_GLOW} opacity={0.18} />
+        <Ellipse cx={BX + BW / 2} cy={BY + BH + 18} rx={88}  ry={14} fill={C_GLOW} opacity={0.10} />
 
         {/* ── TANK BODY ── */}
-        <Rect
-          x={TX} y={TY}
-          width={TW} height={TH}
-          rx={TRX}
-          fill={C_BODY}
-        />
+        <Rect x={BX} y={BY} width={BW} height={BH} rx={BRX} fill="url(#wtBody)" />
 
-        {/* Left highlight */}
-        <Rect
-          x={TX} y={TY}
-          width={TW} height={TH}
-          rx={TRX}
-          fill="url(#wtHighlight)"
-        />
-        {/* Right shadow */}
-        <Rect
-          x={TX} y={TY}
-          width={TW} height={TH}
-          rx={TRX}
-          fill="url(#wtShadow)"
-        />
+        {/* Left-edge highlight strip (brightens left for cylindrical feel) */}
+        <Rect x={BX} y={BY} width={22} height={BH} rx={BRX} fill="#3A5880" opacity={0.25} />
 
-        {/* ── CUTAWAY INTERIOR (clipped) ── */}
-        <Rect
-          x={CX} y={CY}
-          width={CW} height={CH}
-          rx={CRX}
-          fill={C_INNER}
-          clipPath="url(#cutawayClip)"
-        />
+        {/* ── CUTAWAY INTERIOR (behind ribs) ── */}
+        {/* Dark inner background */}
+        <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} fill={C_INNER} />
+
+        {/* Inset shadow at cutaway top edge */}
+        <Rect x={CX} y={CY} width={CW} height={28} rx={CRX} fill="#000" opacity={0.35} clipPath="url(#cutClip)" />
+
+        {/* Water fill — clipped to cutaway */}
         {connected && fillPct > 0 && (
-          <Path
-            d={wavePath}
-            fill="url(#wtWater)"
-            clipPath="url(#cutawayClip)"
-          />
+          <Path d={wavePath} fill="url(#wtWater)" clipPath="url(#cutClip)" />
         )}
-        {/* Water flow line when motor ON */}
-        {showFlow && (
+
+        {/* Water pour stream when motor on */}
+        {pourPath !== '' && (
           <Path
-            d={flowPath}
+            d={pourPath}
             stroke={C_WATER_TOP}
             strokeWidth={5}
             strokeLinecap="round"
             fill="none"
-            opacity={0.7}
-            clipPath="url(#cutawayClip)"
+            opacity={0.65}
+            clipPath="url(#cutClip)"
           />
         )}
 
-        {/* Cutaway border (sits on top of water, looks like a frame) */}
-        <Rect
-          x={CX} y={CY}
-          width={CW} height={CH}
-          rx={CRX}
-          fill="none"
-          stroke={C_BODY_DARK}
-          strokeWidth={2.5}
-        />
+        {/* ── RIBS (masked: do NOT render inside cutaway) ── */}
+        <G mask="url(#ribMask)">
+          {RIBS.map((ry, i) => (
+            <Rect
+              key={i}
+              x={BX}
+              y={ry - RIB_H / 2}
+              width={BW}
+              height={RIB_H}
+              fill={C_RIB}
+              opacity={0.55}
+            />
+          ))}
+        </G>
 
-        {/* ── RIBS (drawn over cutaway for continuity) ── */}
-        {RIB_FRACS.map((f, i) => (
+        {/* Body outline (drawn on top so border is crisp) */}
+        <Rect x={BX} y={BY} width={BW} height={BH} rx={BRX} fill="none" stroke={C_DOME_DARK} strokeWidth={1.5} />
+
+        {/* Cutaway border */}
+        <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} fill="none" stroke="#0A1520" strokeWidth={2} />
+
+        {/* ── DOME CAP ── */}
+        {/* Full ellipse — the bottom half overlaps the body top, which hides it naturally */}
+        <Ellipse cx={DOME_CX} cy={DOME_CY} rx={DOME_RX} ry={DOME_RY} fill="url(#wtDome)" />
+        {/* Dome shoulder seam */}
+        <Ellipse cx={DOME_CX} cy={DOME_CY} rx={DOME_RX} ry={DOME_RY} fill="none" stroke={C_DOME_DARK} strokeWidth={1.2} />
+
+        {/* ── KNOBS on dome ── */}
+        {KNOBS.map((k, i) => (
           <Rect
             key={i}
-            x={TX}
-            y={TY + f * TH - RIB_H / 2}
-            width={TW}
-            height={RIB_H}
-            fill={C_RIB}
-            opacity={0.55}
+            x={k.x}
+            y={k.y}
+            width={k.w}
+            height={k.h}
+            rx={3}
+            fill={C_DOME_DARK}
+            stroke="#0A1520"
+            strokeWidth={1}
           />
         ))}
 
-        {/* Body outline */}
-        <Rect
-          x={TX} y={TY}
-          width={TW} height={TH}
-          rx={TRX}
-          fill="none"
-          stroke={C_BODY_DARK}
-          strokeWidth={2}
-        />
-
-        {/* ── DOME ── */}
-        <Path
-          d={domePath}
-          fill={C_BODY}
-        />
-        {/* Dome highlight seam */}
-        <Path
-          d={`M ${TX + 30} ${TY} A ${TW / 2 - 30} ${DOME_H - 6} 0 0 1 ${TX + TW - 30} ${TY}`}
-          fill="none"
-          stroke={C_BODY_HIGHLIGHT}
-          strokeWidth={1.5}
-          opacity={0.5}
-        />
-        {/* Dome knobs */}
-        <Circle cx={TX + TW * 0.35} cy={domeTop + 10} r={6} fill={C_BODY} stroke={C_BODY_DARK} strokeWidth={1.5} />
-        <Circle cx={TX + TW / 2} cy={domeTop + 4} r={8} fill={C_BODY} stroke={C_BODY_DARK} strokeWidth={1.5} />
-        <Circle cx={TX + TW * 0.65} cy={domeTop + 10} r={6} fill={C_BODY} stroke={C_BODY_DARK} strokeWidth={1.5} />
-
-        {/* ── INLET PIPE (top-right) ── */}
+        {/* ── INLET PIPE (LEFT side) ── */}
         {/* Pipe body */}
         <Rect
-          x={PIPE_ENTRY_X - 4}
-          y={PIPE_Y - 7}
-          width={PIPE_X2 - PIPE_ENTRY_X + 4}
-          height={14}
-          rx={7}
-          fill={C_PIPE}
+          x={PIPE_X1}
+          y={PIPE_Y}
+          width={PIPE_X2 - PIPE_X1 + 6}
+          height={PIPE_H}
+          rx={PIPE_H / 2}
+          fill="url(#wtPipe)"
         />
-        {/* Pipe connector at tank wall */}
-        <Circle cx={PIPE_ENTRY_X} cy={PIPE_Y} r={9} fill={C_PIPE} />
-        <Circle cx={PIPE_ENTRY_X} cy={PIPE_Y} r={5} fill={C_BODY_DARK} opacity={0.6} />
+        {/* Flange/connector where pipe meets tank wall */}
+        <Rect
+          x={PIPE_X2 - 2}
+          y={PIPE_Y - 4}
+          width={8}
+          height={PIPE_H + 8}
+          rx={3}
+          fill={C_PIPE_DARK}
+        />
       </Svg>
     </View>
   );

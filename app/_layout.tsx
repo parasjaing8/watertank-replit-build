@@ -13,7 +13,6 @@ import {
   NotoSansKannada_400Regular,
   NotoSansKannada_700Bold,
 } from '@expo-google-fonts/noto-sans-kannada';
-import { Feather } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -46,7 +45,6 @@ export default function RootLayout() {
   const bg = scheme === 'dark' ? '#0A1628' : '#FFFFFF';
 
   const [fontsLoaded, fontError] = useFonts({
-    ...Feather.font,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
