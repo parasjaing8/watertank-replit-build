@@ -13,10 +13,10 @@ import {
   NotoSansKannada_400Regular,
   NotoSansKannada_700Bold,
 } from '@expo-google-fonts/noto-sans-kannada';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect } from 'react';
+import { useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -31,6 +31,7 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="help" options={{ headerShown: false }} />
@@ -38,27 +39,10 @@ function RootLayoutNav() {
   );
 }
 
-function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const done = await AsyncStorage.getItem('onboarding_done');
-        if (done !== '1') {
-          // Defer navigation until layout is mounted
-          setTimeout(() => router.replace('/onboarding'), 0);
-        }
-      } catch {}
-      setChecked(true);
-    })();
-  }, []);
-
-  if (!checked) return null;
-  return <>{children}</>;
-}
-
 export default function RootLayout() {
+  const scheme = useColorScheme();
+  const bg = scheme === 'dark' ? '#0A1628' : '#FFFFFF';
+
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -80,18 +64,16 @@ export default function RootLayout() {
     NotificationService.requestPermissions();
   }, []);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: bg }} />;
 
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <LanguageProvider>
           <DeviceProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
+            <GestureHandlerRootView style={{ flex: 1, backgroundColor: bg }}>
               <KeyboardProvider>
-                <OnboardingGate>
-                  <RootLayoutNav />
-                </OnboardingGate>
+                <RootLayoutNav />
               </KeyboardProvider>
             </GestureHandlerRootView>
           </DeviceProvider>
