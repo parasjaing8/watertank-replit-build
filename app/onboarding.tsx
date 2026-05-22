@@ -44,7 +44,7 @@ export default function OnboardingScreen() {
   }
 
   function next() {
-    if (page < TOTAL_PAGES - 1) {
+    if (page < 2) {
       scrollRef.current?.scrollTo({ x: (page + 1) * width, animated: true });
     } else {
       finish();
@@ -53,112 +53,98 @@ export default function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / width);
-          setPage(idx);
-        }}
-        style={styles.scrollView}
-      >
-        {/* Page 0: Language picker */}
-        <View style={[styles.pageWrapper, { width }]}>
-          <Text style={styles.bigIcon}>🌐</Text>
-          <View style={styles.langHeader}>
-            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-              Choose your language
-            </Text>
-            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-              अपनी भाषा चुनें
-            </Text>
-            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-              तुमची भाषा निवडा
-            </Text>
-            <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
-              ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ
-            </Text>
-          </View>
-          <View style={styles.langGrid}>
-            {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
-              const active = lang === code;
-              return (
-                <Pressable
-                  key={code}
-                  onPress={() => setLanguage(code)}
-                  style={[
-                    styles.langChip,
-                    {
-                      backgroundColor: active ? colors.primary : colors.card,
-                      borderColor: active ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
+      <View style={styles.body}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+            setPage(idx);
+          }}
+          style={{ flex: 1 }}
+        >
+          {/* Page 0: Language picker */}
+          <View style={[styles.pageWrapper, { width }]}>
+            <Text style={styles.bigIcon}>🌐</Text>
+            <View style={styles.langHeader}>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                Choose your language
+              </Text>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                अपनी भाषा चुनें
+              </Text>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                तुमची भाषा निवडा
+              </Text>
+              <Text style={[styles.langHeaderText, { color: colors.foreground }]}>
+                ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ
+              </Text>
+            </View>
+            <View style={styles.langGrid}>
+              {(['en', 'hi', 'mr', 'kn'] as Lang[]).map((code) => {
+                const active = lang === code;
+                return (
+                  <Pressable
+                    key={code}
+                    onPress={() => setLanguage(code)}
                     style={[
-                      styles.langChipText,
-                      { color: active ? colors.primaryForeground : colors.foreground },
+                      styles.langChip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
                     ]}
                   >
-                    {LANG_LABELS[code]}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.langChipText,
+                        { color: active ? colors.primaryForeground : colors.foreground },
+                      ]}
+                    >
+                      {LANG_LABELS[code]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        {/* Page 1: Your water tank, always watched */}
-        <View style={[styles.pageWrapper, { width }]}>
-          <Text style={styles.bigIcon}>💧</Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>{t('ob1Title')}</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob1Subtitle')}</Text>
-        </View>
+          {/* Page 1: Your water tank, always watched */}
+          <View style={[styles.pageWrapper, { width }]}>
+            <Text style={styles.bigIcon}>💧</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob1Title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob1Subtitle')}</Text>
+          </View>
 
-        {/* Page 2: Works automatically */}
-        <View style={[styles.pageWrapper, { width }]}>
-          <Text style={styles.bigIcon}>⚡</Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>{t('ob2Title')}</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob2Subtitle')}</Text>
-        </View>
+          {/* Page 2: Works automatically */}
+          <View style={[styles.pageWrapper, { width }]}>
+            <Text style={styles.bigIcon}>⚡</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob2Title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob2Subtitle')}</Text>
+          </View>
 
-        {/* Page 3: Hardware setup */}
-        <View style={[styles.pageWrapper, { width }]}>
-          <Text style={styles.bigIcon}>📡</Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>Set up your device</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Pair your WaterTank hardware over Bluetooth, or skip for now and try the demo.
-          </Text>
-          <View style={{ gap: 12, marginTop: 24, width: '100%' }}>
+          {/* Page 3: Hardware setup */}
+          <View style={[styles.pageWrapper, { width }]}>
+            <Text style={styles.bigIcon}>📡</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('ob3Title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('ob3Subtitle')}</Text>
             {bleAvailable && (
               <TouchableOpacity
                 onPress={() => setShowPairing(true)}
                 style={[styles.cta, { backgroundColor: colors.primary }]}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
-                  Set up now
-                </Text>
+                <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>{t('ob3SetupBtn')}</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              onPress={finish}
-              style={[
-                styles.cta,
-                { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.border },
-              ]}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.ctaText, { color: colors.foreground }]}>
-                {bleAvailable ? 'Skip for now / Try demo' : 'Continue / Try demo'}
-              </Text>
+            <TouchableOpacity onPress={finish} activeOpacity={0.7}>
+              <Text style={[styles.skipLink, { color: colors.mutedForeground }]}>{t('ob3SkipBtn')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Footer: dots + next/skip button */}
       <View style={styles.footer}>
@@ -200,7 +186,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
   },
-  scrollView: {
+  body: {
     flex: 1,
   },
   pageWrapper: {
@@ -278,5 +264,12 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 17,
     fontFamily: 'Inter_700Bold',
+  },
+  skipLink: {
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    paddingVertical: 8,
+    marginTop: 4,
   },
 });

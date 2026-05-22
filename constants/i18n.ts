@@ -54,6 +54,8 @@ export interface Translations {
   ob2Subtitle: string;
   ob3Title: string;
   ob3Subtitle: string;
+  ob3SetupBtn: string;
+  ob3SkipBtn: string;
   getStarted: string;
   next: string;
   tabDashboard: string;
@@ -165,8 +167,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     ob1Subtitle: 'This app automatically starts and stops your motor when village water arrives.',
     ob2Title: 'Works automatically, day or night',
     ob2Subtitle: 'When Panchayat water arrives, the motor starts by itself. It stops when the tank is full or water supply ends.',
-    ob3Title: 'Choose your language',
-    ob3Subtitle: 'You can change this later in Settings.',
+    ob3Title: 'Set up your device',
+    ob3Subtitle: 'Connect your WaterTank ESP32 over Bluetooth to get live tank updates.',
+    ob3SetupBtn: 'Set up now',
+    ob3SkipBtn: 'Skip for now',
     getStarted: 'Get Started',
     next: 'Next',
     tabDashboard: 'Dashboard',
@@ -266,8 +270,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     ob1Subtitle: 'जब गाँव का पानी आता है, यह एप अपने आप मोटर शुरू और बंद करता है।',
     ob2Title: 'दिन हो या रात, अपने आप काम करता है',
     ob2Subtitle: 'जब पंचायत का पानी आता है, मोटर अपने आप शुरू हो जाती है। टंकी भरने पर या पानी बंद होने पर रुक जाती है।',
-    ob3Title: 'अपनी भाषा चुनें',
-    ob3Subtitle: 'आप इसे बाद में सेटिंग्स में बदल सकते हैं।',
+    ob3Title: 'अपना डिवाइस सेटअप करें',
+    ob3Subtitle: 'लाइव टंकी अपडेट पाने के लिए WaterTank ESP32 को Bluetooth से जोड़ें।',
+    ob3SetupBtn: 'अभी सेटअप करें',
+    ob3SkipBtn: 'अभी नहीं',
     getStarted: 'शुरू करें',
     next: 'आगे',
     tabDashboard: 'मुख्य',
@@ -367,8 +373,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     ob1Subtitle: 'गावाचे पाणी आल्यावर हे अ‍ॅप आपोआप मोटर सुरू आणि बंद करते।',
     ob2Title: 'दिवस असो वा रात्र, आपोआप काम करते',
     ob2Subtitle: 'पंचायतीचे पाणी आल्यावर मोटर आपोआप सुरू होते। टाकी भरल्यावर किंवा पाणी संपल्यावर थांबते।',
-    ob3Title: 'तुमची भाषा निवडा',
-    ob3Subtitle: 'तुम्ही नंतर सेटिंग्जमध्ये हे बदलू शकता।',
+    ob3Title: 'तुमचे डिव्हाइस सेट करा',
+    ob3Subtitle: 'थेट टाकी अपडेट मिळवण्यासाठी WaterTank ESP32 Bluetooth ने जोडा।',
+    ob3SetupBtn: 'आत्ता सेट करा',
+    ob3SkipBtn: 'नंतर करा',
     getStarted: 'सुरू करा',
     next: 'पुढे',
     tabDashboard: 'मुख्य',
@@ -468,8 +476,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     ob1Subtitle: 'ಗ್ರಾಮದ ನೀರು ಬಂದಾಗ ಈ ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಮೋಟಾರ್ ಪ್ರಾರಂಭಿಸುತ್ತದೆ ಮತ್ತು ನಿಲ್ಲಿಸುತ್ತದೆ।',
     ob2Title: 'ಹಗಲು ರಾತ್ರಿ, ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ',
     ob2Subtitle: 'ಪಂಚಾಯತಿ ನೀರು ಬಂದಾಗ ಮೋಟಾರ್ ಸ್ವತಸ್ ಪ್ರಾರಂಭವಾಗುತ್ತದೆ। ಟ್ಯಾಂಕ್ ತುಂಬಿದಾಗ ಅಥವಾ ನೀರು ನಿಂತಾಗ ಅದು ನಿಲ್ಲುತ್ತದೆ।',
-    ob3Title: 'ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
-    ob3Subtitle: 'ನೀವು ಇದನ್ನು ನಂತರ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಬದಲಾಯಿಸಬಹುದು।',
+    ob3Title: 'ನಿಮ್ಮ ಸಾಧನ ಸೆಟಪ್ ಮಾಡಿ',
+    ob3Subtitle: 'ನೇರ ಟ್ಯಾಂಕ್ ಅಪ್ಡೇಟ್‌ಗಳಿಗಾಗಿ WaterTank ESP32 ಅನ್ನು Bluetooth ಮೂಲಕ ಸಂಪರ್ಕಿಸಿ।',
+    ob3SetupBtn: 'ಈಗ ಸೆಟಪ್ ಮಾಡಿ',
+    ob3SkipBtn: 'ಈಗ ಬೇಡ',
     getStarted: 'ಪ್ರಾರಂಭಿಸಿ',
     next: 'ಮುಂದೆ',
     tabDashboard: 'ಮುಖ್ಯ',
