@@ -44,7 +44,7 @@ export default function OnboardingScreen() {
   }
 
   function next() {
-    if (page < 2) {
+    if (page < TOTAL_PAGES - 1) {
       scrollRef.current?.scrollTo({ x: (page + 1) * width, animated: true });
     } else {
       finish();
