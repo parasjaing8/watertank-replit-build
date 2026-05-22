@@ -135,7 +135,6 @@ export default function DashboardScreen() {
     deviceState.tank > 0;
 
   return (
-    <TabSwipeWrapper index={0}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         style={styles.container}
@@ -229,7 +228,6 @@ export default function DashboardScreen() {
         </View>
       )}
     </View>
-    </TabSwipeWrapper>
   );
 }
 
