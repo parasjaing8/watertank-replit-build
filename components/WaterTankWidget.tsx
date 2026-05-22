@@ -1,14 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import Svg, {
   Circle,
   Defs,
-  Ellipse,
   LinearGradient,
   Path,
   Rect,
@@ -17,9 +11,6 @@ import Svg, {
 
 import { useColors } from '@/hooks/useColors';
 import { getTankColor } from '@/utils/formatters';
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 interface WaterTankWidgetProps {
   pct: number;
@@ -73,38 +64,33 @@ function buildWavePath(waterY: number, bodyX: number, bodyW: number, bodyH: numb
 export function WaterTankWidget({ pct, connected, animated = true }: WaterTankWidgetProps) {
   const colors = useColors();
   const clamped = Math.max(0, Math.min(100, pct));
-  const fillPct = useSharedValue(0);
+  const [fillPct, setFillPct] = useState(animated ? 0 : clamped);
+  const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (animated) {
-      fillPct.value = withTiming(clamped, { duration: 600 });
-    } else {
-      fillPct.value = clamped;
-    }
-  }, [clamped, animated]);
+    if (!animated) { setFillPct(clamped); return; }
+    const start = fillPct;
+    const end = clamped;
+    const steps = 30;
+    const stepMs = 600 / steps;
+    let i = 0;
+    if (animRef.current) clearInterval(animRef.current);
+    animRef.current = setInterval(() => {
+      i++;
+      setFillPct(start + (end - start) * (i / steps));
+      if (i >= steps) { clearInterval(animRef.current!); animRef.current = null; }
+    }, stepMs);
+    return () => { if (animRef.current) clearInterval(animRef.current); };
+  }, [clamped]);
 
   const waterColor = getTankColor(clamped, colors);
   const tankStroke = '#0F172A';
   const tankFill = colors.card;
   const ringColor = '#0F172A';
 
-  // Animated rect clip (fills body from bottom up)
-  const animatedRectProps = useAnimatedProps(() => {
-    const h = (fillPct.value / 100) * BODY_H;
-    return {
-      y: BODY_Y + (BODY_H - h),
-      height: Math.max(0, h),
-    } as any;
-  });
-
-  // Animated wave path
-  const animatedWaveProps = useAnimatedProps(() => {
-    const h = (fillPct.value / 100) * BODY_H;
-    const waterY = BODY_Y + (BODY_H - h);
-    return {
-      d: buildWavePath(waterY, BODY_X, BODY_W, BODY_H, BODY_Y),
-    } as any;
-  });
+  const fillH = (fillPct / 100) * BODY_H;
+  const rectY = BODY_Y + (BODY_H - fillH);
+  const wavePath = buildWavePath(rectY, BODY_X, BODY_W, BODY_H, BODY_Y);
 
   const domePath = buildDomePath();
 
@@ -174,20 +160,21 @@ export function WaterTankWidget({ pct, connected, animated = true }: WaterTankWi
           strokeWidth={2.5}
         />
 
-        {/* Water fill (animated rect from bottom up, clipped to body) */}
-        <AnimatedRect
+        {/* Water fill (animates via state) */}
+        <Rect
           x={BODY_X}
+          y={rectY}
           width={BODY_W}
+          height={Math.max(0, fillH)}
           rx={8}
           fill="url(#waterGrad4)"
-          animatedProps={animatedRectProps}
         />
 
         {/* Wavy water surface */}
         {clamped > 1 && (
-          <AnimatedPath
+          <Path
             fill="url(#waterGrad4)"
-            animatedProps={animatedWaveProps}
+            d={wavePath}
           />
         )}
 

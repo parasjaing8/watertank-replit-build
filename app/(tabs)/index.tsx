@@ -1,18 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 
 import { StatusDot } from "@/components/StatusDot";
 import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
@@ -25,49 +19,34 @@ import { TANK_LOW_PCT } from "@/constants/thresholds";
 import { formatTankPct, getTankColor } from "@/utils/formatters";
 
 function PulsingDots({ color }: { color: string }) {
-  const a = useSharedValue(0.3);
-  const b = useSharedValue(0.3);
-  const c = useSharedValue(0.3);
+  const a = useRef(new Animated.Value(0.3)).current;
+  const b = useRef(new Animated.Value(0.3)).current;
+  const c = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    a.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 400 }),
-        withTiming(0.3, { duration: 400 }),
-        withTiming(0.3, { duration: 800 })
-      ),
-      -1,
-      false
-    );
-    b.value = withRepeat(
-      withSequence(
-        withTiming(0.3, { duration: 400 }),
-        withTiming(1, { duration: 400 }),
-        withTiming(0.3, { duration: 800 })
-      ),
-      -1,
-      false
-    );
-    c.value = withRepeat(
-      withSequence(
-        withTiming(0.3, { duration: 800 }),
-        withTiming(1, { duration: 400 }),
-        withTiming(0.3, { duration: 400 })
-      ),
-      -1,
-      false
-    );
+    const makeLoop = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+          Animated.delay(800 - delay),
+        ])
+      );
+    const anim = Animated.parallel([makeLoop(a, 0), makeLoop(b, 400), makeLoop(c, 800)]);
+    anim.start();
+    return () => anim.stop();
   }, []);
 
-  const sa = useAnimatedStyle(() => ({ opacity: a.value }));
-  const sb = useAnimatedStyle(() => ({ opacity: b.value }));
-  const sc = useAnimatedStyle(() => ({ opacity: c.value }));
+  const dot = (val: Animated.Value) => (
+    <Animated.View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color, opacity: val }} />
+  );
 
   return (
     <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
-      <Animated.View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, sa]} />
-      <Animated.View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, sb]} />
-      <Animated.View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, sc]} />
+      {dot(a)}
+      {dot(b)}
+      {dot(c)}
     </View>
   );
 }
