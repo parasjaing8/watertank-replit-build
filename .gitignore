@@ -40,3 +40,7 @@ yarn-error.*
 
 .env
 .aider*
+
+# Build outputs
+*.apk
+*.aab
