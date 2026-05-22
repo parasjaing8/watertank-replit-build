@@ -10,6 +10,8 @@ import Svg, {
   Rect,
   Stop,
   G,
+  Circle,
+  RadialGradient,
 } from 'react-native-svg';
 
 interface WaterTankWidgetProps {
@@ -19,74 +21,124 @@ interface WaterTankWidgetProps {
   animated?: boolean;
 }
 
-// ─── Canvas ───────────────────────────────────────────────────────────────────
-const W = 300;
-const H = 290;
+interface Droplet {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+}
 
-// ─── Tank body ────────────────────────────────────────────────────────────────
-const BX  = 46;          // body left x
-const BY  = 38;          // body top y (lid sits above)
-const BW  = 218;         // body width
-const BH  = 240;         // body height
-const BRX = 14;          // corner radius
-const BCX = BX + BW / 2; // center x = 155
+interface Ripple {
+  id: number;
+  x: number;
+  y: number;
+  progress: number;
+  maxRadius: number;
+}
 
-// ─── Stepped lid (3 concentric ellipses, lowest → highest) ───────────────────
-const LID0_CY = BY;        const LID0_RX = 112; const LID0_RY = 10; // outer flange
-const LID1_CY = BY - 12;   const LID1_RX = 84;  const LID1_RY = 9;  // middle tier
-const LID2_CY = BY - 22;   const LID2_RX = 50;  const LID2_RY = 8;  // inner cap
+// ─── Canvas ────────────────────────────────────────────────────────────────
+const W = 320;
+const H = 310;
 
-// ─── Inlet pipe (LEFT side, horizontal) ──────────────────────────────────────
-const PIPE_CY = BY + 2;   // center y at body top
-const PIPE_H  = 14;
+// ─── Tank body ─────────────────────────────────────────────────────────────
+const BX  = 38;
+const BY  = 40;
+const BW  = 244;
+const BH  = 248;
+const BRX = 16;
+const BCX = BX + BW / 2; // 160
+
+// ─── Stepped lid ───────────────────────────────────────────────────────────
+const LID0_CY = BY;         const LID0_RX = 124; const LID0_RY = 11;
+const LID1_CY = BY - 13;    const LID1_RX = 92;  const LID1_RY = 10;
+const LID2_CY = BY - 24;    const LID2_RX = 56;  const LID2_RY = 9;
+
+// ─── Inlet pipe (LEFT side) ─────────────────────────────────────────────────
+const PIPE_CY = BY + 4;
+const PIPE_H  = 16;
 const PIPE_X1 = 0;
-const PIPE_X2 = BX;       // pipe meets body left wall
-const FLANGE_W = 10;
+const PIPE_X2 = BX;
 
-// ─── Cutaway window ───────────────────────────────────────────────────────────
-const CX  = 71;   // BX + 25
-const CY  = 65;   // BY + 27
-const CW  = 168;
-const CH  = 168;
-const CRX = 18;
+// ─── Cutaway window ─────────────────────────────────────────────────────────
+const CX  = 62;
+const CY  = 68;
+const CW  = 196;
+const CH  = 184;
+const CRX = 20;
 
-// ─── Ribs (4 indented rings) ─────────────────────────────────────────────────
-// positions: ~8.5%, 30%, 76%, 93% down body
+// ─── Ribs ───────────────────────────────────────────────────────────────────
 const RIB_Y = [
-  BY + Math.round(0.085 * BH),
-  BY + Math.round(0.300 * BH),
-  BY + Math.round(0.760 * BH),
-  BY + Math.round(0.930 * BH),
+  BY + Math.round(0.09 * BH),
+  BY + Math.round(0.31 * BH),
+  BY + Math.round(0.77 * BH),
+  BY + Math.round(0.94 * BH),
 ];
-const RIB_H = 5;
 
-// ─── Colors ───────────────────────────────────────────────────────────────────
-const C_GLOW    = '#7FD4E8';
-const C_INNER   = '#050C13';
+// ─── Colors ─────────────────────────────────────────────────────────────────
+const C_GLOW    = '#60C8E8';
+const C_INNER   = '#040B12';
 const C_PIPE    = '#C8D8E8';
 const C_PIPE_DK = '#8FAABF';
-const C_RIB_DK  = '#0B141E';
-const C_RIB_HL  = '#3D5068';
-const C_WATER_T = '#4FA8C9';
-const C_WATER_B = '#1B4E6B';
+const C_RIB_DK  = '#080F18';
+const C_RIB_HL  = '#3A5068';
+const C_WATER_T = '#3DA8D0';
+const C_WATER_B = '#143E5A';
+const C_POUR    = '#5CC8F0';
+const C_SPLASH  = '#7FD8F8';
 
-function buildWaveSurface(
-  surfaceY: number,
-  cx: number,
-  cw: number,
-  bottomY: number,
-  phase: number,
-  amp: number,
-): string {
-  const step = 8;
-  const freq = 0.038;
-  let d = `M ${cx} ${surfaceY}`;
-  for (let x = 0; x <= cw; x += step) {
+function buildWavePath(surfaceY: number, phase: number, amp: number): string {
+  const step = 6;
+  const freq = 0.040;
+  let d = `M ${CX} ${surfaceY}`;
+  for (let x = 0; x <= CW; x += step) {
     const wy = surfaceY + Math.sin(x * freq + phase) * amp;
-    d += ` L ${cx + x} ${wy}`;
+    d += ` L ${CX + x} ${wy}`;
   }
-  d += ` L ${cx + cw} ${bottomY} L ${cx} ${bottomY} Z`;
+  d += ` L ${CX + CW} ${CY + CH} L ${CX} ${CY + CH} Z`;
   return d;
+}
+
+function buildSecondWavePath(surfaceY: number, phase: number, amp: number): string {
+  const step = 6;
+  const freq = 0.055;
+  let d = `M ${CX} ${surfaceY + 3}`;
+  for (let x = 0; x <= CW; x += step) {
+    const wy = surfaceY + 3 + Math.sin(x * freq + phase + 1.8) * amp * 0.6;
+    d += ` L ${CX + x} ${wy}`;
+  }
+  d += ` L ${CX + CW} ${CY + CH} L ${CX} ${CY + CH} Z`;
+  return d;
+}
+
+let dropletIdCounter = 0;
+let rippleIdCounter = 0;
+
+function spawnDroplet(surfaceY: number): Droplet {
+  const splashX = CX + 28 + Math.random() * 60;
+  return {
+    id: dropletIdCounter++,
+    x: splashX,
+    y: surfaceY - 2,
+    vx: (Math.random() - 0.5) * 3.2,
+    vy: -(3 + Math.random() * 4),
+    life: 0,
+    maxLife: 18 + Math.floor(Math.random() * 14),
+    size: 1.2 + Math.random() * 2.2,
+  };
+}
+
+function spawnRipple(surfaceY: number): Ripple {
+  return {
+    id: rippleIdCounter++,
+    x: CX + 30 + Math.random() * 80,
+    y: surfaceY - 2,
+    progress: 0,
+    maxRadius: 14 + Math.random() * 18,
+  };
 }
 
 export function WaterTankWidget({
@@ -96,235 +148,353 @@ export function WaterTankWidget({
   animated = true,
 }: WaterTankWidgetProps) {
   const clamped = Math.max(0, Math.min(100, pct));
-  const [fillPct, setFillPct] = useState(animated ? 0 : clamped);
+  const [fillPct, setFillPct]   = useState(animated ? 0 : clamped);
   const [wavePhase, setWavePhase] = useState(0);
-  const fillRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const waveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [droplets, setDroplets]  = useState<Droplet[]>([]);
+  const [ripples, setRipples]    = useState<Ripple[]>([]);
+  const [pourFlicker, setPourFlicker] = useState(1.0);
+  const fillRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const animRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const frameRef  = useRef(0);
 
+  // ── Animate fill on mount / pct change ──
   useEffect(() => {
     if (!animated) { setFillPct(clamped); return; }
     const from = fillPct;
-    const steps = 30;
-    const ms = 600 / steps;
+    const steps = 40;
+    const ms = 800 / steps;
     let i = 0;
     if (fillRef.current) clearInterval(fillRef.current);
     fillRef.current = setInterval(() => {
       i++;
-      setFillPct(from + (clamped - from) * (i / steps));
+      const t = i / steps;
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      setFillPct(from + (clamped - from) * ease);
       if (i >= steps) { clearInterval(fillRef.current!); fillRef.current = null; }
     }, ms);
     return () => { if (fillRef.current) clearInterval(fillRef.current); };
   }, [clamped]);
 
+  // ── Main animation loop ──
   useEffect(() => {
-    if (!connected || clamped <= 0) return;
-    const step = motorOn ? 0.09 : 0.028;
-    const ms   = motorOn ? 40   : 85;
-    if (waveRef.current) clearInterval(waveRef.current);
-    waveRef.current = setInterval(() => setWavePhase(p => p + step), ms);
-    return () => { if (waveRef.current) clearInterval(waveRef.current); };
-  }, [connected, motorOn, clamped]);
+    if (!connected || clamped <= 0) {
+      if (animRef.current) clearInterval(animRef.current);
+      setDroplets([]);
+      setRipples([]);
+      return;
+    }
+
+    const waveStep = motorOn ? 0.10 : 0.030;
+    const ms = motorOn ? 40 : 80;
+    let frame = 0;
+
+    if (animRef.current) clearInterval(animRef.current);
+    animRef.current = setInterval(() => {
+      frame++;
+      frameRef.current = frame;
+
+      setWavePhase(p => p + waveStep);
+      setPourFlicker(0.7 + Math.random() * 0.3);
+
+      if (motorOn) {
+        setDroplets(prev => {
+          // age existing
+          const aged = prev
+            .map(d => ({
+              ...d,
+              x: d.x + d.vx,
+              y: d.y + d.vy,
+              vy: d.vy + 0.38,
+              life: d.life + 1,
+            }))
+            .filter(d => d.life < d.maxLife);
+
+          // spawn new every 3 frames
+          const innerBottom = CY + CH;
+          const fillH = (fillPct / 100) * CH;
+          const sy = innerBottom - fillH;
+          if (frame % 3 === 0 && aged.length < 18) {
+            return [...aged, spawnDroplet(sy)];
+          }
+          return aged;
+        });
+
+        setRipples(prev => {
+          const advanced = prev
+            .map(r => ({ ...r, progress: r.progress + 0.04 }))
+            .filter(r => r.progress < 1);
+          if (frame % 18 === 0) {
+            const innerBottom = CY + CH;
+            const fillH = (fillPct / 100) * CH;
+            const sy = innerBottom - fillH;
+            return [...advanced, spawnRipple(sy)];
+          }
+          return advanced;
+        });
+      } else {
+        setDroplets([]);
+        setRipples([]);
+      }
+    }, ms);
+
+    return () => { if (animRef.current) clearInterval(animRef.current); };
+  }, [connected, motorOn, clamped, fillPct]);
 
   const innerBottom = CY + CH;
   const fillH       = (fillPct / 100) * CH;
   const surfaceY    = innerBottom - fillH;
-  const waveAmp     = motorOn ? 4.5 : 2.2;
-  const wavePath    = connected && fillPct > 0
-    ? buildWaveSurface(surfaceY, CX, CW, innerBottom, wavePhase, waveAmp)
-    : '';
+  const waveAmp     = motorOn ? 5 : 2.2;
 
+  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp) : '';
+  const wave2Path = connected && fillPct > 0 && motorOn
+    ? buildSecondWavePath(surfaceY, wavePhase, waveAmp) : '';
+
+  // Pour stream cubic bezier: pipe exit → water surface splash point
+  const pourEndX = CX + 22;
+  const pourEndY = surfaceY + 2;
   const pourPath = motorOn && connected && fillPct > 0
-    ? `M ${PIPE_X2 + 2} ${PIPE_CY + 2} C ${PIPE_X2 + 14} ${PIPE_CY + 32}, ${CX + 16} ${surfaceY - 18}, ${CX + 20} ${surfaceY + 4}`
+    ? `M ${PIPE_X2 + 4} ${PIPE_CY + 3} C ${PIPE_X2 + 18} ${PIPE_CY + 38}, ${pourEndX + 8} ${pourEndY - 22}, ${pourEndX} ${pourEndY}`
     : '';
 
   return (
     <View style={{ alignItems: 'center' }}>
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         <Defs>
-          {/* Body: horizontal gradient — left lighter (specular) → right darker */}
           <LinearGradient id="wtBody" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0"    stopColor="#2C3A47" />
-            <Stop offset="0.20" stopColor="#3D4F5E" />
-            <Stop offset="0.42" stopColor="#2A3A4A" />
-            <Stop offset="0.72" stopColor="#1A222C" />
-            <Stop offset="1"    stopColor="#0D1218" />
+            <Stop offset="0.18" stopColor="#3D5060" />
+            <Stop offset="0.40" stopColor="#28383E" />
+            <Stop offset="0.68" stopColor="#18222C" />
+            <Stop offset="1"    stopColor="#0C1018" />
           </LinearGradient>
 
-          {/* Lid tiers — each slightly lighter than body */}
           <LinearGradient id="wtLid0" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0"   stopColor="#3A4C5E" />
-            <Stop offset="0.5" stopColor="#2C3A4A" />
-            <Stop offset="1"   stopColor="#1A2534" />
+            <Stop offset="0"   stopColor="#3C4E60" />
+            <Stop offset="0.5" stopColor="#2C3A4C" />
+            <Stop offset="1"   stopColor="#1A2535" />
           </LinearGradient>
           <LinearGradient id="wtLid1" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0"   stopColor="#344455" />
+            <Stop offset="0"   stopColor="#364655" />
             <Stop offset="0.5" stopColor="#263444" />
-            <Stop offset="1"   stopColor="#141F2C" />
+            <Stop offset="1"   stopColor="#141F2D" />
           </LinearGradient>
           <LinearGradient id="wtLid2" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0"   stopColor="#2C3A48" />
-            <Stop offset="0.5" stopColor="#1E2C38" />
+            <Stop offset="0"   stopColor="#2E3C4A" />
+            <Stop offset="0.5" stopColor="#1E2C3A" />
             <Stop offset="1"   stopColor="#0E1820" />
           </LinearGradient>
 
-          {/* Water: vertical bright-top → deep-bottom */}
           <LinearGradient id="wtWater" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0"   stopColor={C_WATER_T} stopOpacity={0.95} />
-            <Stop offset="1"   stopColor={C_WATER_B} />
+            <Stop offset="0"    stopColor={C_WATER_T} stopOpacity={0.95} />
+            <Stop offset="0.45" stopColor="#2080A8" />
+            <Stop offset="1"    stopColor={C_WATER_B} />
           </LinearGradient>
 
-          {/* Water surface sheen */}
+          <LinearGradient id="wtWater2" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0"   stopColor="#6FD0F0" stopOpacity={0.55} />
+            <Stop offset="1"   stopColor={C_WATER_T}  stopOpacity={0.0} />
+          </LinearGradient>
+
           <LinearGradient id="wtSheen" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.20} />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            <Stop offset="0"   stopColor="#FFFFFF" stopOpacity={0.22} />
+            <Stop offset="1"   stopColor="#FFFFFF" stopOpacity={0} />
           </LinearGradient>
 
-          {/* Pipe: vertical gradient for cylindrical look */}
           <LinearGradient id="wtPipe" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0"    stopColor="#D8EAF5" />
+            <Stop offset="0"    stopColor="#DCEEF8" />
             <Stop offset="0.45" stopColor={C_PIPE} />
             <Stop offset="1"    stopColor={C_PIPE_DK} />
           </LinearGradient>
 
-          {/* Clip water to cutaway */}
+          <LinearGradient id="wtPour" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0"   stopColor={C_POUR} stopOpacity={0.9} />
+            <Stop offset="1"   stopColor={C_WATER_T} stopOpacity={0.6} />
+          </LinearGradient>
+
+          <RadialGradient id="wtGlowLeft" cx="0" cy="0.5" r="1" fx="0" fy="0.5">
+            <Stop offset="0"   stopColor={C_GLOW} stopOpacity={0.35} />
+            <Stop offset="1"   stopColor={C_GLOW} stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="wtGlowRight" cx="1" cy="0.5" r="1" fx="1" fy="0.5">
+            <Stop offset="0"   stopColor={C_GLOW} stopOpacity={0.28} />
+            <Stop offset="1"   stopColor={C_GLOW} stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="wtGlowBase" cx="0.5" cy="0" r="1" fx="0.5" fy="0">
+            <Stop offset="0"   stopColor={C_GLOW} stopOpacity={0.40} />
+            <Stop offset="1"   stopColor={C_GLOW} stopOpacity={0} />
+          </RadialGradient>
+
           <ClipPath id="cutClip">
             <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} />
           </ClipPath>
-
-          {/* Mask: ribs visible on body, hidden inside cutaway */}
+          <ClipPath id="bodyClip">
+            <Rect x={BX} y={BY} width={BW} height={BH} rx={BRX} />
+          </ClipPath>
           <Mask id="ribMask">
             <Rect x="0" y="0" width={W} height={H} fill="white" />
             <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} fill="black" />
           </Mask>
         </Defs>
 
-        {/* ── CYAN GLOW (side columns + base) ── */}
-        <Ellipse cx={BX - 7} cy={BY + BH * 0.52} rx={16} ry={BH * 0.38} fill={C_GLOW} opacity={0.20} />
-        <Ellipse cx={BX + BW + 7} cy={BY + BH * 0.52} rx={16} ry={BH * 0.38} fill={C_GLOW} opacity={0.20} />
-        <Ellipse cx={BCX} cy={BY + BH + 15} rx={110} ry={18} fill={C_GLOW} opacity={0.28} />
-        <Ellipse cx={BCX} cy={BY + BH + 10} rx={80}  ry={10} fill={C_GLOW} opacity={0.14} />
+        {/* ── AMBIENT GLOW ── */}
+        <Ellipse cx={BX - 4} cy={BY + BH * 0.5} rx={36} ry={BH * 0.42}
+          fill="url(#wtGlowLeft)" />
+        <Ellipse cx={BX + BW + 4} cy={BY + BH * 0.5} rx={36} ry={BH * 0.42}
+          fill="url(#wtGlowRight)" />
+        <Ellipse cx={BCX} cy={BY + BH + 12} rx={130} ry={22}
+          fill="url(#wtGlowBase)" />
 
         {/* ── TANK BODY ── */}
         <Rect x={BX} y={BY} width={BW} height={BH} rx={BRX} fill="url(#wtBody)" />
 
-        {/* Specular edge highlight strip (brightens left-of-center for convex cylinder feel) */}
-        <Rect x={BX + 2} y={BY + 2} width={28} height={BH - 4} rx={BRX} fill="#4A6280" opacity={0.18} />
+        {/* Left specular highlight */}
+        <Rect x={BX + 2} y={BY + 4} width={32} height={BH - 8} rx={12}
+          fill="#4A6890" opacity={0.16} clipPath="url(#bodyClip)" />
 
         {/* ── CUTAWAY INTERIOR ── */}
         <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} fill={C_INNER} />
 
         {/* Top inset shadow */}
-        <Rect x={CX} y={CY} width={CW} height={30} rx={CRX} fill="#000" opacity={0.50} clipPath="url(#cutClip)" />
+        <Rect x={CX} y={CY} width={CW} height={36} rx={CRX}
+          fill="#000" opacity={0.55} clipPath="url(#cutClip)" />
 
-        {/* Water fill */}
+        {/* ── WATER (second wave behind) ── */}
+        {connected && fillPct > 0 && wave2Path !== '' && (
+          <Path d={wave2Path} fill="url(#wtWater2)" clipPath="url(#cutClip)" />
+        )}
+
+        {/* ── WATER (main wave) ── */}
         {connected && fillPct > 0 && (
           <Path d={wavePath} fill="url(#wtWater)" clipPath="url(#cutClip)" />
         )}
 
-        {/* Water surface sheen (top band of water) */}
+        {/* Water surface sheen */}
         {connected && fillPct > 0 && (
           <Rect
-            x={CX}
-            y={surfaceY}
-            width={CW}
-            height={Math.min(28, fillH * 0.35)}
+            x={CX} y={surfaceY}
+            width={CW} height={Math.min(32, fillH * 0.40)}
             rx={4}
             fill="url(#wtSheen)"
             clipPath="url(#cutClip)"
           />
         )}
 
-        {/* Motor-on pour stream */}
+        {/* ── RIPPLES on water surface ── */}
+        {ripples.map(r => {
+          const radius = r.maxRadius * r.progress;
+          const opacity = (1 - r.progress) * 0.55;
+          return (
+            <Ellipse
+              key={r.id}
+              cx={r.x}
+              cy={r.y}
+              rx={radius}
+              ry={radius * 0.32}
+              fill="none"
+              stroke={C_SPLASH}
+              strokeWidth={1.2}
+              opacity={opacity}
+              clipPath="url(#cutClip)"
+            />
+          );
+        })}
+
+        {/* ── POUR STREAM ── */}
         {pourPath !== '' && (
-          <Path
-            d={pourPath}
-            stroke={C_WATER_T}
-            strokeWidth={4.5}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.72}
-          />
+          <>
+            {/* Main stream */}
+            <Path
+              d={pourPath}
+              stroke="url(#wtPour)"
+              strokeWidth={5.5}
+              strokeLinecap="round"
+              fill="none"
+              opacity={pourFlicker}
+            />
+            {/* Stream edge highlight */}
+            <Path
+              d={pourPath}
+              stroke="#AAEEFF"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              fill="none"
+              opacity={pourFlicker * 0.55}
+            />
+          </>
         )}
 
-        {/* ── RIBS (masked: render on body outer shell only, not cutaway) ── */}
+        {/* ── SPLASH DROPLETS ── */}
+        {droplets.map(d => {
+          const lifeRatio = d.life / d.maxLife;
+          const opacity = lifeRatio < 0.3
+            ? lifeRatio / 0.3
+            : 1 - (lifeRatio - 0.3) / 0.7;
+          return (
+            <Circle
+              key={d.id}
+              cx={d.x}
+              cy={d.y}
+              r={d.size * (1 - lifeRatio * 0.4)}
+              fill={C_SPLASH}
+              opacity={opacity * 0.85}
+              clipPath="url(#cutClip)"
+            />
+          );
+        })}
+
+        {/* ── RIBS ── */}
         <G mask="url(#ribMask)">
           {RIB_Y.map((ry, i) => (
             <G key={i}>
-              {/* Rib highlight line above (light catches top of indent) */}
-              <Rect
-                x={BX + 2} y={ry - RIB_H / 2 - 1}
-                width={BW - 4} height={2}
-                fill={C_RIB_HL}
-                opacity={0.28}
-              />
-              {/* Rib shadow indent */}
-              <Rect
-                x={BX + 2} y={ry - RIB_H / 2}
-                width={BW - 4} height={RIB_H}
-                fill={C_RIB_DK}
-                opacity={0.72}
-              />
+              <Rect x={BX + 2} y={ry - 3} width={BW - 4} height={2}
+                fill={C_RIB_HL} opacity={0.30} />
+              <Rect x={BX + 2} y={ry - 1} width={BW - 4} height={5}
+                fill={C_RIB_DK} opacity={0.78} />
             </G>
           ))}
         </G>
 
         {/* Body outline */}
-        <Rect x={BX} y={BY} width={BW} height={BH} rx={BRX} fill="none" stroke="#0A1420" strokeWidth={1.5} />
+        <Rect x={BX} y={BY} width={BW} height={BH} rx={BRX}
+          fill="none" stroke="#080E18" strokeWidth={1.8} />
 
-        {/* Cutaway border — deep shadow line */}
-        <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX} fill="none" stroke="#060E18" strokeWidth={2.5} />
+        {/* Cutaway border */}
+        <Rect x={CX} y={CY} width={CW} height={CH} rx={CRX}
+          fill="none" stroke="#050C14" strokeWidth={3} />
 
         {/* Cutaway inner bevel */}
-        <Rect
-          x={CX + 2} y={CY + 2}
-          width={CW - 4} height={CH - 4}
-          rx={CRX - 2}
-          fill="none"
-          stroke="#1A2A3A"
-          strokeWidth={1}
-          opacity={0.55}
-        />
+        <Rect x={CX + 2} y={CY + 2} width={CW - 4} height={CH - 4} rx={CRX - 2}
+          fill="none" stroke="#1A2A3A" strokeWidth={1.2} opacity={0.60} />
 
         {/* ── STEPPED LID ── */}
-        {/* Outer flange (widest, sits at body top edge) */}
         <Ellipse cx={BCX} cy={LID0_CY} rx={LID0_RX} ry={LID0_RY} fill="url(#wtLid0)" />
-        <Ellipse cx={BCX} cy={LID0_CY} rx={LID0_RX} ry={LID0_RY} fill="none" stroke="#0A1420" strokeWidth={1.2} />
-
-        {/* Middle tier */}
+        <Ellipse cx={BCX} cy={LID0_CY} rx={LID0_RX} ry={LID0_RY}
+          fill="none" stroke="#080E18" strokeWidth={1.4} />
         <Ellipse cx={BCX} cy={LID1_CY} rx={LID1_RX} ry={LID1_RY} fill="url(#wtLid1)" />
-        <Ellipse cx={BCX} cy={LID1_CY} rx={LID1_RX} ry={LID1_RY} fill="none" stroke="#0A1420" strokeWidth={1.0} />
-
-        {/* Inner cap */}
+        <Ellipse cx={BCX} cy={LID1_CY} rx={LID1_RX} ry={LID1_RY}
+          fill="none" stroke="#080E18" strokeWidth={1.1} />
         <Ellipse cx={BCX} cy={LID2_CY} rx={LID2_RX} ry={LID2_RY} fill="url(#wtLid2)" />
-        <Ellipse cx={BCX} cy={LID2_CY} rx={LID2_RX} ry={LID2_RY} fill="none" stroke="#0A1420" strokeWidth={0.8} />
+        <Ellipse cx={BCX} cy={LID2_CY} rx={LID2_RX} ry={LID2_RY}
+          fill="none" stroke="#080E18" strokeWidth={0.9} />
 
-        {/* ── INLET PIPE (LEFT side, horizontal) ── */}
-        {/* Pipe body */}
+        {/* ── INLET PIPE ── */}
         <Rect
           x={PIPE_X1}
           y={PIPE_CY - PIPE_H / 2}
-          width={PIPE_X2 - PIPE_X1 + FLANGE_W}
+          width={PIPE_X2 - PIPE_X1 + 12}
           height={PIPE_H}
           rx={PIPE_H / 2}
           fill="url(#wtPipe)"
         />
-        {/* Flange at tank wall junction */}
         <Rect
           x={PIPE_X2 - 2}
-          y={PIPE_CY - PIPE_H / 2 - 4}
-          width={FLANGE_W + 2}
-          height={PIPE_H + 8}
+          y={PIPE_CY - PIPE_H / 2 - 5}
+          width={14}
+          height={PIPE_H + 10}
           rx={3}
           fill={C_PIPE_DK}
         />
-        {/* Pipe end cap */}
-        <Ellipse
-          cx={PIPE_X1 + 3}
-          cy={PIPE_CY}
-          rx={3}
-          ry={PIPE_H / 2 - 1}
-          fill={C_PIPE_DK}
-        />
+        <Ellipse cx={PIPE_X1 + 3} cy={PIPE_CY} rx={3} ry={PIPE_H / 2 - 1} fill={C_PIPE_DK} />
       </Svg>
     </View>
   );
