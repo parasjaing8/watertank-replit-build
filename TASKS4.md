@@ -1,6 +1,6 @@
 # WaterTank v4 Tasks
 Generated: 2026-05-22
-Status: 7/7 done
+Status: 0/7 done
 
 ## Verification checklist
 - [ ] Bottom bar shows exactly 3 tabs with icons
@@ -11,7 +11,7 @@ Status: 7/7 done
 
 ---
 
-## TASK-063: [DONE] Remove junk phantom-tab directory under (tabs)
+## TASK-063: [TODO] Remove junk phantom-tab directory under (tabs)
 
 **Files:** scripts/remove-phantom-tab-dir.sh
 **Model:** local
@@ -82,7 +82,7 @@ Do NOT remove the three hidden routes (`today`, `history`, `stats`) — they are
 Do NOT modify anything outside the `screenOptions` object and its nested style objects. The active/inactive tint colors (`colors.primary` / `colors.mutedForeground`) are already correct — leave them.
 ---END-MESSAGE---
 
-## TASK-065: [DONE] Redesign WaterTankWidget as Indian plastic storage tank (SVG)
+## TASK-065: [TODO] Redesign WaterTankWidget as Indian plastic storage tank (SVG)
 
 **Files:** components/WaterTankWidget.tsx
 **Model:** sonnet
@@ -235,7 +235,7 @@ Steps:
 11. Add `import { ScrollView, Dimensions } from 'react-native';` (merge into existing react-native import line).
 ---END-MESSAGE---
 
-## TASK-068: [DONE] Onboarding hardware setup page + BLE scan sub-flow
+## TASK-068: [TODO] Onboarding hardware setup page + BLE scan sub-flow
 
 **Files:** app/onboarding.tsx, components/BlePairingSheet.tsx
 **Model:** sonnet
@@ -468,7 +468,7 @@ Do NOT modify `services/BLEService.ts`. Do NOT modify `context/DeviceContext.tsx
 If `bleModuleAvailable` is false (i.e. running in Expo Go), the new `BleManager()` constructor will throw — the catch block sets `error` and the user can still hit "Cancel" / Skip.
 ---END-MESSAGE---
 
-## TASK-069: [DONE] Swipe-between-tabs gesture on Dashboard, Records, Settings
+## TASK-069: [TODO] Swipe-between-tabs gesture on Dashboard, Records, Settings
 
 **Files:** components/TabSwipeWrapper.tsx, app/(tabs)/index.tsx, app/(tabs)/records.tsx, app/(tabs)/settings.tsx
 **Model:** ollama-27b

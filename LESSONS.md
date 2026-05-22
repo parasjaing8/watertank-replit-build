@@ -87,3 +87,13 @@
 - Tricky: 
 - Learned: 
 - Deviation: none
+
+## TASK-066: Add "Try Demo" button to Dashboard disconnected state
+- Tricky: 
+- Learned: 
+- Deviation: none
+
+## TASK-067: Onboarding swipe navigation via pagingEnabled ScrollView
+- Tricky: 
+- Learned: 
+- Deviation: none
