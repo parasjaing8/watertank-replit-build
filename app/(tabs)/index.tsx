@@ -14,20 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useColors } from "@/hooks/useColors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TANK_LOW_PCT } from "@/constants/thresholds";
 import { formatTankPct, formatRelativeTime } from "@/utils/formatters";
-
-const BG         = "#EEF3FA";
-const CARD_BG    = "#FFFFFF";
-const CARD_BDR   = "#DDE6F0";
-const TEXT_DARK  = "#0A1628";
-const TEXT_MID   = "#4A5E78";
-const TEXT_MUTED = "#8FA3BC";
-const ACCENT     = "#1D6FE8";
-const SUCCESS    = "#22C55E";
-const WARNING    = "#F59E0B";
-const DANGER     = "#EF4444";
 
 function PulsingDot({ color }: { color: string }) {
   const pulse = useRef(new Animated.Value(1)).current;
@@ -100,16 +90,18 @@ function getTankStatusLabel(pct: number, motorOn: boolean, t: (k: any) => string
   return t("tankEmpty");
 }
 
-function getTankStatusColor(pct: number, motorOn: boolean): string {
-  if (motorOn && pct < 95) return ACCENT;
-  if (pct >= 95) return ACCENT;
-  if (pct >= 30) return SUCCESS;
-  if (pct > 0)  return WARNING;
-  return DANGER;
+type ColorTokens = { primary: string; success: string; warning: string; destructive: string };
+function getTankStatusColor(pct: number, motorOn: boolean, c: ColorTokens): string {
+  if (motorOn && pct < 95) return c.primary;
+  if (pct >= 95) return c.primary;
+  if (pct >= 30) return c.success;
+  if (pct > 0)  return c.warning;
+  return c.destructive;
 }
 
 export default function DashboardScreen() {
   const { t } = useLanguage();
+  const colors = useColors();
   const { deviceState, simMode, runSimulation } = useDevice();
   const insets = useSafeAreaInsets();
 
@@ -162,10 +154,10 @@ export default function DashboardScreen() {
   }, [deviceState.connected, simMode]);
 
   const tankStatusLabel = getTankStatusLabel(deviceState.tank, deviceState.motorOn, t);
-  const tankStatusColor = getTankStatusColor(deviceState.tank, deviceState.motorOn);
-  const pctColor = deviceState.motorOn ? ACCENT
-    : deviceState.tank >= 30 ? ACCENT
-    : deviceState.tank > 0 ? WARNING : DANGER;
+  const tankStatusColor = getTankStatusColor(deviceState.tank, deviceState.motorOn, colors);
+  const pctColor = deviceState.motorOn ? colors.primary
+    : deviceState.tank >= 30 ? colors.primary
+    : deviceState.tank > 0 ? colors.warning : colors.destructive;
 
   const motorSubLabel = isStartupDelay
     ? `${t("motorStarting")} ${countdown}s`
@@ -178,7 +170,7 @@ export default function DashboardScreen() {
     : insets.top + 12;
 
   return (
-    <View style={[styles.root, { backgroundColor: BG }]}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -191,18 +183,18 @@ export default function DashboardScreen() {
         {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.appTitle}>WaterTank</Text>
+            <Text style={[styles.appTitle, { color: colors.foreground }]}>WaterTank</Text>
             <View style={styles.statusRow}>
               {deviceState.connected
-                ? <PulsingDot color={SUCCESS} />
-                : <View style={styles.dotOff} />}
+                ? <PulsingDot color={colors.success} />
+                : <View style={[styles.dotOff, { backgroundColor: colors.mutedForeground }]} />}
               <Text style={[styles.statusLabel,
-                { color: deviceState.connected ? SUCCESS : TEXT_MUTED }]}>
+                { color: deviceState.connected ? colors.success : colors.mutedForeground }]}>
                 {deviceState.connected ? t("connected") : t("lookingForDevice")}
               </Text>
             </View>
             {deviceState.connected && deviceState.lastSyncAt && (
-              <Text style={styles.syncText}>
+              <Text style={[styles.syncText, { color: colors.mutedForeground }]}>
                 Last Sync: {formatRelativeTime(deviceState.lastSyncAt, t)}
               </Text>
             )}
@@ -216,7 +208,7 @@ export default function DashboardScreen() {
 
         {/* ── MANUAL OVERRIDE BANNER ── */}
         {deviceState.manual && (
-          <View style={[styles.banner, { backgroundColor: DANGER }]}>
+          <View style={[styles.banner, { backgroundColor: colors.destructive }]}>
             <Feather name="alert-triangle" size={14} color="#FFF" />
             <Text style={styles.bannerText}>{t("pumpManual")}</Text>
           </View>
@@ -231,49 +223,44 @@ export default function DashboardScreen() {
           />
 
           {deviceState.connected && (
-            <View style={styles.statsRow}>
+            <View style={styles.statsStack}>
               <Text style={[styles.pctText, { color: pctColor }]}>
                 {formatTankPct(deviceState.tank)}
               </Text>
-              <View style={styles.statsRight}>
-                <Text style={[styles.tankStatusLine, { color: tankStatusColor }]}>
-                  Tank
+              <Text style={[styles.tankStatusLabel, { color: tankStatusColor }]}>
+                {tankStatusLabel}
+              </Text>
+              {tankSize > 0 && (
+                <Text style={[styles.litresText, { color: colors.mutedForeground }]}>
+                  {Math.round((tankSize * deviceState.tank) / 100)} {t("litres")}
                 </Text>
-                <Text style={[styles.tankStatusLine, { color: tankStatusColor }]}>
-                  {tankStatusLabel}
-                </Text>
-                {tankSize > 0 && (
-                  <Text style={styles.litresText}>
-                    {Math.round((tankSize * deviceState.tank) / 100)} {t("litres")}
-                  </Text>
-                )}
-              </View>
+              )}
             </View>
           )}
         </View>
 
         {/* ── DISCONNECTED CARD ── */}
         {!deviceState.connected && (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardIcon}>
-              <Feather name="wifi-off" size={20} color={TEXT_MUTED} />
+              <Feather name="wifi-off" size={20} color={colors.mutedForeground} />
             </View>
             <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
                 {simMode ? t("demoRunning") : t("lookingForDevice")}
               </Text>
               {!simMode && (
                 <>
-                  <Text style={styles.cardSub}>{t("deviceConnecting")}</Text>
-                  <PulsingDots color={ACCENT} />
+                  <Text style={[styles.cardSub, { color: colors.subText }]}>{t("deviceConnecting")}</Text>
+                  <PulsingDots color={colors.primary} />
                   {disconnectedSec > 30 && (
-                    <Text style={[styles.cardSub, { marginTop: 6, color: TEXT_MUTED }]}>
+                    <Text style={[styles.cardSub, { marginTop: 6, color: colors.mutedForeground }]}>
                       {t("checkDevicePower")}
                     </Text>
                   )}
                   <TouchableOpacity
                     onPress={runSimulation}
-                    style={styles.demoBtn}
+                    style={[styles.demoBtn, { backgroundColor: colors.primary }]}
                     activeOpacity={0.82}
                   >
                     <Text style={styles.demoBtnText}>Try Demo</Text>
@@ -286,25 +273,25 @@ export default function DashboardScreen() {
 
         {/* ── MOTOR STATUS CARD ── */}
         {deviceState.connected && (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={[
               styles.cardIcon,
-              { backgroundColor: deviceState.motorOn ? "#EBF3FF" : "#F1F5F9" }
+              { backgroundColor: deviceState.motorOn ? colors.accent : colors.muted }
             ]}>
               <Feather
                 name={deviceState.motorOn ? "zap" : "zap-off"}
                 size={20}
-                color={deviceState.motorOn ? ACCENT : TEXT_MUTED}
+                color={deviceState.motorOn ? colors.primary : colors.mutedForeground}
               />
             </View>
             <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
                 {deviceState.motorOn ? t("motorRunning") : "Motor OFF"}
               </Text>
-              <Text style={styles.cardSub}>{motorSubLabel}</Text>
+              <Text style={[styles.cardSub, { color: colors.subText }]}>{motorSubLabel}</Text>
             </View>
             {deviceState.motorOn && (
-              <View style={styles.motorActiveIndicator} />
+              <View style={[styles.motorActiveIndicator, { backgroundColor: colors.primary, shadowColor: colors.primary }]} />
             )}
           </View>
         )}
@@ -342,7 +329,6 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 26,
     fontFamily: "Inter_700Bold",
-    color: TEXT_DARK,
     letterSpacing: -0.6,
   },
   statusRow: {
@@ -353,7 +339,6 @@ const styles = StyleSheet.create({
   },
   dotOff: {
     width: 10, height: 10, borderRadius: 5,
-    backgroundColor: TEXT_MUTED,
   },
   statusLabel: {
     fontSize: 14,
@@ -362,7 +347,6 @@ const styles = StyleSheet.create({
   syncText: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    color: TEXT_MUTED,
     marginTop: 1,
     marginLeft: 24,
   },
@@ -403,39 +387,34 @@ const styles = StyleSheet.create({
   // Tank section
   tankSection: {
     alignItems: "center",
-    gap: 6,
+    gap: 2,
   },
-  statsRow: {
-    flexDirection: "row",
+  statsStack: {
     alignItems: "center",
-    gap: 16,
     paddingTop: 4,
+    gap: 2,
   },
   pctText: {
-    fontSize: 58,
+    fontSize: 64,
     fontFamily: "Inter_700Bold",
-    letterSpacing: -2,
-    lineHeight: 64,
+    letterSpacing: -3,
+    lineHeight: 70,
   },
-  statsRight: { gap: 0 },
-  tankStatusLine: {
-    fontSize: 17,
+  tankStatusLabel: {
+    fontSize: 18,
     fontFamily: "Inter_600SemiBold",
-    lineHeight: 22,
+    letterSpacing: -0.2,
   },
   litresText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
-    color: TEXT_MUTED,
-    marginTop: 3,
+    marginTop: 2,
   },
 
   // Cards
   card: {
-    backgroundColor: CARD_BG,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: CARD_BDR,
     paddingVertical: 16,
     paddingHorizontal: 18,
     flexDirection: "row",
@@ -459,17 +438,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
-    color: TEXT_DARK,
   },
   cardSub: {
     fontSize: 13,
     fontFamily: "Inter_400Regular",
-    color: TEXT_MID,
   },
   motorActiveIndicator: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: ACCENT,
-    shadowColor: ACCENT,
     shadowOpacity: 0.6,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
@@ -477,7 +452,6 @@ const styles = StyleSheet.create({
 
   demoBtn: {
     marginTop: 12,
-    backgroundColor: ACCENT,
     paddingHorizontal: 24,
     paddingVertical: 11,
     borderRadius: 24,
@@ -494,7 +468,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 110,
     alignSelf: "center",
-    backgroundColor: SUCCESS,
+    backgroundColor: "#22C55E",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 28,

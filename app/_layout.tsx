@@ -3,8 +3,8 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
-  useFonts,
 } from '@expo-google-fonts/inter';
+import { useFonts } from 'expo-font';
 import {
   NotoSansDevanagari_400Regular,
   NotoSansDevanagari_700Bold,
@@ -17,7 +17,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DeviceProvider } from '@/context/DeviceContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import * as NotificationService from '@/services/NotificationService';
 
 SplashScreen.preventAutoHideAsync();
@@ -40,11 +41,30 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
-  const scheme = useColorScheme();
-  const bg = scheme === 'dark' ? '#0A1628' : '#FFFFFF';
+/** Inner component so it can read ThemeContext after ThemeProvider is mounted. */
+function ThemedApp({ fontsLoaded, fontError }: { fontsLoaded: boolean; fontError: Error | null }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+  const bg = isDark ? '#0A1628' : '#F0F4FA';
 
+  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: bg }} />;
+
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={bg} translucent={false} />
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: bg }}>
+        <KeyboardProvider>
+          <RootLayoutNav />
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </>
+  );
+}
+
+export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    // Feather icon font — loaded explicitly so Font.isLoaded('feather') is true
+    feather: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -65,20 +85,15 @@ export default function RootLayout() {
     NotificationService.requestPermissions();
   }, []);
 
-  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: bg }} />;
-
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" backgroundColor="#0A1628" translucent={false} />
       <ErrorBoundary>
         <LanguageProvider>
-          <DeviceProvider>
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: bg }}>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </DeviceProvider>
+          <ThemeProvider>
+            <DeviceProvider>
+              <ThemedApp fontsLoaded={fontsLoaded} fontError={fontError} />
+            </DeviceProvider>
+          </ThemeProvider>
         </LanguageProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

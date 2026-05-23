@@ -1,15 +1,16 @@
 import { Feather } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, StyleSheet, useColorScheme } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const insets = useSafeAreaInsets();
@@ -26,9 +27,9 @@ export default function TabLayout() {
         headerShadowVisible: false,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : '#FFFFFF',
+          backgroundColor: isIOS ? 'transparent' : colors.card,
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: '#E2E8F0',
+          borderTopColor: colors.border,
           elevation: 2,
           shadowColor: '#000',
           shadowOpacity: 0.06,

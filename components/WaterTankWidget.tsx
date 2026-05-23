@@ -118,26 +118,31 @@ let dropletIdCounter = 0;
 let rippleIdCounter = 0;
 
 function spawnDroplet(surfaceY: number): Droplet {
-  const splashX = CX + 28 + Math.random() * 60;
+  // Spawn near the inlet pipe area (top-left of cutaway)
+  const splashX = CX + 8 + Math.random() * 34;
   return {
     id: dropletIdCounter++,
     x: splashX,
     y: surfaceY - 2,
-    vx: (Math.random() - 0.5) * 3.2,
-    vy: -(3 + Math.random() * 4),
+    vx: (Math.random() - 0.4) * 2.2,
+    vy: -(1.8 + Math.random() * 2.2),
     life: 0,
-    maxLife: 18 + Math.floor(Math.random() * 14),
-    size: 1.2 + Math.random() * 2.2,
+    maxLife: 14 + Math.floor(Math.random() * 10),
+    size: 1.0 + Math.random() * 1.8,
   };
 }
 
-function spawnRipple(surfaceY: number): Ripple {
+function spawnRipple(surfaceY: number, nearInlet: boolean): Ripple {
+  // Motor ON: ripples near inlet. Motor OFF: quiet central ripples
+  const rx = nearInlet
+    ? CX + 10 + Math.random() * 40
+    : CX + 40 + Math.random() * (CW - 80);
   return {
     id: rippleIdCounter++,
-    x: CX + 30 + Math.random() * 80,
+    x: rx,
     y: surfaceY - 2,
     progress: 0,
-    maxRadius: 14 + Math.random() * 18,
+    maxRadius: nearInlet ? 10 + Math.random() * 14 : 8 + Math.random() * 10,
   };
 }
 
@@ -198,22 +203,20 @@ export function WaterTankWidget({
 
       if (motorOn) {
         setDroplets(prev => {
-          // age existing
           const aged = prev
             .map(d => ({
               ...d,
               x: d.x + d.vx,
               y: d.y + d.vy,
-              vy: d.vy + 0.38,
+              vy: d.vy + 0.30,
               life: d.life + 1,
             }))
             .filter(d => d.life < d.maxLife);
 
-          // spawn new every 3 frames
           const innerBottom = CY + CH;
           const fillH = (fillPct / 100) * CH;
           const sy = innerBottom - fillH;
-          if (frame % 3 === 0 && aged.length < 18) {
+          if (frame % 4 === 0 && aged.length < 12) {
             return [...aged, spawnDroplet(sy)];
           }
           return aged;
@@ -221,19 +224,31 @@ export function WaterTankWidget({
 
         setRipples(prev => {
           const advanced = prev
-            .map(r => ({ ...r, progress: r.progress + 0.04 }))
+            .map(r => ({ ...r, progress: r.progress + 0.035 }))
             .filter(r => r.progress < 1);
-          if (frame % 18 === 0) {
+          if (frame % 16 === 0) {
             const innerBottom = CY + CH;
             const fillH = (fillPct / 100) * CH;
             const sy = innerBottom - fillH;
-            return [...advanced, spawnRipple(sy)];
+            return [...advanced, spawnRipple(sy, true)];
           }
           return advanced;
         });
       } else {
         setDroplets([]);
-        setRipples([]);
+        // Motor OFF: occasional quiet ripple from center area
+        setRipples(prev => {
+          const advanced = prev
+            .map(r => ({ ...r, progress: r.progress + 0.018 }))
+            .filter(r => r.progress < 1);
+          if (frame % 80 === 0 && clamped > 0) {
+            const innerBottom = CY + CH;
+            const fillH = (fillPct / 100) * CH;
+            const sy = innerBottom - fillH;
+            return [...advanced, spawnRipple(sy, false)];
+          }
+          return advanced;
+        });
       }
     }, ms);
 
@@ -243,7 +258,7 @@ export function WaterTankWidget({
   const innerBottom = CY + CH;
   const fillH       = (fillPct / 100) * CH;
   const surfaceY    = innerBottom - fillH;
-  const waveAmp     = motorOn ? 5 : 2.2;
+  const waveAmp     = motorOn ? 2.0 : 0.7;
 
   const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp) : '';
   const wave2Path = connected && fillPct > 0 && motorOn

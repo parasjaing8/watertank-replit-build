@@ -17,6 +17,7 @@ import { router } from "expo-router";
 
 import { useDevice } from "@/context/DeviceContext";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/context/ThemeContext";
 import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
 import { EVENT_LABELS, STOP_REASON_LABELS } from "@/models/Event";
 import { formatDate, formatDuration } from "@/utils/formatters";
@@ -101,6 +102,7 @@ function ActionRow({
 export default function SettingsScreen() {
   const colors = useColors();
   const { t, lang, setLanguage } = useLanguage();
+  const { colorScheme, setColorScheme } = useTheme();
   const {
     settings,
     updateSettings,
@@ -190,6 +192,58 @@ export default function SettingsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
+      {/* Appearance */}
+      <SectionHeader title={t("appearance").toUpperCase()} colors={colors} />
+      <View style={[styles.section, { borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.row,
+            {
+              borderBottomColor: "transparent",
+              backgroundColor: colors.card,
+              flexWrap: "wrap",
+              gap: 8,
+            },
+          ]}
+        >
+          {(["light", "dark"] as const).map((mode) => {
+            const labels = { light: t("lightMode"), dark: t("darkMode") };
+            const icons  = { light: "sun", dark: "moon" } as const;
+            const active = colorScheme === mode;
+            return (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => setColorScheme(mode)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 16,
+                  paddingVertical: 9,
+                  borderRadius: 20,
+                  backgroundColor: active ? colors.primary : colors.muted,
+                }}
+              >
+                <Feather
+                  name={icons[mode]}
+                  size={14}
+                  color={active ? colors.primaryForeground : colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    color: active ? colors.primaryForeground : colors.foreground,
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 14,
+                  }}
+                >
+                  {labels[mode]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Language */}
       <SectionHeader title={t("language").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>

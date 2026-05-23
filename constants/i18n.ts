@@ -117,6 +117,10 @@ export interface Translations {
   tankEmpty: string;
   tankFilling: string;
   waitingForWaterSupply: string;
+  // appearance
+  appearance: string;
+  lightMode: string;
+  darkMode: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -226,6 +230,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankEmpty: 'Tank Empty',
     tankFilling: 'Tank Filling',
     waitingForWaterSupply: 'Waiting for Water Supply',
+    appearance: 'Appearance',
+    lightMode: 'Light',
+    darkMode: 'Dark',
   },
   hi: {
     appName: 'WaterTank',
@@ -333,6 +340,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankEmpty: 'टंकी खाली है',
     tankFilling: 'टंकी भर रही है',
     waitingForWaterSupply: 'पानी की सप्लाई का इंतज़ार',
+    appearance: 'दिखावट',
+    lightMode: 'हल्का',
+    darkMode: 'गहरा',
   },
   mr: {
     appName: 'WaterTank',
@@ -440,6 +450,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankEmpty: 'टाकी रिकामी आहे',
     tankFilling: 'टाकी भरत आहे',
     waitingForWaterSupply: 'पाण्याच्या पुरवठ्याची वाट',
+    appearance: 'रूप',
+    lightMode: 'उजळ',
+    darkMode: 'गडद',
   },
   kn: {
     appName: 'WaterTank',
@@ -547,5 +560,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankEmpty: 'ಟ್ಯಾಂಕ್ ಖಾಲಿಯಾಗಿದೆ',
     tankFilling: 'ಟ್ಯಾಂಕ್ ತುಂಬುತ್ತಿದೆ',
     waitingForWaterSupply: 'ನೀರಿನ ಪೂರೈಕೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ',
+    appearance: 'ನೋಟ',
+    lightMode: 'ಬೆಳಕು',
+    darkMode: 'ಕತ್ತಲು',
   },
 };
