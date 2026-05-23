@@ -241,6 +241,57 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Tank colour */}
+      <SectionHeader title={t("tankColor").toUpperCase()} colors={colors} />
+      <View style={[styles.section, { borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.row,
+            {
+              borderBottomColor: "transparent",
+              backgroundColor: colors.card,
+              flexWrap: "wrap",
+              gap: 8,
+            },
+          ]}
+        >
+          {(["black", "blue"] as const).map((variant) => {
+            const labels  = { black: t("tankColorBlack"), blue: t("tankColorBlue") };
+            const swatches = { black: "#1B2B3C", blue: "#2563A8" };
+            const active   = (settings.tankColor ?? "black") === variant;
+            return (
+              <TouchableOpacity
+                key={variant}
+                onPress={() => updateSettings({ tankColor: variant })}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 7,
+                  paddingHorizontal: 16,
+                  paddingVertical: 9,
+                  borderRadius: 20,
+                  backgroundColor: active ? colors.primary : colors.muted,
+                }}
+              >
+                <View style={{
+                  width: 13, height: 13, borderRadius: 6.5,
+                  backgroundColor: swatches[variant],
+                  borderWidth: 1.5,
+                  borderColor: active ? "rgba(255,255,255,0.4)" : colors.border,
+                }} />
+                <Text style={{
+                  color: active ? colors.primaryForeground : colors.foreground,
+                  fontFamily: "Inter_500Medium",
+                  fontSize: 14,
+                }}>
+                  {labels[variant]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Language */}
       <SectionHeader title={t("language").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>

@@ -17,32 +17,28 @@ import { TANK_LOW_PCT } from '@/constants/thresholds';
 // ─────────────────────────────────────────────────────────────────────────────
 //  PNG-OVERLAY WATER TANK WIDGET
 //
-//  Alignment method:
-//    1. Measure transparent cutout in tank-shell.png precisely (Node + pngjs).
-//    2. The water SVG is positioned absolutely at the EXACT display-pixel coords
-//       of that cutout window — no scaling chains, no Math.round drift.
-//    3. The PNG sits on top as an overlay; its transparent window reveals the
-//       SVG water below it.
+//  Rendering: water SVG positioned at the exact display-pixel coords of each
+//  PNG's transparent cutout, then the PNG overlaid on top. No scaling chains.
 //
-//  Raw PNG measurements (1024 × 1536 RGBA):
-//    Transparent window:  x=256, y=545, w=516, h=556
+//  Raw PNG measurements (both PNGs are 1024 × 1536 RGBA):
+//
+//    tank-shell.png (black):  window x=256, y=545, w=516, h=556
+//    blue-tank.png  (blue):   window x=287, y=513, w=425, h=415
 //
 //  Display size: IMG_W=280, IMG_H=420  (scale = 280/1024 = 35/128 ≈ 0.273)
-//  Window in display px: WX=70, WY=149, WW=141, WH=152
+//  All window coords = Math.round(rawPx × 280/1024).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const IMG_W  = 280;
-const IMG_H  = 420;      // 1536 * (280/1024) = 420.0  (exact — 280/1024 = 35/128)
+const IMG_W = 280;
+const IMG_H = 420;   // 1536 × (280/1024) = 420.0  (exact)
 
-// Pixel-derived window coords (do NOT change without re-measuring the PNG)
-// All values are Math.round(rawPx × 280/1024):
-const WX = 70;   // 256 × 35/128 = 70.000  (exact)
-const WY = 149;  // 545 × 35/128 = 149.02
-const WW = 141;  // 516 × 35/128 = 141.09
-const WH = 152;  // 556 × 35/128 = 152.03
-
-// Corner radius of the glass window (measured from segment-width change at top edge)
-const WIN_RX = 7;
+// Window coordinates per tank variant — do NOT change without re-measuring
+const TANK_WINDOWS = {
+  black: { WX: 70,  WY: 149, WW: 141, WH: 152, RX: 7  },
+  //        256×k   545×k    516×k    556×k
+  blue:  { WX: 78,  WY: 140, WW: 116, WH: 114, RX: 10 },
+  //        287×k   513×k    425×k    415×k
+} as const;
 
 // Water colours
 const C_WATER_T = '#3DA8D0';
@@ -51,23 +47,23 @@ const C_POUR    = '#5CC8F0';
 const C_SPLASH  = '#7FD8F8';
 const C_SHEEN   = '#FFFFFF';
 
-// ─── Wave path builders (all coords in window-local space: 0..WW, 0..WH) ────
-function buildWavePath(surfaceY: number, phase: number, amp: number): string {
+// ─── Wave builders (all coords in window-local space 0..ww, 0..wh) ──────────
+function buildWavePath(surfaceY: number, phase: number, amp: number, ww: number, wh: number): string {
   const freq = 0.060; const step = 4;
   let d = `M 0 ${surfaceY}`;
-  for (let x = 0; x <= WW; x += step) {
+  for (let x = 0; x <= ww; x += step) {
     d += ` L ${x} ${surfaceY + Math.sin(x * freq + phase) * amp}`;
   }
-  return d + ` L ${WW} ${WH} L 0 ${WH} Z`;
+  return d + ` L ${ww} ${wh} L 0 ${wh} Z`;
 }
 
-function buildWave2Path(surfaceY: number, phase: number, amp: number): string {
+function buildWave2Path(surfaceY: number, phase: number, amp: number, ww: number, wh: number): string {
   const freq = 0.075; const step = 4;
   let d = `M 0 ${surfaceY + 3}`;
-  for (let x = 0; x <= WW; x += step) {
+  for (let x = 0; x <= ww; x += step) {
     d += ` L ${x} ${surfaceY + 3 + Math.sin(x * freq + phase + 1.8) * amp * 0.55}`;
   }
-  return d + ` L ${WW} ${WH} L 0 ${WH} Z`;
+  return d + ` L ${ww} ${wh} L 0 ${wh} Z`;
 }
 
 // ─── Particle types ───────────────────────────────────────────────────────────
@@ -82,14 +78,10 @@ interface Ripple {
 let _dropId   = 0;
 let _rippleId = 0;
 
-// Pour entry: water enters from left side of window (inlet pipe on left of tank)
-const POUR_ENTRY_X = 2;
-const POUR_ENTRY_Y = WH * 0.40;  // about 40% down the window
-
-function spawnDroplet(surfaceY: number): Droplet {
+function spawnDroplet(surfaceY: number, ww: number): Droplet {
   return {
     id: _dropId++,
-    x: POUR_ENTRY_X + Math.random() * WW * 0.25,
+    x: 2 + Math.random() * ww * 0.25,
     y: surfaceY - 2,
     vx: (Math.random() - 0.3) * 1.8,
     vy: -(1.4 + Math.random() * 1.8),
@@ -98,12 +90,12 @@ function spawnDroplet(surfaceY: number): Droplet {
   };
 }
 
-function spawnRipple(surfaceY: number, nearInlet: boolean): Ripple {
+function spawnRipple(surfaceY: number, nearInlet: boolean, ww: number): Ripple {
   return {
     id: _rippleId++,
     x: nearInlet
-      ? WW * 0.05 + Math.random() * WW * 0.30
-      : WW * 0.20 + Math.random() * WW * 0.60,
+      ? ww * 0.05 + Math.random() * ww * 0.30
+      : ww * 0.20 + Math.random() * ww * 0.60,
     y: surfaceY - 2,
     progress: 0,
     maxRadius: nearInlet ? 10 + Math.random() * 12 : 7 + Math.random() * 9,
@@ -116,17 +108,19 @@ interface WaterTankWidgetProps {
   connected:  boolean;
   motorOn?:   boolean;
   animated?:  boolean;
-  /** @deprecated kept for API compat — ignored, PNG determines look */
   tankColor?: 'black' | 'blue';
 }
 
 export function WaterTankWidget({
   pct,
   connected,
-  motorOn  = false,
-  animated = true,
+  motorOn   = false,
+  animated  = true,
+  tankColor = 'black',
 }: WaterTankWidgetProps) {
   const colors = useColors();
+  const win    = TANK_WINDOWS[tankColor === 'blue' ? 'blue' : 'black'];
+  const { WX, WY, WW, WH, RX } = win;
 
   const clamped    = Math.max(0, Math.min(100, pct));
   const isLow      = clamped > 0 && clamped < TANK_LOW_PCT;
@@ -138,10 +132,17 @@ export function WaterTankWidget({
   const [ripples,     setRipples]     = useState<Ripple[]>([]);
   const [pourFlicker, setPourFlicker] = useState(1.0);
 
-  const fillRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fillRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const animRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const fillPctRef = useRef(fillPct);
   fillPctRef.current = fillPct;
+
+  // Reset animation when tank variant changes
+  useEffect(() => {
+    setDroplets([]);
+    setRipples([]);
+    setWavePhase(0);
+  }, [tankColor]);
 
   // ── Animate fill on mount / pct change ──────────────────────────────────────
   useEffect(() => {
@@ -178,59 +179,63 @@ export function WaterTankWidget({
           const aged = prev
             .map(d => ({ ...d, x: d.x + d.vx, y: d.y + d.vy, vy: d.vy + 0.28, life: d.life + 1 }))
             .filter(d => d.life < d.maxLife);
-          return frame % 4 === 0 && aged.length < 12 ? [...aged, spawnDroplet(surfaceY)] : aged;
+          return frame % 4 === 0 && aged.length < 12 ? [...aged, spawnDroplet(surfaceY, WW)] : aged;
         });
         setRipples(prev => {
           const surfaceY = WH - (fillPctRef.current / 100) * WH;
           const advanced = prev.map(r => ({ ...r, progress: r.progress + 0.035 })).filter(r => r.progress < 1);
-          return frame % 16 === 0 ? [...advanced, spawnRipple(surfaceY, true)] : advanced;
+          return frame % 16 === 0 ? [...advanced, spawnRipple(surfaceY, true, WW)] : advanced;
         });
       } else {
         setDroplets([]);
         setRipples(prev => {
           const surfaceY = WH - (fillPctRef.current / 100) * WH;
           const advanced = prev.map(r => ({ ...r, progress: r.progress + 0.018 })).filter(r => r.progress < 1);
-          return frame % 80 === 0 && clamped > 0 ? [...advanced, spawnRipple(surfaceY, false)] : advanced;
+          return frame % 80 === 0 && clamped > 0 ? [...advanced, spawnRipple(surfaceY, false, WW)] : advanced;
         });
       }
     }, ms);
     return () => { if (animRef.current) clearInterval(animRef.current); };
-  }, [connected, motorOn, clamped]);
+  }, [connected, motorOn, clamped, WW, WH]);
 
-  // ── Derived geometry (all in window-local coords: 0..WW, 0..WH) ─────────────
+  // ── Derived geometry (window-local coords: 0..WW, 0..WH) ────────────────────
   const fillH    = (fillPct / 100) * WH;
   const surfaceY = WH - fillH;
   const waveAmp  = motorOn ? 2.0 : 0.7;
 
-  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp)              : '';
-  const wave2Path = connected && fillPct > 0 && motorOn ? buildWave2Path(surfaceY, wavePhase, waveAmp)  : '';
+  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp, WW, WH)              : '';
+  const wave2Path = connected && fillPct > 0 && motorOn ? buildWave2Path(surfaceY, wavePhase, waveAmp, WW, WH)  : '';
 
-  // Pour stream: curved bezier from left-side inlet entry down to water surface
+  // Pour stream: inlet from left side, curves down to water surface
+  const POUR_ENTRY_Y = WH * 0.40;
   const pourPath = motorOn && connected && fillPct > 0 && surfaceY < POUR_ENTRY_Y
-    ? `M ${POUR_ENTRY_X} ${POUR_ENTRY_Y} C ${POUR_ENTRY_X + 20} ${POUR_ENTRY_Y + 18}, ${WW * 0.18} ${surfaceY + 20}, ${WW * 0.22} ${surfaceY + 2}`
+    ? `M 2 ${POUR_ENTRY_Y} C 22 ${POUR_ENTRY_Y + 18}, ${WW * 0.18} ${surfaceY + 20}, ${WW * 0.22} ${surfaceY + 2}`
     : '';
 
-  // Status tint inside the window
+  // Status tint inside window
   let tintColor   = 'transparent';
   let tintOpacity = 0;
   if (isCritical)                { tintColor = colors.destructive; tintOpacity = 0.22; }
   else if (isLow)                { tintColor = colors.warning;     tintOpacity = 0.14; }
   else if (motorOn && connected) { tintColor = colors.primary;     tintOpacity = 0.07; }
 
+  // PNG source
+  const tankSource = tankColor === 'blue'
+    ? require('@/assets/images/blue-tank.png')
+    : require('@/assets/images/tank-shell.png');
+
   return (
     <View style={styles.container}>
 
-      {/* ── LAYER 1: dark window interior background ───────────────────────── */}
-      <View style={[styles.windowBg, {
+      {/* Layer 1 — dark window background */}
+      <View style={[styles.absolute, {
         left: WX, top: WY, width: WW, height: WH,
-        borderRadius: WIN_RX,
+        borderRadius: RX,
         backgroundColor: '#050C14',
       }]} />
 
-      {/* ── LAYER 2: SVG water animation — sized exactly to window ────────── */}
-      {/*   All SVG coordinates are 0..WW, 0..WH (window-local).              */}
-      {/*   Positioned at (WX, WY) so it sits perfectly inside the cutout.    */}
-      <View style={[styles.waterLayer, { left: WX, top: WY, width: WW, height: WH }]}>
+      {/* Layer 2 — SVG water animation, sized exactly to window */}
+      <View style={[styles.absolute, { left: WX, top: WY, width: WW, height: WH, overflow: 'hidden', borderRadius: RX }]}>
         <Svg width={WW} height={WH} viewBox={`0 0 ${WW} ${WH}`}>
           <Defs>
             <LinearGradient id="wl_water" x1="0" y1="0" x2="0" y2="1">
@@ -250,17 +255,16 @@ export function WaterTankWidget({
               <Stop offset="0" stopColor={C_POUR}    stopOpacity={0.9} />
               <Stop offset="1" stopColor={C_WATER_T} stopOpacity={0.6} />
             </LinearGradient>
-            {/* Clip to window rounded-rect so nothing bleeds past the frame */}
             <ClipPath id="wl_clip">
-              <Rect x={0} y={0} width={WW} height={WH} rx={WIN_RX} />
+              <Rect x={0} y={0} width={WW} height={WH} rx={RX} />
             </ClipPath>
           </Defs>
 
-          {/* Dark ceiling / top-inset shadow */}
-          <Rect x={0} y={0} width={WW} height={30}
-            fill="#000" opacity={0.40} clipPath="url(#wl_clip)" />
+          {/* Top-inset shadow */}
+          <Rect x={0} y={0} width={WW} height={28}
+            fill="#000" opacity={0.38} clipPath="url(#wl_clip)" />
 
-          {/* Second wave (motor-on only, behind main wave) */}
+          {/* Second wave (motor-on only) */}
           {wave2Path !== '' && (
             <Path d={wave2Path} fill="url(#wl_wave2)" clipPath="url(#wl_clip)" />
           )}
@@ -270,7 +274,7 @@ export function WaterTankWidget({
             <Path d={wavePath} fill="url(#wl_water)" clipPath="url(#wl_clip)" />
           )}
 
-          {/* Static fill for disconnected last-known display */}
+          {/* Static fill for last-known disconnected display */}
           {!connected && fillPct > 0 && (
             <Rect x={0} y={surfaceY} width={WW} height={fillH}
               fill="url(#wl_water)" opacity={0.60} clipPath="url(#wl_clip)" />
@@ -278,7 +282,7 @@ export function WaterTankWidget({
 
           {/* Surface sheen */}
           {fillPct > 0 && (
-            <Rect x={0} y={surfaceY} width={WW} height={Math.min(24, fillH * 0.35)}
+            <Rect x={0} y={surfaceY} width={WW} height={Math.min(22, fillH * 0.35)}
               fill="url(#wl_sheen)" clipPath="url(#wl_clip)" />
           )}
 
@@ -316,7 +320,7 @@ export function WaterTankWidget({
             );
           })}
 
-          {/* Warning / motor-glow tint overlay */}
+          {/* Warning / motor-glow tint */}
           {tintOpacity > 0 && (
             <Rect x={0} y={0} width={WW} height={WH}
               fill={tintColor} opacity={tintOpacity} clipPath="url(#wl_clip)" />
@@ -324,9 +328,9 @@ export function WaterTankWidget({
         </Svg>
       </View>
 
-      {/* ── LAYER 3: PNG tank shell — transparent window reveals SVG below ─── */}
+      {/* Layer 3 — PNG tank shell, transparent window reveals SVG below */}
       <Image
-        source={require('@/assets/images/tank-shell.png')}
+        source={tankSource}
         style={styles.tankPng}
         resizeMode="stretch"
       />
@@ -341,13 +345,8 @@ const styles = StyleSheet.create({
     width:  IMG_W,
     height: IMG_H,
   },
-  windowBg: {
+  absolute: {
     position: 'absolute',
-    overflow: 'hidden',
-  },
-  waterLayer: {
-    position: 'absolute',
-    overflow: 'hidden',
   },
   tankPng: {
     position: 'absolute',
