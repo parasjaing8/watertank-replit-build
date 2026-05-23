@@ -17,6 +17,7 @@ import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { formatTankPct, formatRelativeTime } from "@/utils/formatters";
+import { STARTUP_DELAY_MS } from "@/constants/thresholds";
 
 // ─── Pulsing connected dot ────────────────────────────────────────────────────
 function PulsingDot({ color }: { color: string }) {
@@ -100,7 +101,7 @@ export default function DashboardScreen() {
   const { deviceState, simMode, runSimulation, stopSimulation, settings, triggerSync } = useDevice();
   const insets = useSafeAreaInsets();
 
-  const [countdown, setCountdown]             = useState(45);
+  const [countdown, setCountdown]             = useState(Math.round(STARTUP_DELAY_MS / 1000));
   const countdownRef                           = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevPumpStateRef                       = useRef<number>(deviceState.pumpState);
   const [showFullToast, setShowFullToast]      = useState(false);
@@ -135,7 +136,7 @@ export default function DashboardScreen() {
   // Countdown timer for motor startup delay
   useEffect(() => {
     if (isStartupDelay) {
-      setCountdown(45);
+      setCountdown(Math.round(STARTUP_DELAY_MS / 1000));
       countdownRef.current = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
     } else {
       if (countdownRef.current) clearInterval(countdownRef.current);

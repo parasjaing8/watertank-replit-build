@@ -37,6 +37,7 @@ export function initializeDatabase(): void {
     );
     CREATE INDEX IF NOT EXISTS idx_events_epoch ON events(epoch);
     CREATE INDEX IF NOT EXISTS idx_events_type  ON events(type);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_events_id ON events(id);
     CREATE TABLE IF NOT EXISTS sync_log (
       id        INTEGER PRIMARY KEY AUTOINCREMENT,
       synced_at INTEGER NOT NULL
@@ -134,9 +135,13 @@ export function insertSyncLog(syncedAt: number): void {
 
 export function deleteOldEvents(retentionDays: number): void {
   const cutoff = Math.floor(Date.now() / 1000) - retentionDays * 86400;
-  getDb()
+  const database = getDb();
+  database
     ?.runAsync(`DELETE FROM events WHERE epoch < ?`, [cutoff])
     .catch((e) => console.error("DB deleteOldEvents error:", e));
+  database
+    ?.runAsync(`DELETE FROM sync_log WHERE synced_at < ?`, [cutoff])
+    .catch((e) => console.error("DB deleteOldSyncLog error:", e));
 }
 
 export function getAllEvents(): WaterEvent[] {

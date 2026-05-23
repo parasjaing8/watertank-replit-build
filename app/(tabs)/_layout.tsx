@@ -7,10 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
 import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function TabLayout() {
   const colors = useColors();
   const { colorScheme } = useTheme();
+  const { t } = useLanguage();
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const insets = useSafeAreaInsets();
@@ -56,7 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: t('tabDashboard'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Feather name="home" size={size} color={color} />,
         }}
@@ -64,20 +66,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="records"
         options={{
-          title: 'Records',
+          title: t('tabRecords'),
           tabBarIcon: ({ color, size }) => <Feather name="list" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('tabSettings'),
           tabBarIcon: ({ color, size }) => <Feather name="settings" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen name="today" options={{ href: null }} />
-      <Tabs.Screen name="history" options={{ href: null }} />
-      <Tabs.Screen name="stats" options={{ href: null }} />
     </Tabs>
   );
 }

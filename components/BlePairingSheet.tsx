@@ -21,6 +21,7 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
   const [scanning, setScanning] = useState(true);
   const [devices, setDevices] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [scanKey, setScanKey] = useState(0);
   const managerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -33,6 +34,9 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
     }
     manager = mgr;
     managerRef.current = manager;
+    setScanning(true);
+    setDevices([]);
+    setError(null);
     const found = new Map<string, any>();
     manager.startDeviceScan(null, { allowDuplicates: false }, (err, device) => {
       if (err) {
@@ -53,7 +57,7 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
       clearTimeout(timer);
       try { manager.stopDeviceScan(); } catch {}
     };
-  }, []);
+  }, [scanKey]);
 
   async function connect(device: any) {
     try {
@@ -86,9 +90,18 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
           )}
 
           {!scanning && devices.length === 0 && !error && (
-            <Text style={[styles.empty, { color: colors.mutedForeground }]}>
-              No WATERTANK devices found. Make sure your device is powered on and nearby.
-            </Text>
+            <>
+              <Text style={[styles.empty, { color: colors.mutedForeground }]}>
+                No WATERTANK devices found. Make sure your device is powered on and nearby.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setScanKey((k) => k + 1)}
+                style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.retryText, { color: colors.primaryForeground }]}>Retry</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {devices.map((d) => (
@@ -141,4 +154,6 @@ const styles = StyleSheet.create({
   deviceId: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   cancelBtn: { alignSelf: 'center', paddingVertical: 12, marginTop: 8 },
   cancelText: { fontSize: 15, fontFamily: 'Inter_500Medium' },
+  retryBtn: { paddingVertical: 11, borderRadius: 10, alignItems: 'center' },
+  retryText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
 });

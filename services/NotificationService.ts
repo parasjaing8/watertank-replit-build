@@ -78,6 +78,11 @@ export async function scheduleTankLow(t: Translator) {
   await notify(t("tankLow"), t("tankLowNotifBody"));
 }
 
+export async function scheduleManualOverride(t: Translator) {
+  await ensureChannel();
+  await notify(t("pumpManual"), t("evManualOn"));
+}
+
 export async function cancelAll() {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
@@ -89,5 +94,6 @@ export default {
   scheduleMotorOn,
   scheduleMotorOff,
   scheduleTankLow,
+  scheduleManualOverride,
   cancelAll,
 };

@@ -86,6 +86,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const settingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   const lastStopReasonRef = useRef<StopReason>(StopReason.NONE);
+  const prevManualRef = useRef<boolean>(false);
 
   // Initialise DB, load persisted settings, THEN start BLE service so retention
   // uses the user's actual saved value rather than the default.
@@ -232,6 +233,15 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     }
     prevPumpStateRef.current = cur;
   }, [deviceState.pumpState, deviceState.tank, settings.notifyMotorOn, settings.notifyMotorOff]);
+
+  useEffect(() => {
+    const prev = prevManualRef.current;
+    const cur = deviceState.manual;
+    if (!prev && cur && settings.notifyManualOverride) {
+      NotificationService.scheduleManualOverride(tRef.current);
+    }
+    prevManualRef.current = cur;
+  }, [deviceState.manual, settings.notifyManualOverride]);
 
   useEffect(() => {
     if (

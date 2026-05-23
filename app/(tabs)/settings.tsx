@@ -128,10 +128,13 @@ export default function SettingsScreen() {
   // string directly from settings so there's a single source of truth.
   const tankSizeStr = settings.tankSizeLitres > 0 ? String(settings.tankSizeLitres) : "";
 
+  const TANK_SIZE_MAX = 99999;
+
   const saveTankSize = useCallback(
     (v: string) => {
       const clean = v.replace(/[^0-9]/g, "").slice(0, 6);
-      updateSettings({ tankSizeLitres: clean ? parseInt(clean, 10) : 0 });
+      const val = clean ? parseInt(clean, 10) : 0;
+      updateSettings({ tankSizeLitres: Math.min(val, TANK_SIZE_MAX) });
     },
     [updateSettings],
   );
@@ -148,9 +151,19 @@ export default function SettingsScreen() {
     });
   }, []);
 
+  const EXPORT_MAX = 1000;
+
   const handleExport = useCallback(async () => {
     try {
-      const events = exportData();
+      const allEvents = exportData();
+      const truncated = allEvents.length > EXPORT_MAX;
+      const events = truncated ? allEvents.slice(-EXPORT_MAX) : allEvents;
+      if (truncated) {
+        Alert.alert(
+          "Export truncated",
+          `Exporting most recent ${EXPORT_MAX} of ${allEvents.length} events.`,
+        );
+      }
       const rows = events.map((e) =>
         [
           e.id,
@@ -366,45 +379,45 @@ export default function SettingsScreen() {
       <SectionHeader title={t("data").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
         {/* Tank size */}
-        <View
-          style={[
-            styles.row,
-            { borderBottomColor: colors.border, backgroundColor: colors.card },
-          ]}
-        >
-          <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-            {t("tankSizeLabel")}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <TextInput
-              value={tankSizeStr}
-              onChangeText={saveTankSize}
-              placeholder={t("tankSizePlaceholder")}
-              placeholderTextColor={colors.mutedForeground}
-              keyboardType="numeric"
-              style={{
-                minWidth: 80,
-                textAlign: "right",
-                color: colors.foreground,
-                fontFamily: "Inter_500Medium",
-                fontSize: 15,
-                paddingVertical: 4,
-                paddingHorizontal: 8,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 6,
-              }}
-            />
-            <Text
-              style={{
-                color: colors.mutedForeground,
-                fontFamily: "Inter_400Regular",
-                fontSize: 14,
-              }}
-            >
-              {t("litres")}
+        <View style={{ backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+          <View style={[styles.row, { borderBottomColor: 'transparent' }]}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              {t("tankSizeLabel")}
             </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <TextInput
+                value={tankSizeStr}
+                onChangeText={saveTankSize}
+                placeholder={t("tankSizePlaceholder")}
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                style={{
+                  minWidth: 80,
+                  textAlign: "right",
+                  color: colors.foreground,
+                  fontFamily: "Inter_500Medium",
+                  fontSize: 15,
+                  paddingVertical: 4,
+                  paddingHorizontal: 8,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 6,
+                }}
+              />
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontFamily: "Inter_400Regular",
+                  fontSize: 14,
+                }}
+              >
+                {t("litres")}
+              </Text>
+            </View>
           </View>
+          <Text style={{ paddingHorizontal: 20, paddingBottom: 10, fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+            Max 99,999 L
+          </Text>
         </View>
 
         {/* Retention */}

@@ -176,7 +176,7 @@ export default function OnboardingScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
-            {page === TOTAL_PAGES - 1 ? t('ob3SkipBtn') : t('next')}
+            {page === TOTAL_PAGES - 1 ? t('getStarted') : t('next')}
           </Text>
         </TouchableOpacity>
       </View>
