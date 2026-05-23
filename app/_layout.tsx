@@ -17,7 +17,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { PermissionsAndroid, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -29,6 +29,16 @@ import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import * as NotificationService from '@/services/NotificationService';
 
 SplashScreen.preventAutoHideAsync();
+
+async function requestBlePermissions(): Promise<void> {
+  if (Platform.OS !== 'android' || Platform.Version < 31) return;
+  try {
+    await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+    ]);
+  } catch {}
+}
 
 function RootLayoutNav() {
   return (
@@ -82,6 +92,7 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
+    requestBlePermissions();
     NotificationService.requestPermissions();
   }, []);
 

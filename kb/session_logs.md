@@ -1,5 +1,57 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Local model setup + routing rules
+
+### What was done
+- Read M1 Max LLM benchmark data from `~/dev/tools/llm-tests/llm_tests_M1_max.md`
+- Extracted task routing table, speed ladder, API patterns, aider command patterns
+- Read `watertank/LESSONS.md` (original firmware project) for local model failure modes
+- Created `kb/local_models.md` — consolidated benchmark data + routing + lessons for this project
+- Created `CLAUDE.md` (project root) — model routing rules, build protocol, key invariants
+- Added `local_model_routing.md` to project memory
+
+### Local model status
+- llama-server (port 8080): DOWN at session start — needs `! llama-server ...` to start
+- Ollama (port 11434): DOWN at session start
+- Both need to be started manually before local model tasks
+
+### Key routing decisions
+- BLEService.ts + WaterTankWidget.tsx → Claude only (no local models)
+- 1-2 file isolated tasks → llama-server port 8080, no-think mode
+- 3+ files / architectural → Claude Sonnet/Opus
+
+### Files changed
+`kb/local_models.md` (created), `CLAUDE.md` (created)
+
+## 2026-05-24 — Fix HIGH priority findings from auditp1.md
+
+### Execution model
+- Orchestrator: Claude (Opus agents for critical fixes)
+- Local runner: qwen2.5-coder:1.5b via llama-cli (1GB GGUF blob)
+- Note: llama-cli cold-load on first run takes >120s on M1 Max for the 1.5b blob; applied A3 via orchestrator fallback
+
+### Fixes applied
+- **A3** (package.json): Moved `@react-native-async-storage/async-storage` from devDependencies → dependencies. Runner: qwen2.5-coder:1.5b (llama-cli) validated concept; orchestrator applied via fallback due to cold-load timeout.
+- **A1** (BlePairingSheet.tsx): Removed top-level `import { BleManager, Device } from 'react-native-ble-plx'`. Now dynamically resolves via `getBleManager()` from BLEService. Won't crash web/Expo Go.
+- **B8** (BLEService.ts + BlePairingSheet.tsx): Exported `getBleManager` from BLEService. BlePairingSheet now reuses the singleton instead of creating a second BleManager. `manager.destroy()` removed (would kill shared singleton).
+- **B1** (WaterTankWidget.tsx): `fillPctRef` introduced; animation loop no longer has `fillPct` as a dependency. Loop no longer restarts 40× during fill animation. Pour/splash effects now visible from mount.
+- **P1** (WaterTankWidget.tsx): `wavePhase` and `pourFlicker` merged into single `animState` object — one `setAnimState` call per tick instead of two.
+- **B2** (index.tsx): Added `useEffect` that resets `prevPumpStateRef.current = 0` on disconnect. Prevents stale 3→0 pump transition triggering false "Tank full!" toast after reconnect.
+- **L1** (index.tsx): `lastKnownTank` now persisted to AsyncStorage (`@watertank_last_known`). Loaded on mount. Tank widget survives offline app restarts.
+- **A11** (_layout.tsx): `requestBlePermissions()` added — requests `BLUETOOTH_SCAN` + `BLUETOOTH_CONNECT` on Android 12+ (API ≥ 31) before BLE scan starts.
+
+### Files changed
+`package.json`, `services/BLEService.ts`, `components/BlePairingSheet.tsx`, `components/WaterTankWidget.tsx`, `app/(tabs)/index.tsx`, `app/_layout.tsx`
+
+## 2026-05-23 — Full Codebase Audit P1 (post-v18)
+
+- Comprehensive deep audit of entire source tree after Copilot + Replit changes
+- 44 findings logged in `auditp1.md`
+- Categories: 10 bugs, 12 logic gaps, 4 performance, 12 architecture, 6 UX
+- Top critical: animation loop restart during fill (B1), AsyncStorage in devDeps (A3), no BLE permission request Android 12+ (A11), BlePairingSheet double-BleManager (B8), lastKnownTank not persisted (L1)
+- No code changes made — audit only
+
+
 ## 2026-05-22
 - Audited full codebase (app/, components/, context/, services/, storage/, constants/, models/, utils/)
 - Created `.github/copilot-instructions.md` with complete project context for Copilot

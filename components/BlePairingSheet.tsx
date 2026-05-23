@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BleManager, Device } from 'react-native-ble-plx';
+import { getBleManager, bleModuleAvailable } from '@/services/BLEService';
 import { useColors } from '@/hooks/useColors';
 
 interface Props {
@@ -19,21 +19,21 @@ interface Props {
 export function BlePairingSheet({ onClose, onSuccess }: Props) {
   const colors = useColors();
   const [scanning, setScanning] = useState(true);
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const managerRef = useRef<BleManager | null>(null);
+  const managerRef = useRef<any>(null);
 
   useEffect(() => {
-    let manager: BleManager;
-    try {
-      manager = new BleManager();
-      managerRef.current = manager;
-    } catch {
+    let manager: any;
+    const mgr = getBleManager() as any;
+    if (!bleModuleAvailable || !mgr) {
       setError('Bluetooth not available');
       setScanning(false);
       return;
     }
-    const found = new Map<string, Device>();
+    manager = mgr;
+    managerRef.current = manager;
+    const found = new Map<string, any>();
     manager.startDeviceScan(null, { allowDuplicates: false }, (err, device) => {
       if (err) {
         setError(err.message);
@@ -52,11 +52,10 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
     return () => {
       clearTimeout(timer);
       try { manager.stopDeviceScan(); } catch {}
-      try { manager.destroy(); } catch {}
     };
   }, []);
 
-  async function connect(device: Device) {
+  async function connect(device: any) {
     try {
       managerRef.current?.stopDeviceScan();
       await device.connect();

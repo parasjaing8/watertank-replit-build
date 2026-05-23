@@ -32,10 +32,24 @@ _Last updated: 2026-05-23_
 - Both PNGs: 1024×1536, tank body at (120,242)-(838,107x)
 - Container: 300×346, `overflow:hidden`. SVG absoluteFill behind PNG Image.
 
-## Open Issues (from audit.md)
-- Dashboard (`app/(tabs)/index.tsx`): 8 hardcoded hex colors — should use `useColors()`
-- DeviceContext: `bleLog` array unbounded
-- SimulationService: fragile `eventIdCounter` starting at 2000
+## Open Issues (from auditp1.md — 44 findings, deep audit 2026-05-23)
+### HIGH
+- B1: Animation loop restarts 40× during fill — pour effects invisible on mount
+- B2: Tank-full toast fires incorrectly after disconnect+reconnect
+- B8: BlePairingSheet creates 2nd BleManager, conflicts with BLEService singleton
+- L1: lastKnownTank not persisted — tank widget disappears on cold start
+- A1: BlePairingSheet top-level BLE import crashes web/Expo Go
+- A3: @react-native-async-storage in devDependencies (must be dependencies)
+- A11: No BLE permission request on Android 12+ — silent fail
+- P1: 3× setState per animation tick — merge or port to reanimated
+### MEDIUM
+- B3 (SimulationService race), B4 (BLE sub leak), B5 (stale settings closure), B6 (BLE tank pct unclamped), B7 (motor-off notif always NONE reason)
+- L3 (pull-to-refresh doesn't re-query), L4 (weekly UTC vs IST date mismatch), L5 (pumpState not reset on disconnect), L11 (light flash on dark cold start)
+- P2 (wave paths not memoized), P3 (refreshKey on every BLE tick)
+- A2 (BLE name detection differs), A5 (uppercase UUIDs), A6 (no settings migration), A10 (motorOn/pumpState inconsistency), A12 (silent DB fail)
+- U3 (raw ISO dates in weekly stats), U6 (last-known age unknown after restart)
+### LOW
+- B9, B10, L2, L6–L9, L12, P4, A4, A7–A9, U1, U2, U4, U5
 
 ## Key Files — DO NOT modify with local models
 - `services/BLEService.ts` — use Claude/Sonnet only

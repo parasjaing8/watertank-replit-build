@@ -139,13 +139,15 @@ export function WaterTankWidget({
 
   const clamped = Math.max(0, Math.min(100, pct));
   const [fillPct, setFillPct]         = useState(animated ? 0 : clamped);
-  const [wavePhase, setWavePhase]     = useState(0);
+  const [animState, setAnimState]     = useState({ wavePhase: 0, pourFlicker: 1.0 });
   const [droplets, setDroplets]       = useState<Droplet[]>([]);
   const [ripples, setRipples]         = useState<Ripple[]>([]);
-  const [pourFlicker, setPourFlicker] = useState(1.0);
+  const fillPctRef = useRef(animated ? 0 : clamped);
   const fillRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const animRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const frameRef = useRef(0);
+
+  useEffect(() => { fillPctRef.current = fillPct; }, [fillPct]);
 
   // ── Animate fill on mount / pct change ──
   useEffect(() => {
@@ -183,8 +185,7 @@ export function WaterTankWidget({
       frame++;
       frameRef.current = frame;
 
-      setWavePhase(p => p + waveStep);
-      setPourFlicker(0.7 + Math.random() * 0.3);
+      setAnimState(prev => ({ ...prev, wavePhase: prev.wavePhase + waveStep, pourFlicker: 0.7 + Math.random() * 0.3 }));
 
       if (motorOn) {
         setDroplets(prev => {
@@ -198,7 +199,7 @@ export function WaterTankWidget({
             }))
             .filter(d => d.life < d.maxLife);
 
-          const sy = (CY + CH) - (fillPct / 100) * CH;
+          const sy = (CY + CH) - (fillPctRef.current / 100) * CH;
           if (frame % 4 === 0 && aged.length < 12) {
             return [...aged, spawnDroplet(sy, CX)];
           }
@@ -210,7 +211,7 @@ export function WaterTankWidget({
             .map(r => ({ ...r, progress: r.progress + 0.035 }))
             .filter(r => r.progress < 1);
           if (frame % 16 === 0) {
-            const sy = (CY + CH) - (fillPct / 100) * CH;
+            const sy = (CY + CH) - (fillPctRef.current / 100) * CH;
             return [...advanced, spawnRipple(sy, true, CX, CW)];
           }
           return advanced;
@@ -222,7 +223,7 @@ export function WaterTankWidget({
             .map(r => ({ ...r, progress: r.progress + 0.018 }))
             .filter(r => r.progress < 1);
           if (frame % 80 === 0 && clamped > 0) {
-            const sy = (CY + CH) - (fillPct / 100) * CH;
+            const sy = (CY + CH) - (fillPctRef.current / 100) * CH;
             return [...advanced, spawnRipple(sy, false, CX, CW)];
           }
           return advanced;
@@ -231,15 +232,15 @@ export function WaterTankWidget({
     }, ms);
 
     return () => { if (animRef.current) clearInterval(animRef.current); };
-  }, [connected, motorOn, clamped, fillPct, tankColor]);
+  }, [connected, motorOn, clamped, tankColor]);
 
   const fillH    = (fillPct / 100) * CH;
   const surfaceY = CY + CH - fillH;
   const waveAmp  = motorOn ? 2.0 : 0.7;
 
-  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp, CX, CY, CW, CH) : '';
+  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH) : '';
   const wave2Path = connected && fillPct > 0 && motorOn
-    ? buildSecondWavePath(surfaceY, wavePhase, waveAmp, CX, CY, CW, CH) : '';
+    ? buildSecondWavePath(surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH) : '';
 
   // Pour stream: arc from pipe entry (left of window) to water surface
   const pourEndX = CX + 22;
@@ -311,10 +312,10 @@ export function WaterTankWidget({
         {pourPath !== '' && (
           <>
             <Path d={pourPath} stroke="url(#wtPour)" strokeWidth={5.5}
-              strokeLinecap="round" fill="none" opacity={pourFlicker}
+              strokeLinecap="round" fill="none" opacity={animState.pourFlicker}
               clipPath="url(#cutClip)" />
             <Path d={pourPath} stroke="#AAEEFF" strokeWidth={1.5}
-              strokeLinecap="round" fill="none" opacity={pourFlicker * 0.55}
+              strokeLinecap="round" fill="none" opacity={animState.pourFlicker * 0.55}
               clipPath="url(#cutClip)" />
           </>
         )}

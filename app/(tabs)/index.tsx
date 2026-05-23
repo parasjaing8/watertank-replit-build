@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { useDevice } from "@/context/DeviceContext";
@@ -114,10 +115,20 @@ export default function DashboardScreen() {
   const displayPct     = isLive ? deviceState.tank : (lastKnownTank?.pct ?? 0);
   const tankSizeLitres = settings.tankSizeLitres;
 
+  const LAST_KNOWN_KEY = '@watertank_last_known';
+
+  useEffect(() => {
+    AsyncStorage.getItem(LAST_KNOWN_KEY)
+      .then(v => { if (v) setLastKnownTank(JSON.parse(v)); })
+      .catch(() => {});
+  }, []);
+
   // Persist last known reading whenever we have live data
   useEffect(() => {
     if (isLive && deviceState.tank > 0) {
-      setLastKnownTank({ pct: deviceState.tank, at: Math.floor(Date.now() / 1000) });
+      const next = { pct: deviceState.tank, at: Math.floor(Date.now() / 1000) };
+      setLastKnownTank(next);
+      AsyncStorage.setItem(LAST_KNOWN_KEY, JSON.stringify(next)).catch(() => {});
     }
   }, [isLive, deviceState.tank]);
 
@@ -131,6 +142,12 @@ export default function DashboardScreen() {
     }
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
   }, [isStartupDelay]);
+
+  useEffect(() => {
+    if (!deviceState.connected) {
+      prevPumpStateRef.current = 0;
+    }
+  }, [deviceState.connected]);
 
   // Tank full toast when motor transitions off after filling
   useEffect(() => {

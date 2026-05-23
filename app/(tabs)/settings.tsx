@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
   ScrollView,
   Share,
   StyleSheet,
@@ -117,6 +118,8 @@ export default function SettingsScreen() {
   const [showBleLog, setShowBleLog] = useState(false);
   const [versionTaps, setVersionTaps] = useState(0);
   const [devMode, setDevMode] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showCleared, setShowCleared] = useState(false);
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
@@ -168,18 +171,8 @@ export default function SettingsScreen() {
   }, [exportData]);
 
   const handleClearData = useCallback(() => {
-    Alert.alert(t("clearConfirmTitle"), t("clearConfirmMsg"), [
-      { text: t("cancel"), style: "cancel" },
-      {
-        text: t("deleteAll"),
-        style: "destructive",
-        onPress: () => {
-          clearData();
-          Alert.alert(t("cleared"));
-        },
-      },
-    ]);
-  }, [clearData, t]);
+    setShowClearConfirm(true);
+  }, []);
 
   const retentionOptions = [30, 60, 90];
 
@@ -600,6 +593,50 @@ export default function SettingsScreen() {
         </>
       )}
     </ScrollView>
+
+      {/* Delete confirmation modal */}
+      <Modal transparent animationType="fade" visible={showClearConfirm} onRequestClose={() => setShowClearConfirm(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>{t("clearConfirmTitle")}</Text>
+            <Text style={[styles.modalMessage, { color: colors.mutedForeground }]}>{t("clearConfirmMsg")}</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.muted }]}
+                onPress={() => setShowClearConfirm(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.foreground }]}>{t("cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.destructive }]}
+                onPress={() => {
+                  setShowClearConfirm(false);
+                  clearData();
+                  setShowCleared(true);
+                }}
+              >
+                <Text style={[styles.modalBtnText, { color: "#fff" }]}>{t("deleteAll")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Cleared status modal */}
+      <Modal transparent animationType="fade" visible={showCleared} onRequestClose={() => setShowCleared(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowCleared(false)}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>{t("cleared")}</Text>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.modalBtnFull, { backgroundColor: colors.primary, marginTop: 8 }]}
+              onPress={() => setShowCleared(false)}
+            >
+              <Text style={[styles.modalBtnText, { color: colors.primaryForeground }]}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </TabSwipeWrapper>
   );
 }
@@ -610,6 +647,49 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     paddingTop: 8,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontFamily: 'Inter_600SemiBold',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalBtnFull: {
+    flex: 0,
+    width: '100%',
+  },
+  modalBtnText: {
+    fontSize: 15,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  // ── original styles ──
   sectionHeader: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",

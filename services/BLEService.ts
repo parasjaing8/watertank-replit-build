@@ -57,7 +57,7 @@ export { bleModuleAvailable };
 
 let _managerInstance: unknown = null;
 
-function getBleManager(): unknown {
+export function getBleManager(): unknown {
   if (!bleModuleAvailable || !BleManagerClass) return null;
   if (!_managerInstance) {
     _managerInstance = new (BleManagerClass as new () => unknown)();
