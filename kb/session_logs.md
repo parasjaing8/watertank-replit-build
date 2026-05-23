@@ -1,5 +1,25 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Fix LOW priority findings
+
+### Fixes applied (12 findings across 13 files)
+- **B9** (storage/database.ts): `CREATE UNIQUE INDEX IF NOT EXISTS idx_events_id ON events(id)` — prevents duplicate event IDs
+- **B10** (storage/database.ts): `deleteOldEvents` now also prunes `sync_log` on same epoch cutoff (was unbounded)
+- **L2** (app/(tabs)/index.tsx): `setCountdown(Math.round(STARTUP_DELAY_MS / 1000))` — imports from constants/thresholds, no hardcoded 45
+- **L6** (app/(tabs)/_layout.tsx): Tab titles use `t('tabDashboard')`, `t('tabRecords')`, `t('tabSettings')` via `useLanguage()`
+- **L7** (app/onboarding.tsx): Last page CTA uses `t('getStarted')` instead of `t('ob3SkipBtn')`
+- **L8** (utils/formatters.ts): `formatDayLabel` uses `Intl.RelativeTimeFormat` for locale-aware "today"/"yesterday" (en/hi/mr/kn)
+- **A4** (package.json): Removed `@tanstack/react-query` and `zod` from devDependencies — not used anywhere in codebase
+- **A7** (app/(tabs)/settings.tsx): `handleExport` caps at 1000 most-recent events; shows Alert when truncated
+- **A8** (app/(tabs)/_layout.tsx + delete): Removed dead `href:null` Tabs.Screen entries for today/history/stats; deleted 3 stub files
+- **U2** (services/NotificationService.ts + context/DeviceContext.tsx): Added `scheduleManualOverride`; DeviceContext fires it when `deviceState.manual` transitions false→true and `settings.notifyManualOverride` is enabled
+- **U4** (app/(tabs)/settings.tsx): `saveTankSize` caps at 99,999 L; added "Max 99,999 L" hint text below input
+- **U5** (components/BlePairingSheet.tsx): `scanKey` state re-runs useEffect on each Retry tap; scan resets state each time; Retry button shown when `!scanning && !error && devices.length === 0`
+- **A9 skipped**: `getTankColor` is actually used by `components/TankLevelBar.tsx` — not unused
+
+### Files changed
+13 files: `storage/database.ts`, `app/(tabs)/index.tsx`, `app/(tabs)/_layout.tsx`, `app/onboarding.tsx`, `utils/formatters.ts`, `package.json`, `app/(tabs)/settings.tsx`, `services/NotificationService.ts`, `context/DeviceContext.tsx`, `components/BlePairingSheet.tsx`, deleted `app/(tabs)/today.tsx`, `history.tsx`, `stats.tsx`
+
 ## 2026-05-24 — Fix MEDIUM priority findings
 
 ### Fixes applied (17 findings across 8 files)

@@ -45,8 +45,11 @@ B3, B4, B5, B6, B7, L3, L4, L5, L11, L12, P2, P3, A5, A12, U1, U3 all fixed 2026
 - A10 (motorOn and pumpState can be mutually inconsistent)
 - U6 (last-known age unknown after restart) — partially resolved by L1 fix
 
-### LOW
-- B9, B10, L2, L6–L9, P4, A4, A7–A9, U2, U4, U5
+### LOW — resolved ✓
+B9, B10, L2, L6, L7, L8, A4, A7, A8, U2, U4, U5 all fixed 2026-05-24
+- A9 skipped (getTankColor is used by TankLevelBar.tsx — not unused)
+- L9 skipped (notifyManualOverride wired up via U2)
+- P4 skipped (50-item BLE log is already bounded; FlatList not needed)
 
 ## Key Files — DO NOT modify with local models
 - `services/BLEService.ts` — use Claude/Sonnet only
