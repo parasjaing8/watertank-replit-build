@@ -1,5 +1,35 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Fix MEDIUM priority findings
+
+### Fixes applied (17 findings across 8 files)
+- **B3** (SimulationService.ts): `_explicitlyStopped` flag prevents onComplete firing when stop() races with stepComplete
+- **B4** (BLEService.ts): requestLogStream error branch now removes sub from subscriptions array (was leaking)
+- **B5** (DeviceContext.tsx): updateSettings uses settingsRef to avoid stale closure on rapid taps
+- **B6** (BLEService.ts): tank pct clamped to [0,100] in both char monitors (was emitting NaN/out-of-range)
+- **B7** (DeviceContext.tsx): motor-off notification passes actual lastStopReason tracked from events (not hardcoded 0)
+- **L3** (records.tsx): pull-to-refresh calls refreshData() from context (was just remounting FlatList with stale data)
+- **L4** (records.tsx): week boundary uses local date string not UTC toISOString (was off by 1 day for IST users)
+- **L5** (BLEService.ts): stop() resets pumpState+motorOn to 0/false (was showing "Motor Running" after disconnect)
+- **L11** (ThemeContext.tsx): default to 'dark' — eliminates white flash on dark-mode cold start
+- **L12** (DeviceContext.tsx): onComplete and stopSimulation pass settingsRef.current.retentionDays (was using default)
+- **P2** (WaterTankWidget.tsx): wave paths wrapped in useMemo
+- **P3** (DeviceContext.tsx): refreshKey only increments on lastSyncAt change + new events (not every 2s BLE tick)
+- **A5** (constants/ble.ts): UUIDs lowercased (react-native-ble-plx Android UUID matching)
+- **A12** (DeviceContext.tsx): DB init failure shows Alert instead of silent console.error
+- **U1** (index.tsx + DeviceContext.tsx): DEMO badge is tappable, calls stopSimulation()
+- **U3** (records.tsx): weekly stats day labels use formatDayLabel() — localized, shows "Today"/"Yesterday"
+- **Local model test** (records.tsx L3/L4/U3): llama-server Qwen3.6-35B-A3B gave correct diff in 0.78s — passed
+
+### New context APIs
+- `stopSimulation()` — stop demo early, restarts BLE with saved retentionDays
+- `refreshData()` — manually increment refreshKey (used by pull-to-refresh)
+- `settingsRef` — stable ref tracking latest settings for use in callbacks
+- `lastStopReasonRef` — tracks stop reason from events for accurate notifications
+
+### Files changed
+8 files: `services/BLEService.ts`, `services/SimulationService.ts`, `context/DeviceContext.tsx`, `context/ThemeContext.tsx`, `components/WaterTankWidget.tsx`, `constants/ble.ts`, `app/(tabs)/index.tsx`, `app/(tabs)/records.tsx`
+
 ## 2026-05-24 — Local model setup + routing rules
 
 ### What was done
