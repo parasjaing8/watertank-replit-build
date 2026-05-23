@@ -99,7 +99,7 @@ export class BLEService implements IDeviceService {
   stop(): void {
     this.running = false;
     this.cleanup();
-    this.emit({ ...this.state, connected: false });
+    this.emit({ ...this.state, connected: false, pumpState: 0, motorOn: false });
   }
 
   subscribe(fn: Listener): () => void {
@@ -290,7 +290,7 @@ export class BLEService implements IDeviceService {
               pumpState: parsed.state,
               motorOn: parsed.motor,
               manual: parsed.manual,
-              tank: parsed.tank,
+              tank: Math.max(0, Math.min(100, parsed.tank)),
             });
           } catch {}
         },
@@ -308,7 +308,7 @@ export class BLEService implements IDeviceService {
             const str = Buffer.from(c.value, "base64").toString("utf8");
             const pct = parseFloat(str);
             if (!isNaN(pct)) {
-              this.emit({ ...this.state, tank: pct, connected: true });
+              this.emit({ ...this.state, tank: Math.max(0, Math.min(100, pct)), connected: true });
             }
           } catch {}
         },
@@ -364,6 +364,7 @@ export class BLEService implements IDeviceService {
           if (err) {
             clearTimeout(timeoutHandle);
             sub.remove();
+            this.subscriptions = this.subscriptions.filter(s => s !== sub);
             resolve();
             return;
           }

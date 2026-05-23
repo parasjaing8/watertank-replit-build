@@ -97,7 +97,7 @@ function getTankStatusColor(pct: number, motorOn: boolean, c: ColorTokens): stri
 export default function DashboardScreen() {
   const { t } = useLanguage();
   const colors = useColors();
-  const { deviceState, simMode, runSimulation, settings, triggerSync } = useDevice();
+  const { deviceState, simMode, runSimulation, stopSimulation, settings, triggerSync } = useDevice();
   const insets = useSafeAreaInsets();
 
   const [countdown, setCountdown]             = useState(45);
@@ -240,9 +240,15 @@ export default function DashboardScreen() {
           {/* Right: DEMO badge or sync button */}
           <View style={styles.headerRight}>
             {simMode && (
-              <View style={[styles.demoBadge, { backgroundColor: "#F59E0B" }]}>
+              <TouchableOpacity
+                onPress={stopSimulation}
+                style={[styles.demoBadge, { backgroundColor: "#F59E0B" }]}
+                activeOpacity={0.75}
+                accessibilityLabel="Stop demo"
+              >
                 <Text style={styles.demoBadgeText}>DEMO</Text>
-              </View>
+                <Feather name="x" size={11} color="#FFF" style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
             )}
             {deviceState.connected && !simMode && (
               <TouchableOpacity

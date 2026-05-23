@@ -6,10 +6,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { DATA_RETENTION_DEFAULT_DAYS, TANK_LOW_PCT } from "@/constants/thresholds";
-import { DEFAULT_DEVICE_STATE, DeviceState, WaterEvent } from "@/models/Event";
+import { DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
 import { BLEService, bleModuleAvailable } from "@/services/BLEService";
 import * as NotificationService from "@/services/NotificationService";
 import { useLanguage } from "@/context/LanguageContext";
@@ -50,6 +51,7 @@ interface DeviceContextValue {
   simDone: boolean;
   bleAvailable: boolean;
   runSimulation: () => void;
+  stopSimulation: () => void;
   dismissSimDone: () => void;
   bleLog: string[];
   settings: AppSettings;
@@ -61,6 +63,7 @@ interface DeviceContextValue {
   clearData: () => void;
   exportData: () => WaterEvent[];
   refreshKey: number;
+  refreshData: () => void;
 }
 
 const DeviceContext = createContext<DeviceContextValue | null>(null);
@@ -76,16 +79,23 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const serviceRef = useRef<IDeviceService | null>(null);
   const { t } = useLanguage();
-  // Keep a stable ref to `t` so notification effects don't re-fire on language changes
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; });
   const prevPumpStateRef = useRef<number>(0);
   const tankLowFiredRef = useRef<boolean>(false);
+  const settingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  const lastStopReasonRef = useRef<StopReason>(StopReason.NONE);
 
   // Initialise DB, load persisted settings, THEN start BLE service so retention
   // uses the user's actual saved value rather than the default.
   useEffect(() => {
-    try { initializeDatabase(); } catch (e) { console.error("DB init failed:", e); }
+    try {
+      initializeDatabase();
+    } catch (e) {
+      console.error("DB init failed:", e);
+      Alert.alert("Storage Error", "Database failed to initialize. Event history won't be saved.");
+    }
 
     let mounted = true;
     loadSettings().then((loaded) => {
@@ -125,7 +135,13 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
     svc.subscribe((state) => {
       setDeviceState(state);
-      setRefreshKey((k) => k + 1);
+    });
+
+    svc.subscribeEvents?.((event) => {
+      if (event.type === EventType.MOTOR_OFF) {
+        lastStopReasonRef.current = event.stopReason;
+      }
+      setRefreshKey(k => k + 1);
     });
 
     svc.addBleLogListener?.((msg) => {
@@ -158,17 +174,29 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       setSimDone(true);
       setRefreshKey((k) => k + 1);
       serviceRef.current = null;
-      startBleService();
+      startBleService(settingsRef.current.retentionDays);
     });
 
     serviceRef.current = svc;
 
     svc.subscribe((state) => {
       setDeviceState(state);
-      setRefreshKey((k) => k + 1);
+    });
+
+    svc.subscribeEvents?.((event) => {
+      setRefreshKey(k => k + 1);
     });
 
     svc.start();
+  }, [simMode]);
+
+  const stopSimulation = useCallback(() => {
+    if (!simMode) return;
+    serviceRef.current?.stop();
+    serviceRef.current = null;
+    setSimMode(false);
+    setSimDone(false);
+    startBleService(settingsRef.current.retentionDays);
   }, [simMode]);
 
   const dismissSimDone = useCallback(() => {
@@ -177,12 +205,18 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
   const updateSettings = useCallback(
     async (patch: Partial<AppSettings>) => {
-      const next = { ...settings, ...patch };
+      const next = { ...settingsRef.current, ...patch };
       setSettings(next);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
     },
-    [settings],
+    [],
   );
+
+  // Increment refreshKey when a BLE sync completes (lastSyncAt changes).
+  // This replaces the previous approach of incrementing on every BLE state tick.
+  useEffect(() => {
+    if (deviceState.lastSyncAt !== null) setRefreshKey(k => k + 1);
+  }, [deviceState.lastSyncAt]);
 
   // Notify on pump state transitions. `t` is intentionally read from a ref so
   // changing the app language does not re-fire these notifications.
@@ -193,7 +227,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       NotificationService.scheduleMotorOn(deviceState.tank, tRef.current);
     }
     if (prev === 3 && cur !== 3 && settings.notifyMotorOff) {
-      NotificationService.scheduleMotorOff(deviceState.tank, 0, tRef.current);
+      NotificationService.scheduleMotorOff(deviceState.tank, lastStopReasonRef.current, tRef.current);
+      lastStopReasonRef.current = StopReason.NONE;
     }
     prevPumpStateRef.current = cur;
   }, [deviceState.pumpState, deviceState.tank, settings.notifyMotorOn, settings.notifyMotorOff]);
@@ -230,6 +265,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const getStats = useCallback(() => getDailyStats(60), [refreshKey]);
   const getDbInfo = useCallback(() => getDbStats(), [refreshKey]);
 
+  const refreshData = useCallback(() => setRefreshKey(k => k + 1), []);
+
   const clearData = useCallback(() => {
     clearAllEvents();
     setRefreshKey((k) => k + 1);
@@ -245,6 +282,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         simDone,
         bleAvailable: bleModuleAvailable,
         runSimulation,
+        stopSimulation,
         dismissSimDone,
         bleLog,
         settings,
@@ -256,6 +294,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         clearData,
         exportData,
         refreshKey,
+        refreshData,
       }}
     >
       {children}

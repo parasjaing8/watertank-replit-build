@@ -21,6 +21,7 @@ import { EventType, WaterEvent } from "@/models/Event";
 import {
   addDays,
   formatDuration,
+  formatDayLabel,
   formatHeaderDate,
   isToday,
 } from "@/utils/formatters";
@@ -28,7 +29,7 @@ import {
 export default function RecordsScreen() {
   const colors = useColors();
   const { t } = useLanguage();
-  const { getEventsForDate, getStats } = useDevice();
+  const { getEventsForDate, getStats, refreshData } = useDevice();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [internalKey, setInternalKey] = useState(0);
@@ -59,9 +60,9 @@ export default function RecordsScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setInternalKey((k) => k + 1);
+    refreshData();
     setRefreshing(false);
-  }, []);
+  }, [refreshData]);
 
   const footerText = (() => {
     if (motorRuns === 0) return t("noMotorRunsToday");
@@ -79,7 +80,7 @@ export default function RecordsScreen() {
     today.setHours(0, 0, 0, 0);
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
+    const sevenDaysAgoStr = sevenDaysAgo.getFullYear() + "-" + String(sevenDaysAgo.getMonth() + 1).padStart(2, "0") + "-" + String(sevenDaysAgo.getDate()).padStart(2, "0");
     const weekStats = stats.filter((s) => s.day >= sevenDaysAgoStr);
     const totalRuns = weekStats.reduce((sum, s) => sum + s.runs, 0);
     const totalSec = weekStats.reduce((sum, s) => sum + s.totalSec, 0);
@@ -138,7 +139,7 @@ export default function RecordsScreen() {
             ]}
           >
             <Text style={[styles.weekDayLabel, { color: colors.foreground }]}>
-              {s.day}
+              {formatDayLabel(s.day)}
             </Text>
             <Text
               style={[styles.weekDayStat, { color: colors.mutedForeground }]}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import Svg, {
   ClipPath,
@@ -238,9 +238,14 @@ export function WaterTankWidget({
   const surfaceY = CY + CH - fillH;
   const waveAmp  = motorOn ? 2.0 : 0.7;
 
-  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH) : '';
-  const wave2Path = connected && fillPct > 0 && motorOn
-    ? buildSecondWavePath(surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH) : '';
+  const wavePath = useMemo(
+    () => connected && fillPct > 0 ? buildWavePath(surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH) : '',
+    [connected, fillPct, surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH],
+  );
+  const wave2Path = useMemo(
+    () => connected && fillPct > 0 && motorOn ? buildSecondWavePath(surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH) : '',
+    [connected, fillPct, motorOn, surfaceY, animState.wavePhase, waveAmp, CX, CY, CW, CH],
+  );
 
   // Pour stream: arc from pipe entry (left of window) to water surface
   const pourEndX = CX + 22;

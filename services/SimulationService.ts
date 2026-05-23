@@ -31,6 +31,7 @@ export class SimulationService implements IDeviceService {
   private timers: ReturnType<typeof setTimeout>[] = [];
   private motorStartTime = 0;
   private running = false;
+  private _explicitlyStopped = false;
   private onComplete?: () => void;
 
   setOnComplete(fn: () => void): void {
@@ -39,6 +40,7 @@ export class SimulationService implements IDeviceService {
 
   start(): void {
     if (this.running) return;
+    this._explicitlyStopped = false;
     this.running = true;
     this.state = {
       connected: false,
@@ -52,6 +54,7 @@ export class SimulationService implements IDeviceService {
   }
 
   stop(): void {
+    this._explicitlyStopped = true;
     this.running = false;
     this.timers.forEach(clearTimeout);
     this.timers = [];
@@ -158,16 +161,11 @@ export class SimulationService implements IDeviceService {
   }
 
   private stepComplete(): void {
-    // Disconnect, leave tank level visible
     this.emit({ connected: false });
     this.running = false;
-    // Push the completion timer into `this.timers` BEFORE setting running=false
-    // so that stop() can cancel it if called in the short window before it fires.
     const id = setTimeout(() => {
-      // Guard: don't fire if stop() was called after stepComplete scheduled this
-      if (this.timers.includes(id)) {
-        this.onComplete?.();
-      }
+      this.timers = this.timers.filter(t => t !== id);
+      if (!this._explicitlyStopped) this.onComplete?.();
     }, 300);
     this.timers.push(id);
   }
