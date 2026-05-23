@@ -32,6 +32,7 @@ export interface AppSettings {
   notifyManualOverride: boolean;
   retentionDays: number;
   tankColor: 'black' | 'blue';
+  tankSizeLitres: number;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -40,18 +41,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   notifyManualOverride: true,
   retentionDays: DATA_RETENTION_DEFAULT_DAYS,
   tankColor: 'black',
+  tankSizeLitres: 0,
 };
 
 interface DeviceContextValue {
   deviceState: DeviceState;
-  /** True while a simulation demo cycle is running */
   simMode: boolean;
-  /** True after a simulation demo has finished (cleared by dismissSimDone) */
   simDone: boolean;
   bleAvailable: boolean;
-  /** Start a one-shot demo cycle. No-op if already running. */
   runSimulation: () => void;
-  /** Dismiss the "demo completed" banner */
   dismissSimDone: () => void;
   bleLog: string[];
   settings: AppSettings;
@@ -78,36 +76,47 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const serviceRef = useRef<IDeviceService | null>(null);
   const { t } = useLanguage();
+  // Keep a stable ref to `t` so notification effects don't re-fire on language changes
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; });
   const prevPumpStateRef = useRef<number>(0);
   const tankLowFiredRef = useRef<boolean>(false);
 
-  // Initialise DB and load persisted settings on mount.
-  // simMode is intentionally NOT persisted — the app always starts idle.
+  // Initialise DB, load persisted settings, THEN start BLE service so retention
+  // uses the user's actual saved value rather than the default.
   useEffect(() => {
     try { initializeDatabase(); } catch (e) { console.error("DB init failed:", e); }
-    loadSettings();
-    startBleService();
+
+    let mounted = true;
+    loadSettings().then((loaded) => {
+      if (!mounted) return;
+      startBleService(loaded.retentionDays);
+    });
 
     return () => {
+      mounted = false;
       serviceRef.current?.stop();
       serviceRef.current = null;
     };
   }, []);
 
-  async function loadSettings() {
+  async function loadSettings(): Promise<AppSettings> {
     try {
       const saved = await AsyncStorage.getItem(SETTINGS_KEY);
-      if (saved) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) });
+      if (saved) {
+        const loaded: AppSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+        setSettings(loaded);
+        return loaded;
+      }
     } catch {}
+    return DEFAULT_SETTINGS;
   }
 
-  /** Start the real BLE service (or a silent no-op stub if BLE is unavailable). */
-  function startBleService() {
+  function startBleService(retentionDays?: number) {
     serviceRef.current?.stop();
     serviceRef.current = null;
 
     if (!bleModuleAvailable) {
-      // No BLE — stay idle. User must press "Run Demo" to see simulation.
       return;
     }
 
@@ -125,16 +134,17 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
     svc.start();
 
+    // Use the explicitly passed retention value (loaded from storage) so we
+    // never accidentally apply the default on startup.
+    const days = retentionDays ?? DEFAULT_SETTINGS.retentionDays;
     setTimeout(() => {
-      try { deleteOldEvents(settings.retentionDays); } catch {}
+      try { deleteOldEvents(days); } catch {}
     }, 3000);
   }
 
-  /** Run a single demo cycle, then auto-return to idle. */
   const runSimulation = useCallback(() => {
-    if (simMode) return; // already running
+    if (simMode) return;
 
-    // Stop whatever is running (e.g. BLE service)
     serviceRef.current?.stop();
     serviceRef.current = null;
 
@@ -148,7 +158,6 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       setSimDone(true);
       setRefreshKey((k) => k + 1);
       serviceRef.current = null;
-      // Restart real BLE service after demo (will be idle if no hardware)
       startBleService();
     });
 
@@ -175,17 +184,19 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     [settings],
   );
 
+  // Notify on pump state transitions. `t` is intentionally read from a ref so
+  // changing the app language does not re-fire these notifications.
   useEffect(() => {
     const prev = prevPumpStateRef.current;
     const cur = deviceState.pumpState;
     if (prev !== 3 && cur === 3 && settings.notifyMotorOn) {
-      NotificationService.scheduleMotorOn(deviceState.tank, t);
+      NotificationService.scheduleMotorOn(deviceState.tank, tRef.current);
     }
     if (prev === 3 && cur !== 3 && settings.notifyMotorOff) {
-      NotificationService.scheduleMotorOff(deviceState.tank, 0, t);
+      NotificationService.scheduleMotorOff(deviceState.tank, 0, tRef.current);
     }
     prevPumpStateRef.current = cur;
-  }, [deviceState.pumpState, deviceState.tank, settings.notifyMotorOn, settings.notifyMotorOff, t]);
+  }, [deviceState.pumpState, deviceState.tank, settings.notifyMotorOn, settings.notifyMotorOff]);
 
   useEffect(() => {
     if (
@@ -197,12 +208,12 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     ) {
       if (!tankLowFiredRef.current) {
         tankLowFiredRef.current = true;
-        NotificationService.scheduleTankLow(t);
+        NotificationService.scheduleTankLow(tRef.current);
       }
     } else if (deviceState.tank >= TANK_LOW_PCT) {
       tankLowFiredRef.current = false;
     }
-  }, [deviceState.tank, deviceState.motorOn, deviceState.connected, settings.notifyMotorOn, t]);
+  }, [deviceState.tank, deviceState.motorOn, deviceState.connected, settings.notifyMotorOn]);
 
   const triggerSync = useCallback(() => {
     serviceRef.current?.triggerSync?.();

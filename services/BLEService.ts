@@ -65,7 +65,9 @@ function getBleManager(): unknown {
   return _managerInstance;
 }
 
-let eventIdCounter = 1;
+// Initialise from current timestamp so IDs are always higher than any
+// previously stored value after an app restart or hot-reload.
+let eventIdCounter = Date.now();
 
 function nextId(): number {
   return eventIdCounter++;
@@ -334,6 +336,10 @@ export class BLEService implements IDeviceService {
     const pendingEvents: WaterEvent[] = [];
 
     return new Promise<void>((resolve) => {
+      // `sub` is declared with `let` before the timeout so the timeout callback
+      // can reference it safely — avoids a temporal dead zone risk.
+      let sub: { remove(): void };
+
       const timeoutHandle = setTimeout(() => {
         this.log("Log stream timeout — sending ACK anyway");
         sub.remove();
@@ -351,7 +357,7 @@ export class BLEService implements IDeviceService {
         resolve();
       }, BLE_LOG_STREAM_TIMEOUT);
 
-      const sub = connected.monitorCharacteristicForService(
+      sub = connected.monitorCharacteristicForService(
         BLE_SERVICE_UUID,
         BLE_CHAR_LOG_DATA,
         (err, char) => {

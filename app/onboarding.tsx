@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Lang } from '@/constants/i18n';
 import { useLanguage } from '@/context/LanguageContext';
@@ -30,6 +31,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const { t, lang, setLanguage } = useLanguage();
   const { bleAvailable } = useDevice();
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const [showPairing, setShowPairing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -52,7 +54,16 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top + 16,
+          paddingBottom: Math.max(insets.bottom, 24),
+        },
+      ]}
+    >
       <View style={styles.body}>
         <ScrollView
           ref={scrollRef}
@@ -165,7 +176,7 @@ export default function OnboardingScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
-            {page === TOTAL_PAGES - 1 ? 'Skip' : t('next')}
+            {page === TOTAL_PAGES - 1 ? t('ob3SkipBtn') : t('next')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -183,8 +194,6 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
-    paddingBottom: 40,
   },
   body: {
     flex: 1,
@@ -245,6 +254,7 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingTop: 16,
   },
   dots: {
     flexDirection: 'row',

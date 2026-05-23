@@ -44,9 +44,12 @@ export function initializeDatabase(): void {
   `);
 }
 
+// Write operations use the async API so they don't block the JS thread.
+// Errors are caught internally; callers do not need to await.
+
 export function insertEvent(event: WaterEvent): void {
-  try {
-    getDb()?.runSync(
+  getDb()
+    ?.runAsync(
       `INSERT OR IGNORE INTO events
         (id, epoch, type, tank_pct, flow_lpm, stop_reason, duration_sec, synced)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -60,10 +63,8 @@ export function insertEvent(event: WaterEvent): void {
         event.durationSec,
         event.synced ? 1 : 0,
       ],
-    );
-  } catch (e) {
-    console.error("DB insertEvent error:", e);
-  }
+    )
+    .catch((e) => console.error("DB insertEvent error:", e));
 }
 
 export function getEventsForDay(epochStart: number, epochEnd: number): WaterEvent[] {
@@ -126,20 +127,16 @@ export function getLastSyncTime(): number | null {
 }
 
 export function insertSyncLog(syncedAt: number): void {
-  try {
-    getDb()?.runSync(`INSERT INTO sync_log (synced_at) VALUES (?)`, [syncedAt]);
-  } catch (e) {
-    console.error("DB insertSyncLog error:", e);
-  }
+  getDb()
+    ?.runAsync(`INSERT INTO sync_log (synced_at) VALUES (?)`, [syncedAt])
+    .catch((e) => console.error("DB insertSyncLog error:", e));
 }
 
 export function deleteOldEvents(retentionDays: number): void {
-  try {
-    const cutoff = Math.floor(Date.now() / 1000) - retentionDays * 86400;
-    getDb()?.runSync(`DELETE FROM events WHERE epoch < ?`, [cutoff]);
-  } catch (e) {
-    console.error("DB deleteOldEvents error:", e);
-  }
+  const cutoff = Math.floor(Date.now() / 1000) - retentionDays * 86400;
+  getDb()
+    ?.runAsync(`DELETE FROM events WHERE epoch < ?`, [cutoff])
+    .catch((e) => console.error("DB deleteOldEvents error:", e));
 }
 
 export function getAllEvents(): WaterEvent[] {
@@ -164,11 +161,12 @@ export function getAllEvents(): WaterEvent[] {
 }
 
 export function clearAllEvents(): void {
-  try {
-    getDb()?.execSync(`DELETE FROM events; DELETE FROM sync_log;`);
-  } catch (e) {
-    console.error("DB clearAllEvents error:", e);
-  }
+  getDb()
+    ?.runAsync(`DELETE FROM events`)
+    .catch((e) => console.error("DB clearAllEvents error:", e));
+  getDb()
+    ?.runAsync(`DELETE FROM sync_log`)
+    .catch((e) => console.error("DB clearSyncLog error:", e));
 }
 
 export function getDbStats(): { totalEvents: number; oldestEpoch: number | null } {

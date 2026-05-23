@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
 import { useDevice } from "@/context/DeviceContext";
@@ -118,23 +117,21 @@ export default function SettingsScreen() {
   const [showBleLog, setShowBleLog] = useState(false);
   const [versionTaps, setVersionTaps] = useState(0);
   const [devMode, setDevMode] = useState(false);
-  const [tankSize, setTankSize] = useState<string>("");
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
-  useEffect(() => {
-    AsyncStorage.getItem("@watertank_tank_size_litres").then((v) => {
-      if (v) setTankSize(v);
-    });
-  }, []);
+  // tankSize is now stored in AppSettings.tankSizeLitres — derive the display
+  // string directly from settings so there's a single source of truth.
+  const tankSizeStr = settings.tankSizeLitres > 0 ? String(settings.tankSizeLitres) : "";
 
-  const saveTankSize = useCallback(async (v: string) => {
-    const clean = v.replace(/[^0-9]/g, "").slice(0, 6);
-    setTankSize(clean);
-    if (clean) await AsyncStorage.setItem("@watertank_tank_size_litres", clean);
-    else await AsyncStorage.removeItem("@watertank_tank_size_litres");
-  }, []);
+  const saveTankSize = useCallback(
+    (v: string) => {
+      const clean = v.replace(/[^0-9]/g, "").slice(0, 6);
+      updateSettings({ tankSizeLitres: clean ? parseInt(clean, 10) : 0 });
+    },
+    [updateSettings],
+  );
 
   const onVersionTap = useCallback(() => {
     setVersionTaps((n) => {
@@ -244,61 +241,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Tank Color */}
-      <SectionHeader title={t("tankColor").toUpperCase()} colors={colors} />
-      <View style={[styles.section, { borderColor: colors.border }]}>
-        <View
-          style={[
-            styles.row,
-            {
-              borderBottomColor: "transparent",
-              backgroundColor: colors.card,
-              flexWrap: "wrap",
-              gap: 8,
-            },
-          ]}
-        >
-          {(["black", "blue"] as const).map((color) => {
-            const labels = { black: t("tankColorBlack"), blue: t("tankColorBlue") };
-            const swatches = { black: "#111827", blue: "#1D4ED8" };
-            const active = settings.tankColor === color;
-            return (
-              <TouchableOpacity
-                key={color}
-                onPress={() => updateSettings({ tankColor: color })}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 16,
-                  paddingVertical: 9,
-                  borderRadius: 20,
-                  backgroundColor: active ? colors.primary : colors.muted,
-                }}
-              >
-                <View style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 7,
-                  backgroundColor: swatches[color],
-                  borderWidth: 1.5,
-                  borderColor: active ? colors.primaryForeground : colors.mutedForeground,
-                }} />
-                <Text
-                  style={{
-                    color: active ? colors.primaryForeground : colors.foreground,
-                    fontFamily: "Inter_500Medium",
-                    fontSize: 14,
-                  }}
-                >
-                  {labels[color]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
       {/* Language */}
       <SectionHeader title={t("language").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
@@ -391,7 +333,7 @@ export default function SettingsScreen() {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <TextInput
-              value={tankSize}
+              value={tankSizeStr}
               onChangeText={saveTankSize}
               placeholder={t("tankSizePlaceholder")}
               placeholderTextColor={colors.mutedForeground}

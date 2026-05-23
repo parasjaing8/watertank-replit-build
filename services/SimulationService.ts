@@ -6,7 +6,9 @@ import { IDeviceService } from "./IDeviceService";
 type Listener = (state: DeviceState) => void;
 type EventListener = (event: WaterEvent) => void;
 
-let eventIdCounter = 2000;
+// Use a timestamp-based start so IDs don't collide with existing DB rows
+// after an app restart or hot-reload.
+let eventIdCounter = Date.now();
 function nextId(): number { return eventIdCounter++; }
 
 /**
@@ -159,9 +161,13 @@ export class SimulationService implements IDeviceService {
     // Disconnect, leave tank level visible
     this.emit({ connected: false });
     this.running = false;
-    // Give the UI time to render the disconnected state, then fire callback
+    // Push the completion timer into `this.timers` BEFORE setting running=false
+    // so that stop() can cancel it if called in the short window before it fires.
     const id = setTimeout(() => {
-      this.onComplete?.();
+      // Guard: don't fire if stop() was called after stepComplete scheduled this
+      if (this.timers.includes(id)) {
+        this.onComplete?.();
+      }
     }, 300);
     this.timers.push(id);
   }
