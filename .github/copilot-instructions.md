@@ -139,11 +139,49 @@ pnpm build:release   # builds + copies APK to ../../watertank-replit-release.apk
 
 **Never use `eas build`.** Always `expo prebuild` + `gradlew assembleRelease`.
 
+**CRITICAL — Image asset changes**: Always run `./gradlew clean` before `assembleRelease` when any file under `assets/images/` has changed. Metro's `createBundleReleaseJsAndAssets` task caches aggressively and will silently reuse stale image data from prior builds, producing wrong output with no warning.
+
+```bash
+# Correct release build flow after image changes:
+cd android && ./gradlew clean && ./gradlew assembleRelease
+
+# Verify correct PNG was bundled (replace Yu.png with actual obfuscated name):
+unzip -l app-release.apk | grep '\.png' | sort -rn | head -5
+unzip -p app-release.apk res/Yu.png | python3 -c \
+  "import sys; from PIL import Image; img=Image.open(sys.stdin.buffer); print(img.getbbox())"
+# Expected for blue-tank.png: (120, 242, 838, 1071)
+```
+
+---
+
+## WaterTankWidget — PNG Overlay Architecture
+
+`components/WaterTankWidget.tsx` uses a stacked layout:
+1. **Container** `View` — `width:300, height:346, overflow:hidden`
+2. **SVG** (absoluteFill) — water animation (waves, ripples, droplets, pour stream) clipped to tank window
+3. **PNG Image** (absolute, stretched) — overlaid on top; transparent window lets SVG show through
+
+**Layout math** (both tank colors share same PNG canvas size 1024×1536):
+```
+IMG_SCALE = 300 / 719   // 719px = body width (120→839)
+IMG_W = 427, IMG_H = 641
+IMG_OX = -50, IMG_OY = -101   // offsets to align body top-left to container (0,0)
+```
+
+**Per-color SVG clip rect** (`TANK_WINDOW` in code):
+```
+black: { CX: 78, CY: 30, CW: 175, CH: 261 }   // window x=306-725, y=315-940
+blue:  { CX: 70, CY: 28, CW: 177, CH: 258 }   // window x=287-711, y=308-926
+```
+Destructure inside component: `const { CX, CY, CW, CH } = TANK_WINDOW[tankColor];`
+Include `tankColor` in animation `useEffect` deps array.
+
 ---
 
 ## DO NOT Modify
 
 - `services/BLEService.ts` — complex BLE state machine, only modify with Claude/Sonnet, not local models
+- `components/WaterTankWidget.tsx` — complex SVG animation + PNG overlay math, only modify with Claude/Sonnet
 - SQLite schema column names (coupled to BLE protocol)
 - `WaterEvent` field names
 

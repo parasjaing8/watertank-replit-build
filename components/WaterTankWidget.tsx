@@ -56,17 +56,16 @@ const IMG_H     = Math.round(1536 * IMG_SCALE);         // 641
 const IMG_OX    = -Math.round(120 * IMG_SCALE);         // -50
 const IMG_OY    = -Math.round(242 * IMG_SCALE);         // -101
 
-// ─── Cutaway window in container coords ───────────────────────────────────
-// Image window bounds: x=306→725, y=315→940
-const CX  = Math.round((306 - 120) * IMG_SCALE);  // 78
-const CY  = Math.round((315 - 242) * IMG_SCALE);  // 30
-const CW  = Math.round((725 - 306) * IMG_SCALE);  // 175
-const CH  = Math.round((940 - 315) * IMG_SCALE);  // 261
-const CRX = 10;
-
-// ─── Pour stream entry (pipe at image y≈430, left of window) ──────────────
-const POUR_X = CX;
-const POUR_Y = Math.round((430 - 242) * IMG_SCALE);  // ≈ 78
+// ─── Cutaway window in container coords — measured per PNG ─────────────────
+// Black: image window x=306→725, y=315→940  → CX=78 CY=30 CW=175 CH=261
+// Blue:  image window x=287→711, y=308→926  → CX=70 CY=28 CW=177 CH=258
+// (blue window is shifted 8px left of black due to different tank design)
+const TANK_WINDOW = {
+  black: { CX: 78, CY: 30, CW: 175, CH: 261 },
+  blue:  { CX: 70, CY: 28, CW: 177, CH: 258 },
+} as const;
+const CRX  = 10;
+const POUR_Y = Math.round((430 - 242) * IMG_SCALE);  // ≈ 78 — same for both
 
 // ─── Colors ───────────────────────────────────────────────────────────────
 const C_WATER_T = '#3DA8D0';
@@ -74,7 +73,7 @@ const C_WATER_B = '#143E5A';
 const C_POUR    = '#5CC8F0';
 const C_SPLASH  = '#7FD8F8';
 
-function buildWavePath(surfaceY: number, phase: number, amp: number): string {
+function buildWavePath(surfaceY: number, phase: number, amp: number, CX: number, CY: number, CW: number, CH: number): string {
   const step = 6;
   const freq = 0.040;
   let d = `M ${CX} ${surfaceY}`;
@@ -86,7 +85,7 @@ function buildWavePath(surfaceY: number, phase: number, amp: number): string {
   return d;
 }
 
-function buildSecondWavePath(surfaceY: number, phase: number, amp: number): string {
+function buildSecondWavePath(surfaceY: number, phase: number, amp: number, CX: number, CY: number, CW: number, CH: number): string {
   const step = 6;
   const freq = 0.055;
   let d = `M ${CX} ${surfaceY + 3}`;
@@ -101,7 +100,7 @@ function buildSecondWavePath(surfaceY: number, phase: number, amp: number): stri
 let dropletIdCounter = 0;
 let rippleIdCounter  = 0;
 
-function spawnDroplet(surfaceY: number): Droplet {
+function spawnDroplet(surfaceY: number, CX: number): Droplet {
   const splashX = CX + 8 + Math.random() * 34;
   return {
     id: dropletIdCounter++,
@@ -115,7 +114,7 @@ function spawnDroplet(surfaceY: number): Droplet {
   };
 }
 
-function spawnRipple(surfaceY: number, nearInlet: boolean): Ripple {
+function spawnRipple(surfaceY: number, nearInlet: boolean, CX: number, CW: number): Ripple {
   const rx = nearInlet
     ? CX + 10 + Math.random() * 40
     : CX + 40 + Math.random() * (CW - 80);
@@ -135,6 +134,9 @@ export function WaterTankWidget({
   animated = true,
   tankColor = 'black',
 }: WaterTankWidgetProps) {
+  const { CX, CY, CW, CH } = TANK_WINDOW[tankColor];
+  const POUR_X = CX;
+
   const clamped = Math.max(0, Math.min(100, pct));
   const [fillPct, setFillPct]         = useState(animated ? 0 : clamped);
   const [wavePhase, setWavePhase]     = useState(0);
@@ -198,7 +200,7 @@ export function WaterTankWidget({
 
           const sy = (CY + CH) - (fillPct / 100) * CH;
           if (frame % 4 === 0 && aged.length < 12) {
-            return [...aged, spawnDroplet(sy)];
+            return [...aged, spawnDroplet(sy, CX)];
           }
           return aged;
         });
@@ -209,7 +211,7 @@ export function WaterTankWidget({
             .filter(r => r.progress < 1);
           if (frame % 16 === 0) {
             const sy = (CY + CH) - (fillPct / 100) * CH;
-            return [...advanced, spawnRipple(sy, true)];
+            return [...advanced, spawnRipple(sy, true, CX, CW)];
           }
           return advanced;
         });
@@ -221,7 +223,7 @@ export function WaterTankWidget({
             .filter(r => r.progress < 1);
           if (frame % 80 === 0 && clamped > 0) {
             const sy = (CY + CH) - (fillPct / 100) * CH;
-            return [...advanced, spawnRipple(sy, false)];
+            return [...advanced, spawnRipple(sy, false, CX, CW)];
           }
           return advanced;
         });
@@ -229,15 +231,15 @@ export function WaterTankWidget({
     }, ms);
 
     return () => { if (animRef.current) clearInterval(animRef.current); };
-  }, [connected, motorOn, clamped, fillPct]);
+  }, [connected, motorOn, clamped, fillPct, tankColor]);
 
   const fillH    = (fillPct / 100) * CH;
   const surfaceY = CY + CH - fillH;
   const waveAmp  = motorOn ? 2.0 : 0.7;
 
-  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp) : '';
+  const wavePath  = connected && fillPct > 0 ? buildWavePath(surfaceY, wavePhase, waveAmp, CX, CY, CW, CH) : '';
   const wave2Path = connected && fillPct > 0 && motorOn
-    ? buildSecondWavePath(surfaceY, wavePhase, waveAmp) : '';
+    ? buildSecondWavePath(surfaceY, wavePhase, waveAmp, CX, CY, CW, CH) : '';
 
   // Pour stream: arc from pipe entry (left of window) to water surface
   const pourEndX = CX + 22;
