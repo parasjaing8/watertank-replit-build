@@ -488,19 +488,19 @@ const styles = StyleSheet.create({
   },
   statsBlock: {
     alignItems: "center",
-    gap: 4,
-    marginTop: -4,
+    gap: 3,
+    marginTop: -6,
   },
   pctText: {
-    fontSize: 60,
+    fontSize: 52,
     fontFamily: "Inter_700Bold",
-    letterSpacing: -3,
-    lineHeight: 66,
+    letterSpacing: -2,
+    lineHeight: 58,
   },
   statusLabel: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
   },
   litresPill: {
     flexDirection: "row",
