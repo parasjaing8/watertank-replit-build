@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
@@ -49,18 +50,27 @@ function Accordion({ item }: { item: FaqItem }) {
 export default function HelpScreen() {
   const colors = useColors();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   const items: FaqItem[] = [
-    { q: t("helpMotorQuestion"), a: t("helpMotorAnswer") },
-    { q: t("helpConnectQuestion"), a: t("helpConnectAnswer") },
-    { q: t("helpManualQuestion"), a: t("helpManualAnswer") },
+    { q: t("helpMotorQuestion"),    a: t("helpMotorAnswer") },
+    { q: t("helpTankLowQuestion"),  a: t("helpTankLowAnswer") },
+    { q: t("helpConnectQuestion"),  a: t("helpConnectAnswer") },
+    { q: t("helpSyncQuestion"),     a: t("helpSyncAnswer") },
+    { q: t("helpManualQuestion"),   a: t("helpManualAnswer") },
   ];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View
-        style={[styles.header, { borderBottomColor: colors.border }]}
+        style={[
+          styles.header,
+          {
+            borderBottomColor: colors.border,
+            paddingTop: Math.max(insets.top, 16) + 10,
+          },
+        ]}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -91,7 +101,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 14,
-    paddingTop: 50,
     borderBottomWidth: 1,
   },
   backBtn: { padding: 6 },

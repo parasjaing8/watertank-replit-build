@@ -124,6 +124,18 @@ export interface Translations {
   tankColor: string;
   tankColorBlack: string;
   tankColorBlue: string;
+  // dashboard
+  tryDemo: string;
+  lastSync: string;
+  syncNow: string;
+  lastKnown: string;
+  // notifications
+  tankLowNotifBody: string;
+  // help — additional FAQs
+  helpTankLowQuestion: string;
+  helpTankLowAnswer: string;
+  helpSyncQuestion: string;
+  helpSyncAnswer: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -239,6 +251,15 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankColor: 'Tank Color',
     tankColorBlack: 'Black',
     tankColorBlue: 'Blue',
+    tryDemo: 'Try Demo',
+    lastSync: 'Last sync',
+    syncNow: 'Sync now',
+    lastKnown: 'Last known',
+    tankLowNotifBody: 'Tank water is low. Village supply may not have arrived yet.',
+    helpTankLowQuestion: 'Tank level is low. What should I do?',
+    helpTankLowAnswer: 'If the tank is low and the motor has not started, village water has not arrived yet. Wait — the motor starts automatically when water comes. If water has arrived but the motor did not start, check that the WaterTank device has power and is within Bluetooth range.',
+    helpSyncQuestion: 'How do I get the latest data from the device?',
+    helpSyncAnswer: 'The app syncs automatically when it connects to the device. If you want to refresh immediately, tap the sync icon at the top of the dashboard while the device is connected.',
   },
   hi: {
     appName: 'WaterTank',
@@ -352,6 +373,15 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankColor: 'टंकी का रंग',
     tankColorBlack: 'काला',
     tankColorBlue: 'नीला',
+    tryDemo: 'डेमो देखें',
+    lastSync: 'अंतिम सिंक',
+    syncNow: 'अभी सिंक करें',
+    lastKnown: 'पिछली जानकारी',
+    tankLowNotifBody: 'टंकी में पानी कम है। गाँव का पानी अभी नहीं आया होगा।',
+    helpTankLowQuestion: 'टंकी में पानी कम है। क्या करूँ?',
+    helpTankLowAnswer: 'अगर टंकी में पानी कम है और मोटर नहीं चली, तो गाँव का पानी अभी नहीं आया है। इंतज़ार करें — पानी आने पर मोटर अपने आप शुरू हो जाएगी। अगर पानी आ गया है पर मोटर नहीं चली, तो देखें कि WaterTank डिवाइस चालू है और पास में है।',
+    helpSyncQuestion: 'डिवाइस से ताज़ा डेटा कैसे पाएँ?',
+    helpSyncAnswer: 'जब एप डिवाइस से जुड़ता है, तो डेटा अपने आप अपडेट होता है। तुरंत रिफ्रेश के लिए, डिवाइस जुड़े होने पर डैशबोर्ड के ऊपर सिंक बटन दबाएँ।',
   },
   mr: {
     appName: 'WaterTank',
@@ -465,6 +495,15 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankColor: 'टाकीचा रंग',
     tankColorBlack: 'काळा',
     tankColorBlue: 'निळा',
+    tryDemo: 'डेमो पाहा',
+    lastSync: 'शेवटची सिंक',
+    syncNow: 'आत्ता सिंक करा',
+    lastKnown: 'शेवटची माहिती',
+    tankLowNotifBody: 'टाकीत पाणी कमी आहे. गावाचे पाणी अजून आले नसेल.',
+    helpTankLowQuestion: 'टाकीत पाणी कमी आहे. काय करावे?',
+    helpTankLowAnswer: 'जर टाकीत पाणी कमी असेल आणि मोटर सुरू झाली नसेल, तर गावाचे पाणी अजून आलेले नाही. थांबा — पाणी आल्यावर मोटर आपोआप सुरू होईल. पाणी आले असेल पण मोटर सुरू झाली नसेल, तर WaterTank डिव्हाइस चालू आहे आणि जवळ आहे का ते पाहा.',
+    helpSyncQuestion: 'डिव्हाइसमधून नवीन डेटा कसा मिळवायचा?',
+    helpSyncAnswer: 'जेव्हा अ‍ॅप डिव्हाइसशी जोडतो तेव्हा डेटा आपोआप अपडेट होतो. तत्काळ रिफ्रेश करण्यासाठी डिव्हाइस जोडलेले असताना डॅशबोर्डच्या वरील सिंक बटण दाबा.',
   },
   kn: {
     appName: 'WaterTank',
@@ -578,5 +617,14 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankColor: 'ಟ್ಯಾಂಕ್ ಬಣ್ಣ',
     tankColorBlack: 'ಕಪ್ಪು',
     tankColorBlue: 'ನೀಲಿ',
+    tryDemo: 'ಡೆಮೊ ನೋಡಿ',
+    lastSync: 'ಕೊನೆಯ ಸಿಂಕ್',
+    syncNow: 'ಈಗ ಸಿಂಕ್ ಮಾಡಿ',
+    lastKnown: 'ಕೊನೆಯ ಮಾಹಿತಿ',
+    tankLowNotifBody: 'ಟ್ಯಾಂಕ್‌ನಲ್ಲಿ ನೀರು ಕಡಿಮೆ ಇದೆ. ಊರಿನ ನೀರು ಇನ್ನೂ ಬಂದಿಲ್ಲದಿರಬಹುದು.',
+    helpTankLowQuestion: 'ಟ್ಯಾಂಕ್‌ನಲ್ಲಿ ನೀರು ಕಡಿಮೆ ಇದೆ. ನಾನು ಏನು ಮಾಡಬೇಕು?',
+    helpTankLowAnswer: 'ಟ್ಯಾಂಕ್ ಕಡಿಮೆ ಇದ್ದು ಮೋಟಾರ್ ಶುರುವಾಗದಿದ್ದರೆ, ಊರಿನ ನೀರು ಇನ್ನೂ ಬಂದಿಲ್ಲ. ಕಾಯಿರಿ — ನೀರು ಬಂದಾಗ ಮೋಟಾರ್ ತಾನಾಗಿ ಶುರುವಾಗುತ್ತದೆ. ನೀರು ಬಂದಿದ್ದರೆ ಮೋಟಾರ್ ಶುರುವಾಗದಿದ್ದರೆ, WaterTank ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿ.',
+    helpSyncQuestion: 'ಸಾಧನದಿಂದ ಹೊಸ ಡೇಟಾ ಹೇಗೆ ತರಬೇಕು?',
+    helpSyncAnswer: 'ಅಪ್ಲಿಕೇಶನ್ ಸಾಧನಕ್ಕೆ ಸಂಪರ್ಕಗೊಂಡಾಗ ಡೇಟಾ ತಾನಾಗಿ ಅಪ್‌ಡೇಟ್ ಆಗುತ್ತದೆ. ತಕ್ಷಣ ರಿಫ್ರೆಶ್ ಮಾಡಲು, ಸಾಧನ ಸಂಪರ್ಕಿತವಾಗಿರುವಾಗ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಮೇಲ್ಭಾಗದ ಸಿಂಕ್ ಬಟನ್ ಒತ್ತಿ.',
   },
 };

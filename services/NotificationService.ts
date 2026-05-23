@@ -75,7 +75,7 @@ export async function scheduleMotorOff(
 
 export async function scheduleTankLow(t: Translator) {
   await ensureChannel();
-  await notify(t("tankLow"), t("checkDevicePower"));
+  await notify(t("tankLow"), t("tankLowNotifBody"));
 }
 
 export async function cancelAll() {

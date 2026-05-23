@@ -15,7 +15,6 @@ import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TANK_LOW_PCT } from "@/constants/thresholds";
 import { formatTankPct, formatRelativeTime } from "@/utils/formatters";
 
@@ -102,7 +101,7 @@ function getTankStatusColor(pct: number, motorOn: boolean, c: ColorTokens): stri
 export default function DashboardScreen() {
   const { t } = useLanguage();
   const colors = useColors();
-  const { deviceState, simMode, runSimulation, settings } = useDevice();
+  const { deviceState, simMode, runSimulation, settings, triggerSync } = useDevice();
   const insets = useSafeAreaInsets();
 
   const [countdown, setCountdown]         = useState(45);
@@ -110,10 +109,20 @@ export default function DashboardScreen() {
   const prevPumpStateRef                   = useRef<number>(deviceState.pumpState);
   const [showFullToast, setShowFullToast]  = useState(false);
   const [disconnectedSec, setDisconnectedSec] = useState(0);
-  const [tankSize, setTankSize]            = useState<number>(0);
   const toastAnim                          = useRef(new Animated.Value(0)).current;
 
+  // Track the last known tank reading so farmers still see data when temporarily
+  // out of BLE range rather than a blank disconnected screen.
+  const [lastKnownTank, setLastKnownTank] = useState<{ pct: number; at: number } | null>(null);
+
   const isStartupDelay = deviceState.pumpState === 2;
+
+  // Persist last known tank state whenever we have a live reading
+  useEffect(() => {
+    if ((deviceState.connected || simMode) && deviceState.tank > 0) {
+      setLastKnownTank({ pct: deviceState.tank, at: Math.floor(Date.now() / 1000) });
+    }
+  }, [deviceState.connected, deviceState.tank, simMode]);
 
   useEffect(() => {
     if (isStartupDelay) {
@@ -138,13 +147,6 @@ export default function DashboardScreen() {
   }, [deviceState.pumpState]);
 
   useEffect(() => {
-    AsyncStorage.getItem("@watertank_tank_size_litres").then(v => {
-      const n = parseInt(v || "0", 10);
-      if (!isNaN(n)) setTankSize(n);
-    });
-  }, [deviceState.tank]);
-
-  useEffect(() => {
     if (!deviceState.connected && !simMode) {
       setDisconnectedSec(0);
       const id = setInterval(() => setDisconnectedSec(s => s + 1), 1000);
@@ -153,11 +155,19 @@ export default function DashboardScreen() {
     setDisconnectedSec(0);
   }, [deviceState.connected, simMode]);
 
-  const tankStatusLabel = getTankStatusLabel(deviceState.tank, deviceState.motorOn, t);
-  const tankStatusColor = getTankStatusColor(deviceState.tank, deviceState.motorOn, colors);
-  const pctColor = deviceState.motorOn ? colors.primary
-    : deviceState.tank >= 30 ? colors.primary
-    : deviceState.tank > 0 ? colors.warning : colors.destructive;
+  const isLive = deviceState.connected || simMode;
+  const isLastKnownMode = !isLive && !!lastKnownTank;
+
+  // What to display in the tank widget: live value or last-known
+  const displayPct = isLive ? deviceState.tank : (lastKnownTank?.pct ?? 0);
+  const showTankSection = isLive || isLastKnownMode;
+
+  const tankStatusLabel = getTankStatusLabel(displayPct, isLive ? deviceState.motorOn : false, t);
+  const tankStatusColor = getTankStatusColor(displayPct, isLive ? deviceState.motorOn : false, colors);
+  const pctColor = (isLive && deviceState.motorOn)
+    ? colors.primary
+    : displayPct >= 30 ? colors.primary
+    : displayPct > 0 ? colors.warning : colors.destructive;
 
   const motorSubLabel = isStartupDelay
     ? `${t("motorStarting")} ${countdown}s`
@@ -168,6 +178,8 @@ export default function DashboardScreen() {
   const topPad = Platform.OS === "web"
     ? Math.max(insets.top, 52)
     : insets.top + 12;
+
+  const tankSizeLitres = settings.tankSizeLitres;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -195,15 +207,27 @@ export default function DashboardScreen() {
             </View>
             {deviceState.connected && deviceState.lastSyncAt && (
               <Text style={[styles.syncText, { color: colors.mutedForeground }]}>
-                Last Sync: {formatRelativeTime(deviceState.lastSyncAt, t)}
+                {t("lastSync")}: {formatRelativeTime(deviceState.lastSyncAt, t)}
               </Text>
             )}
           </View>
-          {simMode && (
-            <View style={styles.demoBadge}>
-              <Text style={styles.demoBadgeText}>DEMO</Text>
-            </View>
-          )}
+          <View style={styles.headerRight}>
+            {simMode && (
+              <View style={styles.demoBadge}>
+                <Text style={styles.demoBadgeText}>DEMO</Text>
+              </View>
+            )}
+            {deviceState.connected && !simMode && (
+              <TouchableOpacity
+                onPress={triggerSync}
+                style={[styles.syncBtn, { backgroundColor: colors.muted }]}
+                activeOpacity={0.7}
+                accessibilityLabel={t("syncNow")}
+              >
+                <Feather name="refresh-cw" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* ── MANUAL OVERRIDE BANNER ── */}
@@ -214,65 +238,69 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ── TANK SECTION (simulation or connected only) ── */}
-        {(simMode || deviceState.connected) && (
-          <View style={styles.tankSection}>
+        {/* ── TANK SECTION — shown with live data OR last-known data ── */}
+        {showTankSection && (
+          <View style={[styles.tankSection, isLastKnownMode && styles.tankSectionFaded]}>
             <WaterTankWidget
-              pct={deviceState.tank}
-              connected={deviceState.connected}
-              motorOn={deviceState.motorOn}
+              pct={displayPct}
+              connected={isLive}
+              motorOn={isLive ? deviceState.motorOn : false}
               tankColor={settings.tankColor}
             />
             <View style={styles.statsStack}>
               <Text style={[styles.pctText, { color: pctColor }]}>
-                {formatTankPct(deviceState.tank)}
+                {formatTankPct(displayPct)}
               </Text>
               <Text style={[styles.tankStatusLabel, { color: tankStatusColor }]}>
                 {tankStatusLabel}
               </Text>
-              {tankSize > 0 && (
+              {tankSizeLitres > 0 && (
                 <Text style={[styles.litresText, { color: colors.mutedForeground }]}>
-                  {Math.round((tankSize * deviceState.tank) / 100)} {t("litres")}
+                  {Math.round((tankSizeLitres * displayPct) / 100)} {t("litres")}
                 </Text>
+              )}
+              {isLastKnownMode && lastKnownTank && (
+                <View style={[styles.lastKnownBadge, { backgroundColor: colors.muted }]}>
+                  <Feather name="clock" size={11} color={colors.mutedForeground} />
+                  <Text style={[styles.lastKnownText, { color: colors.mutedForeground }]}>
+                    {t("lastKnown")} · {formatRelativeTime(lastKnownTank.at, t)}
+                  </Text>
+                </View>
               )}
             </View>
           </View>
         )}
 
         {/* ── DISCONNECTED CARD ── */}
-        {!deviceState.connected && !simMode && (
+        {!isLive && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardIcon}>
               <Feather name="wifi-off" size={20} color={colors.mutedForeground} />
             </View>
             <View style={styles.cardBody}>
               <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                {simMode ? t("demoRunning") : t("lookingForDevice")}
+                {t("lookingForDevice")}
               </Text>
-              {!simMode && (
-                <>
-                  <Text style={[styles.cardSub, { color: colors.subText }]}>{t("deviceConnecting")}</Text>
-                  <PulsingDots color={colors.primary} />
-                  {disconnectedSec > 30 && (
-                    <Text style={[styles.cardSub, { marginTop: 6, color: colors.mutedForeground }]}>
-                      {t("checkDevicePower")}
-                    </Text>
-                  )}
-                  <TouchableOpacity
-                    onPress={runSimulation}
-                    style={[styles.demoBtn, { backgroundColor: colors.primary }]}
-                    activeOpacity={0.82}
-                  >
-                    <Text style={styles.demoBtnText}>Try Demo</Text>
-                  </TouchableOpacity>
-                </>
+              <Text style={[styles.cardSub, { color: colors.subText }]}>{t("deviceConnecting")}</Text>
+              <PulsingDots color={colors.primary} />
+              {disconnectedSec > 30 && (
+                <Text style={[styles.cardSub, { marginTop: 6, color: colors.mutedForeground }]}>
+                  {t("checkDevicePower")}
+                </Text>
               )}
+              <TouchableOpacity
+                onPress={runSimulation}
+                style={[styles.demoBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.demoBtnText}>{t("tryDemo")}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
 
         {/* ── MOTOR STATUS CARD ── */}
-        {(simMode || deviceState.connected) && (
+        {isLive && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={[
               styles.cardIcon,
@@ -286,7 +314,7 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.cardBody}>
               <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                {deviceState.motorOn ? t("motorRunning") : "Motor OFF"}
+                {deviceState.motorOn ? t("motorRunning") : t("motorOff")}
               </Text>
               <Text style={[styles.cardSub, { color: colors.subText }]}>{motorSubLabel}</Text>
             </View>
@@ -325,7 +353,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  headerLeft: { gap: 2 },
+  headerLeft: { gap: 2, flex: 1 },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
   appTitle: {
     fontSize: 26,
     fontFamily: "Inter_700Bold",
@@ -350,12 +384,18 @@ const styles = StyleSheet.create({
     marginTop: 1,
     marginLeft: 24,
   },
+  syncBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   demoBadge: {
     backgroundColor: "#F59E0B",
     paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 10,
-    marginTop: 4,
     shadowColor: "#F59E0B",
     shadowOpacity: 0.40,
     shadowRadius: 6,
@@ -389,6 +429,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
+  tankSectionFaded: {
+    opacity: 0.65,
+  },
   statsStack: {
     alignItems: "center",
     paddingTop: 4,
@@ -409,6 +452,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
+  },
+  lastKnownBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  lastKnownText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
 
   // Cards
