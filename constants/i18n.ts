@@ -121,6 +121,9 @@ export interface Translations {
   appearance: string;
   lightMode: string;
   darkMode: string;
+  tankColor: string;
+  tankColorBlack: string;
+  tankColorBlue: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -233,6 +236,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     appearance: 'Appearance',
     lightMode: 'Light',
     darkMode: 'Dark',
+    tankColor: 'Tank Color',
+    tankColorBlack: 'Black',
+    tankColorBlue: 'Blue',
   },
   hi: {
     appName: 'WaterTank',
@@ -343,6 +349,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     appearance: 'दिखावट',
     lightMode: 'हल्का',
     darkMode: 'गहरा',
+    tankColor: 'टंकी का रंग',
+    tankColorBlack: 'काला',
+    tankColorBlue: 'नीला',
   },
   mr: {
     appName: 'WaterTank',
@@ -453,6 +462,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     appearance: 'रूप',
     lightMode: 'उजळ',
     darkMode: 'गडद',
+    tankColor: 'टाकीचा रंग',
+    tankColorBlack: 'काळा',
+    tankColorBlue: 'निळा',
   },
   kn: {
     appName: 'WaterTank',
@@ -563,5 +575,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     appearance: 'ನೋಟ',
     lightMode: 'ಬೆಳಕು',
     darkMode: 'ಕತ್ತಲು',
+    tankColor: 'ಟ್ಯಾಂಕ್ ಬಣ್ಣ',
+    tankColorBlack: 'ಕಪ್ಪು',
+    tankColorBlue: 'ನೀಲಿ',
   },
 };

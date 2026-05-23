@@ -102,7 +102,7 @@ function getTankStatusColor(pct: number, motorOn: boolean, c: ColorTokens): stri
 export default function DashboardScreen() {
   const { t } = useLanguage();
   const colors = useColors();
-  const { deviceState, simMode, runSimulation } = useDevice();
+  const { deviceState, simMode, runSimulation, settings } = useDevice();
   const insets = useSafeAreaInsets();
 
   const [countdown, setCountdown]         = useState(45);
@@ -214,15 +214,15 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ── TANK SECTION ── */}
-        <View style={styles.tankSection}>
-          <WaterTankWidget
-            pct={deviceState.tank}
-            connected={deviceState.connected}
-            motorOn={deviceState.motorOn}
-          />
-
-          {deviceState.connected && (
+        {/* ── TANK SECTION (simulation or connected only) ── */}
+        {(simMode || deviceState.connected) && (
+          <View style={styles.tankSection}>
+            <WaterTankWidget
+              pct={deviceState.tank}
+              connected={deviceState.connected}
+              motorOn={deviceState.motorOn}
+              tankColor={settings.tankColor}
+            />
             <View style={styles.statsStack}>
               <Text style={[styles.pctText, { color: pctColor }]}>
                 {formatTankPct(deviceState.tank)}
@@ -236,11 +236,11 @@ export default function DashboardScreen() {
                 </Text>
               )}
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* ── DISCONNECTED CARD ── */}
-        {!deviceState.connected && (
+        {!deviceState.connected && !simMode && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardIcon}>
               <Feather name="wifi-off" size={20} color={colors.mutedForeground} />
@@ -272,7 +272,7 @@ export default function DashboardScreen() {
         )}
 
         {/* ── MOTOR STATUS CARD ── */}
-        {deviceState.connected && (
+        {(simMode || deviceState.connected) && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={[
               styles.cardIcon,

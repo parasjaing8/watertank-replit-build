@@ -31,6 +31,7 @@ export interface AppSettings {
   notifyMotorOff: boolean;
   notifyManualOverride: boolean;
   retentionDays: number;
+  tankColor: 'black' | 'blue';
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -38,6 +39,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notifyMotorOff: true,
   notifyManualOverride: true,
   retentionDays: DATA_RETENTION_DEFAULT_DAYS,
+  tankColor: 'black',
 };
 
 interface DeviceContextValue {
