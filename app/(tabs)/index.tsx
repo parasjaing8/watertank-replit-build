@@ -19,7 +19,7 @@ import { useColors } from "@/hooks/useColors";
 import { formatTankPct, formatRelativeTime } from "@/utils/formatters";
 import { STARTUP_DELAY_MS } from "@/constants/thresholds";
 import { Translations } from "@/constants/i18n";
-import { styles } from "./index.styles";
+import { styles } from "@/styles/dashboard";
 
 // ─── Tank status helpers ──────────────────────────────────────────────────────
 function getTankStatusLabel(pct: number, motorOn: boolean, t: (k: keyof Translations) => string): string {
