@@ -1,5 +1,16 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Fix remaining MEDIUM priority findings
+
+### Fixes applied (4 findings across 5 files)
+- **A2** (constants/ble.ts + BLEService.ts + BlePairingSheet.tsx): Added `isTankDevice(name)` — case-insensitive substring match on "WATERTANK". Used in both scan paths; eliminates exact-vs-contains mismatch.
+- **A6** (context/DeviceContext.tsx): Added `settingsVersion: 1` to AppSettings + DEFAULT_SETTINGS. `loadSettings` now strips stale persisted keys using `Object.keys(DEFAULT_SETTINGS)` — removed fields no longer survive schema changes.
+- **A10** (services/BLEService.ts): `motorOn` in stateSub now derived as `pumpState === 3 || manual` — no longer trusts `parsed.motor` from firmware. pumpState and motorOn are always consistent.
+- **U6** (app/(tabs)/index.tsx): AsyncStorage load validates `typeof pct === 'number' && typeof at === 'number'` before setting lastKnownTank — prevents "just now" after restart when pre-L1 format lacks `at`.
+
+### Files changed
+5 files: `constants/ble.ts`, `services/BLEService.ts`, `components/BlePairingSheet.tsx`, `context/DeviceContext.tsx`, `app/(tabs)/index.tsx`
+
 ## 2026-05-24 — Fix LOW priority findings
 
 ### Fixes applied (12 findings across 13 files)

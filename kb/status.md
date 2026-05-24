@@ -39,11 +39,8 @@ All 8 HIGH items fixed in previous session (A1, A3, A11, B1, B2, B8, L1, P1)
 ### MEDIUM — resolved ✓
 B3, B4, B5, B6, B7, L3, L4, L5, L11, L12, P2, P3, A5, A12, U1, U3 all fixed 2026-05-24
 
-### MEDIUM — still open
-- A2 (BLE name detection: BlePairingSheet uses contains 'WATERTANK', BLEService uses exact match)
-- A6 (settings schema has no migration/version field)
-- A10 (motorOn and pumpState can be mutually inconsistent)
-- U6 (last-known age unknown after restart) — partially resolved by L1 fix
+### MEDIUM — all resolved ✓
+A2, A6, A10, U6 fixed 2026-05-24
 
 ### LOW — resolved ✓
 B9, B10, L2, L6, L7, L8, A4, A7, A8, U2, U4, U5 all fixed 2026-05-24
