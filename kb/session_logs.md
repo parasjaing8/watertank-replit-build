@@ -260,3 +260,21 @@ Then convert to container coords: `CX = round((window_x - 120) * IMG_SCALE)` etc
 
 ### Commit
 330c4d0
+
+---
+
+## 2026-05-24 — Dashboard UX fixes + refactor (v24)
+
+### Fixes
+- **Tank full banner**: moved from `position:absolute` outside ScrollView to inline inside ScrollView between spacer and motor section label. Was covering motor card at bottom:110. Now slides up from below as an inline green banner — nothing ever obscured.
+- **Motor card border**: `colors.success + "50"` (31% opacity) → `"CC"` (80%), borderWidth 1→2px when motorOn. Background tint `"0D"` (5%) → `"1A"` (10%). Gray appearance was hex alpha issue.
+- **Spacer**: `flex:1` inside `flexGrow:1` container consumed all remaining screen height (~150-180px dead zone). Changed to `minHeight:20, maxHeight:40`.
+
+### Refactor
+- `index.tsx` split from 675 lines into 3 files:
+  - `app/(tabs)/index.tsx` — 359 lines (dashboard state machine + JSX)
+  - `app/(tabs)/index.styles.ts` — 234 lines (StyleSheet)
+  - `components/StatusIndicators.tsx` — 57 lines (PulsingDot, SearchingDots)
+
+### APK
+`watertank-v24-release.apk` — 101MB

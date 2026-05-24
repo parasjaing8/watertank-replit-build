@@ -2,7 +2,8 @@
 _Last updated: 2026-05-24_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v23-release.apk`
+`1.0.0` (package.json) | Latest APK: `watertank-v24-release.apk`
+- v24: Toast→inline banner (no motor card overlap), motor border opacity fix, spacer capped; refactor index.tsx 675→359 lines
 - v23: Dashboard layout — tank/% spacing, motor status section label, spacer for vertical distribution
 - v22: Setup guide images (correct aspect ratios), app freeze-on-resume fix (AppState), right-to-left swipe fix
 - v21: Fixed TANK_WINDOW clip coords — water now fills correctly from 0-100% visible in window
