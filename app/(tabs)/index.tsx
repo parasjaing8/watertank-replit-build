@@ -209,7 +209,7 @@ export default function DashboardScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: topPad, paddingBottom: Platform.OS === "web" ? 110 : 96 + insets.bottom },
+          { paddingTop: topPad, paddingBottom: Platform.OS === "web" ? 110 : 96 + insets.bottom, flexGrow: 1 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -348,7 +348,15 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* ── SPACER — pushes motor card down when content is short ──────── */}
+        <View style={{ flex: 1, minHeight: 24 }} />
+
         {/* ── MOTOR STATUS CARD ─────────────────────────────────────────────── */}
+        {isLive && (
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            {t("motorStatus")}
+          </Text>
+        )}
         {isLive && (
           <View style={[
             styles.card,
@@ -430,7 +438,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   root:    { flex: 1 },
   scroll:  { flex: 1 },
-  content: { paddingHorizontal: 20, gap: 14 },
+  content: { paddingHorizontal: 20, gap: 12 },
 
   // ── Header
   header: {
@@ -514,23 +522,30 @@ const styles = StyleSheet.create({
   // ── Tank section
   tankSection: {
     alignItems: "center",
-    gap: 0,
+    gap: 16,
   },
   statsBlock: {
     alignItems: "center",
-    gap: 3,
-    marginTop: -6,
+    gap: 4,
   },
   pctText: {
     fontSize: 52,
     fontFamily: "Inter_700Bold",
     letterSpacing: -2,
-    lineHeight: 58,
+    lineHeight: 56,
   },
   statusLabel: {
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.1,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    paddingLeft: 4,
+    marginBottom: -2,
   },
   litresPill: {
     flexDirection: "row",

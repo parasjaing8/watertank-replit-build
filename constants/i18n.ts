@@ -10,6 +10,7 @@ export interface Translations {
   motorRunning: string;
   motorOff: string;
   motorStarting: string;
+  motorStatus: string;
   waterArrived: string;
   tankFull: string;
   pumpManual: string;
@@ -161,6 +162,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     motorRunning: 'Motor Running',
     motorOff: 'Motor is Off',
     motorStarting: 'Motor starting...',
+    motorStatus: 'Motor Status',
     waterArrived: 'Water Arrived',
     tankFull: 'Tank Full',
     pumpManual: 'Pump Set to Manual',
@@ -293,6 +295,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     motorRunning: 'मोटर चल रही है',
     motorOff: 'मोटर बंद है',
     motorStarting: 'मोटर शुरू हो रही है...',
+    motorStatus: 'मोटर स्थिति',
     waterArrived: 'पानी आ गया',
     tankFull: 'टंकी भरी हुई है',
     pumpManual: 'पंप हाथ से चल रहा है',
@@ -425,6 +428,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     motorRunning: 'मोटर चालू आहे',
     motorOff: 'मोटर बंद आहे',
     motorStarting: 'मोटर सुरू होत आहे...',
+    motorStatus: 'मोटर स्थिती',
     waterArrived: 'पाणी आले',
     tankFull: 'टाकी भरली आहे',
     pumpManual: 'पंप हाताने चालू आहे',
@@ -557,6 +561,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     motorRunning: 'ಮೋಟಾರ್ ಚಾಲನೆಯಲ್ಲಿದೆ',
     motorOff: 'ಮೋಟಾರ್ ಆಫ್ ಆಗಿದೆ',
     motorStarting: 'ಮೋಟಾರ್ ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ...',
+    motorStatus: 'ಮೋಟಾರ್ ಸ್ಥಿತಿ',
     waterArrived: 'ನೀರು ಬಂದಿದೆ',
     tankFull: 'ಟ್ಯಾಂಕ್ ತುಂಬಿದೆ',
     pumpManual: 'ಪಂಪ್ ಕೈಯಿಂದ ಆನ್ ಆಗಿದೆ',
