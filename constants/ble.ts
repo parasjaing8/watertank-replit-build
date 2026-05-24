@@ -1,4 +1,8 @@
 export const BLE_DEVICE_NAME = "WaterTank";
+
+export function isTankDevice(name?: string | null): boolean {
+  return typeof name === "string" && name.toUpperCase().includes("WATERTANK");
+}
 export const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 export const BLE_CHAR_STATE = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_TANK = "beb5483f-36e1-4688-b7f5-ea07361b26a8";

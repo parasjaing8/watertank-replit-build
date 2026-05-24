@@ -120,7 +120,13 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem(LAST_KNOWN_KEY)
-      .then(v => { if (v) setLastKnownTank(JSON.parse(v)); })
+      .then(v => {
+        if (!v) return;
+        const parsed = JSON.parse(v);
+        if (parsed && typeof parsed.pct === 'number' && typeof parsed.at === 'number') {
+          setLastKnownTank(parsed);
+        }
+      })
       .catch(() => {});
   }, []);
 

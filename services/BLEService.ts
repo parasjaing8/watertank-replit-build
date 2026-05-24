@@ -22,6 +22,7 @@ import {
   BLE_CHAR_TANK,
   BLE_CHAR_TIME_SYNC,
   BLE_DEVICE_NAME,
+  isTankDevice,
   BLE_LOG_ACK,
   BLE_LOG_START,
   BLE_LOG_STREAM_TIMEOUT,
@@ -212,7 +213,7 @@ export class BLEService implements IDeviceService {
           return;
         }
         const dev = device as { name?: string; id: string; connect(): Promise<unknown> } | null;
-        if (dev?.name === BLE_DEVICE_NAME) {
+        if (isTankDevice(dev?.name)) {
           if (this.scanTimer) clearTimeout(this.scanTimer);
           this.scanTimer = null;
           try { mgr.stopDeviceScan(); } catch {}
@@ -284,12 +285,13 @@ export class BLEService implements IDeviceService {
             if (!c?.value) return;
             const json = Buffer.from(c.value, "base64").toString("utf8");
             const parsed = JSON.parse(json) as { state: number; motor: boolean; manual: boolean; tank: number };
+            const manual = !!parsed.manual;
             this.emit({
               ...this.state,
               connected: true,
               pumpState: parsed.state,
-              motorOn: parsed.motor,
-              manual: parsed.manual,
+              motorOn: parsed.state === 3 || manual,
+              manual,
               tank: Math.max(0, Math.min(100, parsed.tank)),
             });
           } catch {}

@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { getBleManager, bleModuleAvailable } from '@/services/BLEService';
+import { isTankDevice } from '@/constants/ble';
 import { useColors } from '@/hooks/useColors';
 
 interface Props {
@@ -44,7 +45,7 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
         setScanning(false);
         return;
       }
-      if (device?.name?.toUpperCase().includes('WATERTANK')) {
+      if (isTankDevice(device?.name)) {
         found.set(device.id, device);
         setDevices(Array.from(found.values()));
       }

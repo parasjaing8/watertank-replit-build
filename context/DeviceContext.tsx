@@ -28,6 +28,7 @@ import {
 import { getDayBounds } from "@/utils/formatters";
 
 export interface AppSettings {
+  settingsVersion: number;
   notifyMotorOn: boolean;
   notifyMotorOff: boolean;
   notifyManualOverride: boolean;
@@ -36,7 +37,10 @@ export interface AppSettings {
   tankSizeLitres: number;
 }
 
+const CURRENT_SETTINGS_VERSION = 1;
+
 const DEFAULT_SETTINGS: AppSettings = {
+  settingsVersion: CURRENT_SETTINGS_VERSION,
   notifyMotorOn: true,
   notifyMotorOff: true,
   notifyManualOverride: true,
@@ -115,9 +119,16 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = await AsyncStorage.getItem(SETTINGS_KEY);
       if (saved) {
-        const loaded: AppSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-        setSettings(loaded);
-        return loaded;
+        const raw = JSON.parse(saved) as Partial<AppSettings>;
+        // Strip keys not present in DEFAULT_SETTINGS so stale fields from old
+        // schema versions don't leak into the typed object.
+        const clean = (Object.keys(DEFAULT_SETTINGS) as (keyof AppSettings)[]).reduce(
+          (acc, k) => ({ ...acc, [k]: k in raw ? raw[k] : DEFAULT_SETTINGS[k] }),
+          {} as AppSettings,
+        );
+        clean.settingsVersion = CURRENT_SETTINGS_VERSION;
+        setSettings(clean);
+        return clean;
       }
     } catch {}
     return DEFAULT_SETTINGS;
