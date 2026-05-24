@@ -2,8 +2,9 @@
 _Last updated: 2026-05-24_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v19-release.apk` (audit P1 fixes — all 44 findings resolved)
-Post-audit fixes committed (b31e9af): H1 BLE connect guard, H2 ErrorFallback fonts, M1-M3 i18n/useMemo/types, L1 ScannedDevice type, L3 router cast
+`1.0.0` (package.json) | Latest APK: `watertank-v20-release.apk` (Hardware Setup Guide + post-audit fixes)
+- v20: SetupGuideModal (3-page image viewer in Settings), post-audit fixes (H1/H2/M1-M3/L1/L3)
+- v19: all 44 auditp1.md findings resolved
 
 ## Build Status
 - Android release APK: `android/app/build/outputs/apk/release/app-release.apk`
