@@ -210,7 +210,6 @@ export default function DashboardScreen() {
           styles.content,
           { paddingTop: topPad, paddingBottom: Platform.OS === "web" ? 110 : 96 + insets.bottom },
         ]}
-        scrollEnabled={false}
         showsVerticalScrollIndicator={false}
       >
         {/* ── HEADER ──────────────────────────────────────────────────────── */}

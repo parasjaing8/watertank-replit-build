@@ -373,6 +373,18 @@ export default function SettingsScreen() {
             />
           }
         />
+        <SettingRow
+          label={t("notifyManualOverride")}
+          colors={colors}
+          right={
+            <Switch
+              value={settings.notifyManualOverride}
+              onValueChange={(v) => updateSettings({ notifyManualOverride: v })}
+              trackColor={{ false: colors.muted, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          }
+        />
       </View>
 
       {/* Data */}

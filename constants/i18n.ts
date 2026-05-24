@@ -33,6 +33,7 @@ export interface Translations {
   language: string;
   notifyMotorOn: string;
   notifyMotorOff: string;
+  notifyManualOverride: string;
   keepRecordsFor: string;
   days30: string;
   days60: string;
@@ -172,6 +173,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     language: 'Language',
     notifyMotorOn: 'Notify when motor starts',
     notifyMotorOff: 'Notify when motor stops',
+    notifyManualOverride: 'Notify on manual override',
     keepRecordsFor: 'How long to keep records',
     days30: '30 days',
     days60: '60 days',
@@ -294,6 +296,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     language: 'भाषा',
     notifyMotorOn: 'मोटर शुरू होने पर सूचना दें',
     notifyMotorOff: 'मोटर बंद होने पर सूचना दें',
+    notifyManualOverride: 'मैनुअल ओवरराइड पर सूचना दें',
     keepRecordsFor: 'रिकॉर्ड कितने दिन रखें',
     days30: '30 दिन',
     days60: '60 दिन',
@@ -416,6 +419,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     language: 'भाषा',
     notifyMotorOn: 'मोटर सुरू झाल्यावर सूचना द्या',
     notifyMotorOff: 'मोटर बंद झाल्यावर सूचना द्या',
+    notifyManualOverride: 'मॅन्युअल ओव्हरराइडवर सूचना द्या',
     keepRecordsFor: 'नोंदी किती दिवस ठेवायच्या',
     days30: '30 दिवस',
     days60: '60 दिवस',
@@ -538,6 +542,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     language: 'ಭಾಷೆ',
     notifyMotorOn: 'ಮೋಟಾರ್ ಪ್ರಾರಂಭವಾದಾಗ ಸೂಚಿಸಿ',
     notifyMotorOff: 'ಮೋಟಾರ್ ನಿಂತಾಗ ಸೂಚಿಸಿ',
+    notifyManualOverride: 'ಕೈಪಿಡಿ ಓವರ್‌ರೈಡ್‌ನಲ್ಲಿ ಸೂಚಿಸಿ',
     keepRecordsFor: 'ದಾಖಲೆಗಳನ್ನು ಎಷ್ಟು ದಿನ ಇಡಬೇಕು',
     days30: '30 ದಿನಗಳು',
     days60: '60 ದಿನಗಳು',
