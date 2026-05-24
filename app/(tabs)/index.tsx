@@ -3,7 +3,6 @@ import {
   Animated,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -13,69 +12,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { WaterTankWidget } from "@/components/WaterTankWidget";
+import { PulsingDot, SearchingDots } from "@/components/StatusIndicators";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { formatTankPct, formatRelativeTime } from "@/utils/formatters";
 import { STARTUP_DELAY_MS } from "@/constants/thresholds";
 import { Translations } from "@/constants/i18n";
-
-// ─── Pulsing connected dot ────────────────────────────────────────────────────
-function PulsingDot({ color }: { color: string }) {
-  const pulse = useRef(new Animated.Value(1)).current;
-  const ring  = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1.35, duration: 650, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 1,    duration: 650, useNativeDriver: true }),
-    ])).start();
-    Animated.loop(Animated.sequence([
-      Animated.timing(ring, { toValue: 1, duration: 1300, useNativeDriver: true }),
-      Animated.timing(ring, { toValue: 0, duration: 0,    useNativeDriver: true }),
-    ])).start();
-  }, []);
-  const ringScale   = ring.interpolate({ inputRange: [0, 1], outputRange: [1, 2.8] });
-  const ringOpacity = ring.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.3, 0] });
-  return (
-    <View style={{ width: 14, height: 14, alignItems: "center", justifyContent: "center" }}>
-      <Animated.View style={{
-        position: "absolute", width: 8, height: 8, borderRadius: 4,
-        backgroundColor: color, transform: [{ scale: ringScale }], opacity: ringOpacity,
-      }} />
-      <Animated.View style={{
-        width: 8, height: 8, borderRadius: 4,
-        backgroundColor: color, transform: [{ scale: pulse }],
-      }} />
-    </View>
-  );
-}
-
-// ─── Three searching dots ─────────────────────────────────────────────────────
-function SearchingDots({ color }: { color: string }) {
-  const a = useRef(new Animated.Value(0.3)).current;
-  const b = useRef(new Animated.Value(0.3)).current;
-  const c = useRef(new Animated.Value(0.3)).current;
-  useEffect(() => {
-    const loop = (val: Animated.Value, delay: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(val, { toValue: 1,   duration: 380, useNativeDriver: true }),
-        Animated.timing(val, { toValue: 0.3, duration: 380, useNativeDriver: true }),
-        Animated.delay(760 - delay),
-      ]));
-    const anim = Animated.parallel([loop(a, 0), loop(b, 380), loop(c, 760)]);
-    anim.start();
-    return () => anim.stop();
-  }, []);
-  const dot = (val: Animated.Value) => (
-    <Animated.View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: color, opacity: val }} />
-  );
-  return (
-    <View style={{ flexDirection: "row", gap: 5, marginTop: 10 }}>
-      {dot(a)}{dot(b)}{dot(c)}
-    </View>
-  );
-}
+import { styles } from "./index.styles";
 
 // ─── Tank status helpers ──────────────────────────────────────────────────────
 function getTankStatusLabel(pct: number, motorOn: boolean, t: (k: keyof Translations) => string): string {
@@ -157,7 +101,7 @@ export default function DashboardScreen() {
     }
   }, [deviceState.connected]);
 
-  // Tank full toast when motor transitions off after filling
+  // Tank full inline banner when motor transitions off after filling
   useEffect(() => {
     if (prevPumpStateRef.current === 3 && deviceState.pumpState === 0) {
       setShowFullToast(true);
@@ -217,14 +161,9 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.appTitle, { color: colors.foreground }]}>WaterTank</Text>
-            {/* Connection status pill */}
             <View style={[
               styles.statusPill,
-              {
-                backgroundColor: deviceState.connected
-                  ? colors.success + "18"
-                  : colors.muted,
-              },
+              { backgroundColor: deviceState.connected ? colors.success + "18" : colors.muted },
             ]}>
               {deviceState.connected
                 ? <PulsingDot color={colors.success} />
@@ -236,7 +175,6 @@ export default function DashboardScreen() {
                 {deviceState.connected ? t("connected") : t("lookingForDevice")}
               </Text>
             </View>
-            {/* Last sync line */}
             {deviceState.connected && deviceState.lastSyncAt && (
               <Text style={[styles.syncLine, { color: colors.mutedForeground }]}>
                 {t("lastSync")}: {formatRelativeTime(deviceState.lastSyncAt, t)}
@@ -244,7 +182,6 @@ export default function DashboardScreen() {
             )}
           </View>
 
-          {/* Right: DEMO badge or sync button */}
           <View style={styles.headerRight}>
             {simMode && (
               <TouchableOpacity
@@ -281,7 +218,6 @@ export default function DashboardScreen() {
         {/* ── TANK SECTION ─────────────────────────────────────────────────── */}
         {showTank && (
           <View style={[styles.tankSection, isLastKnown && { opacity: 0.62 }]}>
-            {/* Tank widget — pure SVG, guaranteed alignment */}
             <WaterTankWidget
               pct={displayPct}
               connected={isLive}
@@ -289,7 +225,6 @@ export default function DashboardScreen() {
               tankColor={settings.tankColor}
             />
 
-            {/* Stats block below widget */}
             <View style={styles.statsBlock}>
               <Text style={[styles.pctText, { color: pctColor }]}>
                 {formatTankPct(displayPct)}
@@ -298,7 +233,6 @@ export default function DashboardScreen() {
                 {tankStatusLabel}
               </Text>
 
-              {/* Litres pill */}
               {litresValue !== null && (
                 <View style={[styles.litresPill, { backgroundColor: colors.muted }]}>
                   <Feather name="droplet" size={11} color={colors.mutedForeground} />
@@ -308,7 +242,6 @@ export default function DashboardScreen() {
                 </View>
               )}
 
-              {/* Last-known badge */}
               {isLastKnown && lastKnownTank && (
                 <View style={[styles.lastKnownBadge, { backgroundColor: colors.muted }]}>
                   <Feather name="clock" size={11} color={colors.mutedForeground} />
@@ -348,8 +281,24 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ── SPACER — pushes motor card down when content is short ──────── */}
-        <View style={{ flex: 1, minHeight: 24 }} />
+        {/* ── SPACER — controlled gap between tank section and motor card ── */}
+        <View style={{ minHeight: 20, maxHeight: 40 }} />
+
+        {/* ── TANK FULL BANNER — inline, never covers motor card ───────────── */}
+        {showFullToast && (
+          <Animated.View style={[
+            styles.tankFullBanner,
+            {
+              opacity: toastAnim,
+              transform: [{
+                translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
+              }],
+            },
+          ]}>
+            <Feather name="check-circle" size={15} color="#FFF" />
+            <Text style={styles.tankFullBannerText}>{t("tankFullCelebration")}</Text>
+          </Animated.View>
+        )}
 
         {/* ── MOTOR STATUS CARD ─────────────────────────────────────────────── */}
         {isLive && (
@@ -361,15 +310,11 @@ export default function DashboardScreen() {
           <View style={[
             styles.card,
             {
-              backgroundColor: motorOn
-                ? colors.success + "0D"
-                : colors.card,
-              borderColor: motorOn
-                ? colors.success + "50"
-                : colors.border,
+              backgroundColor: motorOn ? colors.success + "1A" : colors.card,
+              borderColor:     motorOn ? colors.success + "CC" : colors.border,
+              borderWidth:     motorOn ? 2 : 1,
             },
           ]}>
-            {/* Colored left accent bar */}
             <View style={[
               styles.motorAccentBar,
               { backgroundColor: motorOn ? colors.success : colors.mutedForeground + "40" },
@@ -377,11 +322,7 @@ export default function DashboardScreen() {
 
             <View style={[
               styles.cardIconWrap,
-              {
-                backgroundColor: motorOn
-                  ? colors.success + "22"
-                  : colors.muted,
-              },
+              { backgroundColor: motorOn ? colors.success + "22" : colors.muted },
             ]}>
               <Feather
                 name={motorOn ? "zap" : "zap-off"}
@@ -399,7 +340,6 @@ export default function DashboardScreen() {
               </Text>
             </View>
 
-            {/* ON / OFF badge */}
             <View style={[
               styles.motorStatusBadge,
               { backgroundColor: motorOn ? colors.success : colors.muted },
@@ -414,261 +354,6 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* ── TANK FULL TOAST ─────────────────────────────────────────────────── */}
-      {showFullToast && (
-        <Animated.View style={[
-          styles.toast,
-          {
-            opacity: toastAnim,
-            transform: [{
-              translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
-            }],
-          },
-        ]}>
-          <Feather name="check-circle" size={16} color="#FFF" />
-          <Text style={styles.toastText}>{t("tankFullCelebration")}</Text>
-        </Animated.View>
-      )}
     </View>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root:    { flex: 1 },
-  scroll:  { flex: 1 },
-  content: { paddingHorizontal: 20, gap: 12 },
-
-  // ── Header
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  headerLeft: { gap: 5, flex: 1 },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 4,
-  },
-  appTitle: {
-    fontSize: 24,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-  },
-  statusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  dotIdle: {
-    width: 7, height: 7, borderRadius: 3.5,
-  },
-  statusPillText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  syncLine: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    paddingLeft: 2,
-    marginTop: -2,
-  },
-  syncBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  demoBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    shadowColor: "#F59E0B",
-    shadowOpacity: 0.40,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  demoBadgeText: {
-    color: "#FFF",
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.8,
-  },
-
-  // ── Banner
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  bannerText: {
-    color: "#FFF",
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
-  },
-
-  // ── Tank section
-  tankSection: {
-    alignItems: "center",
-    gap: 16,
-  },
-  statsBlock: {
-    alignItems: "center",
-    gap: 4,
-  },
-  pctText: {
-    fontSize: 52,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -2,
-    lineHeight: 56,
-  },
-  statusLabel: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.1,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    paddingLeft: 4,
-    marginBottom: -2,
-  },
-  litresPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 2,
-  },
-  litresText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-  },
-  lastKnownBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  lastKnownText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
-
-  // ── Cards (shared)
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingRight: 16,
-    paddingLeft: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    overflow: "hidden",
-    shadowColor: "#1A2A4A",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardBody: { flex: 1, gap: 2 },
-  cardTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
-  cardSub: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 18,
-  },
-  hintText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 4,
-    lineHeight: 17,
-  },
-
-  // ── Disconnected card specifics
-  demoBtn: {
-    marginTop: 10,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 22,
-    alignSelf: "flex-start",
-  },
-  demoBtnText: {
-    color: "#FFF",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-
-  // ── Motor card specifics
-  motorAccentBar: {
-    position: "absolute",
-    left: 0, top: 0, bottom: 0,
-    width: 4,
-  },
-  motorStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    minWidth: 40,
-    alignItems: "center",
-  },
-  motorStatusBadgeText: {
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.5,
-  },
-
-  // ── Toast
-  toast: {
-    position: "absolute",
-    bottom: 110,
-    alignSelf: "center",
-    backgroundColor: "#22C55E",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  toastText: {
-    color: "#FFF",
-    fontFamily: "Inter_700Bold",
-    fontSize: 15,
-  },
-});
