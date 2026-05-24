@@ -1,5 +1,22 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Post-audit improvements (new findings from full codebase audit)
+
+### Fixes applied (7 findings across 5 files)
+- **H1** (BlePairingSheet.tsx): Added `mountedRef` (prevents `onSuccess()` after unmount) and `connectingRef` (calls `cancelConnection()` when sheet closes during active connect). Orphaned BLE connection on sheet dismiss is now properly cancelled.
+- **H2** (ErrorFallback.tsx): Replaced `fontWeight: "700"/"600"` with `fontFamily: 'Inter_700Bold'/'Inter_600SemiBold'` in 3 StyleSheet rules. Android with expo-fonts renders system font if fontFamily is absent.
+- **M1** (BlePairingSheet.tsx + constants/i18n.ts): All 5 hardcoded strings translated — `pairDevice`, `scanning`, `noDeviceFound`, `retry`, `cancel`. Keys added to Translations interface and all 4 languages (en/hi/mr/kn).
+- **M2** (app/(tabs)/index.tsx): `getTankStatusLabel` and `getTankStatusColor` calls wrapped in `useMemo` with correct deps — avoids recompute on every render tick.
+- **M3** (app/(tabs)/index.tsx): `getTankStatusLabel` `t` param typed as `(k: keyof Translations) => string` instead of `(k: any) => string`. Added `Translations` import from `@/constants/i18n`.
+- **L1** (BlePairingSheet.tsx): `useState<any[]>` replaced with `useState<ScannedDevice[]>` — defined minimal interface with `id`, `name`, `connect()`, `cancelConnection()`.
+- **L3** (TabSwipeWrapper.tsx): `router.replace(route as any)` → `router.replace(route as Parameters<typeof router.replace>[0])`.
+
+### Files changed
+5 files: `components/BlePairingSheet.tsx`, `components/ErrorFallback.tsx`, `app/(tabs)/index.tsx`, `constants/i18n.ts`, `components/TabSwipeWrapper.tsx`
+
+### Also added
+- `kb/phase2_battery.md` — full Phase 2 battery backup reference (BQ24074RGTT PowerPath IC, rejected options, BOM ~₹400, PCB plan, firmware changes needed)
+
 ## 2026-05-24 — Fix final two missed findings (L9/L10)
 
 ### Fixes applied (2 findings across 3 files)
