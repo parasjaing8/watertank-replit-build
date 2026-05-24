@@ -3,6 +3,7 @@ _Last updated: 2026-05-24_
 
 ## App Version
 `1.0.0` (package.json) | Latest APK: `watertank-v22-release.apk`
+- v23 (pending build): Dashboard layout — tank/% spacing, motor status section label, spacer for vertical distribution
 - v22: Setup guide images (correct aspect ratios), app freeze-on-resume fix (AppState), right-to-left swipe fix
 - v21: Fixed TANK_WINDOW clip coords — water now fills correctly from 0-100% visible in window
 - v20: SetupGuideModal (3-page image viewer in Settings), post-audit fixes (H1/H2/M1-M3/L1/L3)

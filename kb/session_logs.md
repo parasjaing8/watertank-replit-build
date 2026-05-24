@@ -241,3 +241,22 @@ Then convert to container coords: `CX = round((window_x - 120) * IMG_SCALE)` etc
 - `app/(tabs)/settings.tsx` — Tank Color pill selector
 - `app/(tabs)/index.tsx` — passes tankColor prop to WaterTankWidget
 - `assets/images/blue-tank.png` — normalized to 1024×1536 matching black tank canvas
+
+---
+
+## 2026-05-24 — Dashboard layout improvements (v23)
+
+### Changes
+- `tankSection.gap`: 0 → 16 — breathing room between WaterTankWidget and percentage text
+- `statsBlock`: removed `marginTop: -6` (was pulling % into tank); gap 3→4
+- `content.gap`: 14 → 12
+- `pctText.lineHeight`: 58 → 56
+- Spacer `<View style={{ flex: 1, minHeight: 24 }} />` between tank section and motor card — distributes vertical space naturally on all screen sizes
+- Section label "MOTOR STATUS" (uppercase, letter-spaced, muted color) added above motor card when connected
+- `motorStatus` i18n key added: en/hi/mr/kn
+
+### Files changed
+`app/(tabs)/index.tsx`, `constants/i18n.ts`
+
+### Commit
+330c4d0
