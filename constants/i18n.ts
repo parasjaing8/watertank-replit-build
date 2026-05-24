@@ -142,6 +142,12 @@ export interface Translations {
   scanning: string;
   noDeviceFound: string;
   retry: string;
+  // Setup guide
+  setupGuide: string;
+  setupPage1: string;
+  setupPage2: string;
+  setupPage3: string;
+  setupHint: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -271,6 +277,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'Scanning…',
     noDeviceFound: 'No WATERTANK devices found. Make sure your device is powered on and nearby.',
     retry: 'Retry',
+    setupGuide: 'Hardware Setup Guide',
+    setupPage1: "What's in the Box",
+    setupPage2: 'System Overview',
+    setupPage3: 'Installation Steps',
+    setupHint: 'Need help with hardware setup? See Setup Guide in Settings.',
   },
   hi: {
     appName: 'WaterTank',
@@ -398,6 +409,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'स्कैन हो रहा है…',
     noDeviceFound: 'कोई WATERTANK डिवाइस नहीं मिला। सुनिश्चित करें कि डिवाइस चालू है और पास में है।',
     retry: 'फिर से कोशिश करें',
+    setupGuide: 'हार्डवेयर सेटअप गाइड',
+    setupPage1: 'बॉक्स में क्या है',
+    setupPage2: 'सिस्टम का अवलोकन',
+    setupPage3: 'इंस्टॉलेशन के चरण',
+    setupHint: 'हार्डवेयर सेटअप में मदद चाहिए? सेटिंग्स में सेटअप गाइड देखें।',
   },
   mr: {
     appName: 'WaterTank',
@@ -525,6 +541,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'स्कॅन होत आहे…',
     noDeviceFound: 'कोणतेही WATERTANK डिव्हाइस सापडले नाही. डिव्हाइस चालू आहे आणि जवळ आहे याची खात्री करा.',
     retry: 'पुन्हा प्रयत्न करा',
+    setupGuide: 'हार्डवेअर सेटअप मार्गदर्शक',
+    setupPage1: 'बॉक्समध्ये काय आहे',
+    setupPage2: 'सिस्टम आढावा',
+    setupPage3: 'इंस्टॉलेशन चरण',
+    setupHint: 'हार्डवेअर सेटअपसाठी मदत हवी? सेटिंग्जमध्ये सेटअप मार्गदर्शक पाहा.',
   },
   kn: {
     appName: 'WaterTank',
@@ -652,5 +673,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ…',
     noDeviceFound: 'WATERTANK ಸಾಧನ ಸಿಗಲಿಲ್ಲ. ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿ.',
     retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    setupGuide: 'ಹಾರ್ಡ್‌ವೇರ್ ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ',
+    setupPage1: 'ಪೆಟ್ಟಿಗೆಯಲ್ಲಿ ಏನಿದೆ',
+    setupPage2: 'ಸಿಸ್ಟಮ್ ಅವಲೋಕನ',
+    setupPage3: 'ಅನುಸ್ಥಾಪನಾ ಹಂತಗಳು',
+    setupHint: 'ಹಾರ್ಡ್‌ವೇರ್ ಸೆಟಪ್‌ಗೆ ಸಹಾಯ ಬೇಕೇ? ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ ನೋಡಿ.',
   },
 };

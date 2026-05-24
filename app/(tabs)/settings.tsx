@@ -23,6 +23,7 @@ import { EVENT_LABELS, STOP_REASON_LABELS } from "@/models/Event";
 import { formatDate, formatDuration } from "@/utils/formatters";
 import { useLanguage } from "@/context/LanguageContext";
 import { Lang } from "@/constants/i18n";
+import { SetupGuideModal } from "@/components/SetupGuideModal";
 
 function SectionHeader({
   title,
@@ -120,6 +121,7 @@ export default function SettingsScreen() {
   const [devMode, setDevMode] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCleared, setShowCleared] = useState(false);
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
@@ -494,6 +496,12 @@ export default function SettingsScreen() {
       <SectionHeader title={t("about").toUpperCase()} colors={colors} />
       <View style={[styles.section, { borderColor: colors.border }]}>
         <ActionRow
+          label={t("setupGuide")}
+          icon="package"
+          onPress={() => setShowSetupGuide(true)}
+          colors={colors}
+        />
+        <ActionRow
           label={t("helpTitle")}
           icon="help-circle"
           onPress={() => router.push("/help")}
@@ -662,6 +670,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {showSetupGuide && <SetupGuideModal onClose={() => setShowSetupGuide(false)} />}
     </TabSwipeWrapper>
   );
 }

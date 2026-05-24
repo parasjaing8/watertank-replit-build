@@ -153,6 +153,9 @@ export default function OnboardingScreen() {
             <TouchableOpacity onPress={finish} activeOpacity={0.7}>
               <Text style={[styles.skipLink, { color: colors.mutedForeground }]}>{t('ob3SkipBtn')}</Text>
             </TouchableOpacity>
+            <Text style={[styles.setupHint, { color: colors.mutedForeground }]}>
+              {t('setupHint')}
+            </Text>
           </View>
         </ScrollView>
       </View>
@@ -281,5 +284,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 8,
     marginTop: 4,
+  },
+  setupHint: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    lineHeight: 17,
+    maxWidth: 280,
+    opacity: 0.7,
   },
 });
