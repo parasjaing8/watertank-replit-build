@@ -17,7 +17,7 @@ import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
-import { EventType, WaterEvent } from "@/models/Event";
+import { DailyStats, EventType, WaterEvent } from "@/models/Event";
 import {
   addDays,
   formatDuration,
@@ -25,10 +25,104 @@ import {
   formatHeaderDate,
   isToday,
 } from "@/utils/formatters";
+import { Translations } from "@/constants/i18n";
+
+// ─── WeekView component ───────────────────────────────────────────────────────
+// Extracted from useMemo-returning-JSX (anti-pattern in React concurrent mode).
+// Receives all needed data as props so it re-renders cleanly on dependency changes.
+interface WeekViewProps {
+  getStats: () => DailyStats[];
+  colors: ReturnType<typeof useColors>;
+  t: (key: keyof Translations) => string;
+  lang: string;
+}
+
+function WeekView({ getStats, colors, t, lang }: WeekViewProps) {
+  const stats = getStats();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  const sevenDaysAgoStr =
+    sevenDaysAgo.getFullYear() +
+    "-" +
+    String(sevenDaysAgo.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(sevenDaysAgo.getDate()).padStart(2, "0");
+  const weekStats = stats.filter((s) => s.day >= sevenDaysAgoStr);
+  const totalRuns = weekStats.reduce((sum, s) => sum + s.runs, 0);
+  const totalSec = weekStats.reduce((sum, s) => sum + s.totalSec, 0);
+
+  if (totalRuns === 0) {
+    return (
+      <View style={styles.weekEmpty}>
+        <Feather name="bar-chart-2" size={48} color={colors.mutedForeground} />
+        <Text style={[styles.weekEmptyText, { color: colors.mutedForeground }]}>
+          {t("weeklyNoData")}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.weekContent}>
+      <View
+        style={[
+          styles.weekSummary,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.weekTitle, { color: colors.foreground }]}>
+          {t("weeklyTitle")}
+        </Text>
+        <View style={styles.weekKpis}>
+          <View style={styles.weekKpi}>
+            <Text style={[styles.weekKpiValue, { color: colors.primary }]}>
+              {totalRuns}
+            </Text>
+            <Text
+              style={[styles.weekKpiLabel, { color: colors.mutedForeground }]}
+            >
+              {t("weeklyRuns")}
+            </Text>
+          </View>
+          <View style={styles.weekKpi}>
+            <Text style={[styles.weekKpiValue, { color: colors.primary }]}>
+              {formatDuration(totalSec)}
+            </Text>
+            <Text
+              style={[styles.weekKpiLabel, { color: colors.mutedForeground }]}
+            >
+              {t("weeklyRuntime")}
+            </Text>
+          </View>
+        </View>
+      </View>
+      {weekStats.map((s) => (
+        <View
+          key={s.day}
+          style={[
+            styles.weekDayRow,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.weekDayLabel, { color: colors.foreground }]}>
+            {formatDayLabel(s.day, lang as "en" | "hi" | "mr" | "kn")}
+          </Text>
+          <Text
+            style={[styles.weekDayStat, { color: colors.mutedForeground }]}
+          >
+            {s.runs} · {formatDuration(s.totalSec)}
+          </Text>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
 
 export default function RecordsScreen() {
   const colors = useColors();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { getEventsForDate, getStats, refreshData } = useDevice();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
@@ -70,87 +164,6 @@ export default function RecordsScreen() {
     return t("motorRanNTimes").replace("%n", String(motorRuns));
   })();
 
-  // Memoize the weekly stats computation — it reads from the DB and should not
-  // run on every render when the user is viewing the "today" tab.
-  const weeklyContent = useMemo(() => {
-    if (mode !== "week") return null;
-
-    const stats = getStats();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const sevenDaysAgoStr = sevenDaysAgo.getFullYear() + "-" + String(sevenDaysAgo.getMonth() + 1).padStart(2, "0") + "-" + String(sevenDaysAgo.getDate()).padStart(2, "0");
-    const weekStats = stats.filter((s) => s.day >= sevenDaysAgoStr);
-    const totalRuns = weekStats.reduce((sum, s) => sum + s.runs, 0);
-    const totalSec = weekStats.reduce((sum, s) => sum + s.totalSec, 0);
-
-    if (totalRuns === 0) {
-      return (
-        <View style={styles.weekEmpty}>
-          <Feather name="bar-chart-2" size={48} color={colors.mutedForeground} />
-          <Text style={[styles.weekEmptyText, { color: colors.mutedForeground }]}>
-            {t("weeklyNoData")}
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <ScrollView contentContainerStyle={styles.weekContent}>
-        <View
-          style={[
-            styles.weekSummary,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.weekTitle, { color: colors.foreground }]}>
-            {t("weeklyTitle")}
-          </Text>
-          <View style={styles.weekKpis}>
-            <View style={styles.weekKpi}>
-              <Text style={[styles.weekKpiValue, { color: colors.primary }]}>
-                {totalRuns}
-              </Text>
-              <Text
-                style={[styles.weekKpiLabel, { color: colors.mutedForeground }]}
-              >
-                {t("weeklyRuns")}
-              </Text>
-            </View>
-            <View style={styles.weekKpi}>
-              <Text style={[styles.weekKpiValue, { color: colors.primary }]}>
-                {formatDuration(totalSec)}
-              </Text>
-              <Text
-                style={[styles.weekKpiLabel, { color: colors.mutedForeground }]}
-              >
-                {t("weeklyRuntime")}
-              </Text>
-            </View>
-          </View>
-        </View>
-        {weekStats.map((s) => (
-          <View
-            key={s.day}
-            style={[
-              styles.weekDayRow,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.weekDayLabel, { color: colors.foreground }]}>
-              {formatDayLabel(s.day)}
-            </Text>
-            <Text
-              style={[styles.weekDayStat, { color: colors.mutedForeground }]}
-            >
-              {s.runs} · {formatDuration(s.totalSec)}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-    );
-  }, [mode, getStats, colors, t]);
 
   return (
     <TabSwipeWrapper index={1}>
@@ -274,8 +287,10 @@ export default function RecordsScreen() {
         </>
       )}
 
-      {/* Weekly mode — rendered from memoized value */}
-      {mode === "week" && weeklyContent}
+      {/* Weekly mode */}
+      {mode === "week" && (
+        <WeekView getStats={getStats} colors={colors} t={t} lang={lang} />
+      )}
     </View>
     </TabSwipeWrapper>
   );
