@@ -1,5 +1,18 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Fix final two missed findings (L9/L10)
+
+### Fixes applied (2 findings across 3 files)
+- **L9** (constants/i18n.ts + app/(tabs)/settings.tsx): Added `notifyManualOverride` i18n key in all 4 languages (en/hi/mr/kn). Added Switch row in settings notifications section — the notification itself was already wired (U2 fix) but had no UI toggle.
+- **L10** (app/(tabs)/index.tsx): Removed `scrollEnabled={false}` from dashboard ScrollView. Content no longer clips on small screens.
+
+### Status after this session
+All 44 audit findings from auditp1.md are now resolved:
+- HIGH (8): B1, B2, B8, L1, P1, A1, A3, A11 ✓
+- MEDIUM (17): B3–B7, L3–L5, L11, L12, P2, P3, A5, A6, A10, A12, U1, U3, U6 ✓
+- LOW (remaining): B9, B10, L2, L6–L10, P4*, A4, A7, A8, A9*, U2, U4, U5 ✓
+  (*A9 skipped — getTankColor is used by TankLevelBar; P4 skipped — 50-item bound sufficient)
+
 ## 2026-05-24 — Fix remaining MEDIUM priority findings
 
 ### Fixes applied (4 findings across 5 files)

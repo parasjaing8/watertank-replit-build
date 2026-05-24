@@ -42,11 +42,11 @@ B3, B4, B5, B6, B7, L3, L4, L5, L11, L12, P2, P3, A5, A12, U1, U3 all fixed 2026
 ### MEDIUM — all resolved ✓
 A2, A6, A10, U6 fixed 2026-05-24
 
-### LOW — resolved ✓
-B9, B10, L2, L6, L7, L8, A4, A7, A8, U2, U4, U5 all fixed 2026-05-24
-- A9 skipped (getTankColor is used by TankLevelBar.tsx — not unused)
-- L9 skipped (notifyManualOverride wired up via U2)
-- P4 skipped (50-item BLE log is already bounded; FlatList not needed)
+### LOW — all resolved ✓
+All 44 findings resolved as of 2026-05-24.
+- B9, B10, L2, L6–L10, A4, A7, A8, U2, U4, U5 fixed
+- A9 skipped (getTankColor actively used by TankLevelBar.tsx)
+- P4 skipped (50-item BLE log already bounded; FlatList not needed)
 
 ## Key Files — DO NOT modify with local models
 - `services/BLEService.ts` — use Claude/Sonnet only
