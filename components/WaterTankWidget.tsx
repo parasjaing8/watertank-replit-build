@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { AppState, AppStateStatus, Image, StyleSheet, View } from 'react-native';
 import Svg, {
   ClipPath,
   Defs,
@@ -147,7 +147,23 @@ export function WaterTankWidget({
   const animRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const frameRef = useRef(0);
 
+  // Foreground flag — when the app is backgrounded we tear down the animation
+  // interval so timer callbacks don't queue up and fire as a setState storm on
+  // resume (the cause of the "stuck on one page" freeze). Resuming flips this
+  // back to true, which re-runs the loop effect below and restarts the timer.
+  const [isForeground, setIsForeground] = useState(
+    AppState.currentState === 'active' || AppState.currentState === undefined,
+  );
+
   useEffect(() => { fillPctRef.current = fillPct; }, [fillPct]);
+
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      setIsForeground(next === 'active');
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, []);
 
   // ── Animate fill on mount / pct change ──
   useEffect(() => {
@@ -169,8 +185,8 @@ export function WaterTankWidget({
 
   // ── Main animation loop ──
   useEffect(() => {
-    if (!connected || clamped <= 0) {
-      if (animRef.current) clearInterval(animRef.current);
+    if (!connected || clamped <= 0 || !isForeground) {
+      if (animRef.current) { clearInterval(animRef.current); animRef.current = null; }
       setDroplets([]);
       setRipples([]);
       return;
@@ -232,7 +248,7 @@ export function WaterTankWidget({
     }, ms);
 
     return () => { if (animRef.current) clearInterval(animRef.current); };
-  }, [connected, motorOn, clamped, tankColor]);
+  }, [connected, motorOn, clamped, tankColor, isForeground]);
 
   const fillH    = (fillPct / 100) * CH;
   const surfaceY = CY + CH - fillH;
