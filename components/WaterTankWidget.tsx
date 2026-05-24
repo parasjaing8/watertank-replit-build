@@ -57,12 +57,12 @@ const IMG_OX    = -Math.round(120 * IMG_SCALE);         // -50
 const IMG_OY    = -Math.round(242 * IMG_SCALE);         // -101
 
 // ─── Cutaway window in container coords — measured per PNG ─────────────────
-// Black: image window x=306→725, y=315→940  → CX=78 CY=30 CW=175 CH=261
-// Blue:  image window x=287→711, y=308→926  → CX=70 CY=28 CW=177 CH=258
-// (blue window is shifted 8px left of black due to different tank design)
+// Black: image window x=308→726, y=485→944  → CX=78 CY=101 CW=174 CH=192
+// Blue:  image window x=286→712, y=514→926  → CX=69 CY=113 CW=178 CH=172
+// (y_top measured at alpha=0 interior, not the semi-transparent frame edge)
 const TANK_WINDOW = {
-  black: { CX: 78, CY: 30, CW: 175, CH: 261 },
-  blue:  { CX: 70, CY: 28, CW: 177, CH: 258 },
+  black: { CX: 78, CY: 101, CW: 174, CH: 192 },
+  blue:  { CX: 69, CY: 113, CW: 178, CH: 172 },
 } as const;
 const CRX  = 10;
 const POUR_Y = Math.round((430 - 242) * IMG_SCALE);  // ≈ 78 — same for both
