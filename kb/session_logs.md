@@ -1,5 +1,24 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Hardware Setup Guide feature
+
+### What was built
+- **`components/SetupGuideModal.tsx`** — full-screen Modal with 3-page horizontal ScrollView. Each page is a vertically scrollable image rendered at full width at correct aspect ratio (inbox 1:1, overview 1:1.777, instructions 1:1.333 — computed from actual pixel dimensions). Footer: page title + prev/next chevrons + tappable dots with active dot stretching to pill shape.
+- **Settings > About section**: "Hardware Setup Guide" row (package icon) added above Help & FAQ. Opens SetupGuideModal via local state.
+- **Onboarding ob3**: Subtle hint text below skip link — "Need help with hardware setup? See Setup Guide in Settings."
+- **3 product images** added to `assets/images/`: `setup-inbox.png` (1254×1254), `setup-overview.png` (941×1672), `setup-instructions.png` (1086×1448)
+- **i18n**: 5 new keys (`setupGuide`, `setupPage1`, `setupPage2`, `setupPage3`, `setupHint`) in all 4 languages
+
+### Design decisions
+- Not in mandatory onboarding (would bloat first-run for reinstalls / users who just want to pair)
+- Settings location is correct: hardware setup is reference material, not onboarding material
+- Horizontal FlatList pager same pattern as onboarding.tsx
+- No pinch-to-zoom for now — portrait images at screenWidth are legible on modern phones
+- Images copy-protected from user's product packaging — professional renders
+
+### Files changed
+`components/SetupGuideModal.tsx` (new), `app/(tabs)/settings.tsx`, `app/onboarding.tsx`, `constants/i18n.ts`, `assets/images/` (3 new PNGs)
+
 ## 2026-05-24 — Post-audit improvements (new findings from full codebase audit)
 
 ### Fixes applied (7 findings across 5 files)
