@@ -131,14 +131,14 @@ export default function DashboardScreen() {
       .catch(() => {});
   }, []);
 
-  // Persist last known reading whenever we have live data
+  // Persist last known reading from real device only — never from simulation
   useEffect(() => {
-    if (isLive && deviceState.tank > 0) {
+    if (isLive && !simMode && deviceState.tank > 0) {
       const next = { pct: deviceState.tank, at: Math.floor(Date.now() / 1000) };
       setLastKnownTank(next);
       AsyncStorage.setItem(LAST_KNOWN_KEY, JSON.stringify(next)).catch(() => {});
     }
-  }, [isLive, deviceState.tank]);
+  }, [isLive, simMode, deviceState.tank]);
 
   // Countdown timer for motor startup delay
   useEffect(() => {
