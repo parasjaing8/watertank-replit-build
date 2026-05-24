@@ -1,5 +1,29 @@
 # WaterTank — Session Logs
 
+## 2026-05-24 — Fix water animation clip rect (TANK_WINDOW correction)
+
+### Root cause
+Original `TANK_WINDOW` y-coordinates were measured from the outer frame edge of the transparent window, not the actual alpha=0 interior. The glass/plastic border renders with alpha~250 (opaque), so the true transparent window starts ~170px lower in image space (~71px lower in container coords).
+
+### Effect of bug
+At fill levels above ~73%, `surfaceY` fell inside the opaque tank body zone (y=30 to y=101 for black tank). The water surface was visually hidden behind the PNG, making 73-100% all appear as ~73% full.
+
+### Measurement method
+Column scan at cx=480 (center of window) looking for first `alpha < 50` transition, scanning outward from window center for x bounds. Sharp single-pixel transition confirmed — no anti-aliasing in the true interior boundary.
+
+### New values
+- **Black**: `{ CX: 78, CY: 101, CW: 174, CH: 192 }` — image window x=308→726, y=485→944
+- **Blue**: `{ CX: 69, CY: 113, CW: 178, CH: 172 }` — image window x=286→712, y=514→926
+- Old (wrong): black CY=30 CH=261, blue CY=28 CH=258
+
+### Files changed
+`components/WaterTankWidget.tsx` (5 lines — constants + comment only)
+
+### APK
+`watertank-v21-release.apk` — 100MB, same as v20
+
+---
+
 ## 2026-05-24 — Hardware Setup Guide feature
 
 ### What was built

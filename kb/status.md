@@ -2,7 +2,8 @@
 _Last updated: 2026-05-24_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v20-release.apk` (Hardware Setup Guide + post-audit fixes)
+`1.0.0` (package.json) | Latest APK: `watertank-v21-release.apk` (water animation clip rect fix)
+- v21: Fixed TANK_WINDOW clip coords — water now fills correctly from 0-100% visible in window
 - v20: SetupGuideModal (3-page image viewer in Settings), post-audit fixes (H1/H2/M1-M3/L1/L3)
 - v19: all 44 auditp1.md findings resolved
 
@@ -30,9 +31,10 @@ _Last updated: 2026-05-24_
 
 ## WaterTankWidget — PNG Overlay State
 - `TANK_IMAGES = { black: require('@/assets/images/water-tank.png'), blue: require('@/assets/images/blue-tank.png') }`
-- `TANK_WINDOW = { black: {CX:78,CY:30,CW:175,CH:261}, blue: {CX:70,CY:28,CW:177,CH:258} }`
+- `TANK_WINDOW = { black: {CX:78,CY:101,CW:174,CH:192}, blue: {CX:69,CY:113,CW:178,CH:172} }` ← fixed v21
 - Both PNGs: 1024×1536, tank body at (120,242)-(838,107x)
 - Container: 300×346, `overflow:hidden`. SVG absoluteFill behind PNG Image.
+- IMG_SCALE=300/719=0.4172, IMG_OX=-50, IMG_OY=-101
 
 ## Open Issues (from auditp1.md — 44 findings, deep audit 2026-05-23)
 ### HIGH — all resolved ✓
