@@ -45,7 +45,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notifyMotorOff: true,
   notifyManualOverride: true,
   retentionDays: DATA_RETENTION_DEFAULT_DAYS,
-  tankColor: 'black',
+  tankColor: 'blue',
   tankSizeLitres: 0,
 };
 

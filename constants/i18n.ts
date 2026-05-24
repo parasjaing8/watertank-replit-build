@@ -137,6 +137,11 @@ export interface Translations {
   helpTankLowAnswer: string;
   helpSyncQuestion: string;
   helpSyncAnswer: string;
+  // BLE pairing sheet
+  pairDevice: string;
+  scanning: string;
+  noDeviceFound: string;
+  retry: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -262,6 +267,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     helpTankLowAnswer: 'If the tank is low and the motor has not started, village water has not arrived yet. Wait — the motor starts automatically when water comes. If water has arrived but the motor did not start, check that the WaterTank device has power and is within Bluetooth range.',
     helpSyncQuestion: 'How do I get the latest data from the device?',
     helpSyncAnswer: 'The app syncs automatically when it connects to the device. If you want to refresh immediately, tap the sync icon at the top of the dashboard while the device is connected.',
+    pairDevice: 'Pair your device',
+    scanning: 'Scanning…',
+    noDeviceFound: 'No WATERTANK devices found. Make sure your device is powered on and nearby.',
+    retry: 'Retry',
   },
   hi: {
     appName: 'WaterTank',
@@ -385,6 +394,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     helpTankLowAnswer: 'अगर टंकी में पानी कम है और मोटर नहीं चली, तो गाँव का पानी अभी नहीं आया है। इंतज़ार करें — पानी आने पर मोटर अपने आप शुरू हो जाएगी। अगर पानी आ गया है पर मोटर नहीं चली, तो देखें कि WaterTank डिवाइस चालू है और पास में है।',
     helpSyncQuestion: 'डिवाइस से ताज़ा डेटा कैसे पाएँ?',
     helpSyncAnswer: 'जब एप डिवाइस से जुड़ता है, तो डेटा अपने आप अपडेट होता है। तुरंत रिफ्रेश के लिए, डिवाइस जुड़े होने पर डैशबोर्ड के ऊपर सिंक बटन दबाएँ।',
+    pairDevice: 'अपना डिवाइस जोड़ें',
+    scanning: 'स्कैन हो रहा है…',
+    noDeviceFound: 'कोई WATERTANK डिवाइस नहीं मिला। सुनिश्चित करें कि डिवाइस चालू है और पास में है।',
+    retry: 'फिर से कोशिश करें',
   },
   mr: {
     appName: 'WaterTank',
@@ -508,6 +521,10 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     helpTankLowAnswer: 'जर टाकीत पाणी कमी असेल आणि मोटर सुरू झाली नसेल, तर गावाचे पाणी अजून आलेले नाही. थांबा — पाणी आल्यावर मोटर आपोआप सुरू होईल. पाणी आले असेल पण मोटर सुरू झाली नसेल, तर WaterTank डिव्हाइस चालू आहे आणि जवळ आहे का ते पाहा.',
     helpSyncQuestion: 'डिव्हाइसमधून नवीन डेटा कसा मिळवायचा?',
     helpSyncAnswer: 'जेव्हा अ‍ॅप डिव्हाइसशी जोडतो तेव्हा डेटा आपोआप अपडेट होतो. तत्काळ रिफ्रेश करण्यासाठी डिव्हाइस जोडलेले असताना डॅशबोर्डच्या वरील सिंक बटण दाबा.',
+    pairDevice: 'तुमचे डिव्हाइस जोडा',
+    scanning: 'स्कॅन होत आहे…',
+    noDeviceFound: 'कोणतेही WATERTANK डिव्हाइस सापडले नाही. डिव्हाइस चालू आहे आणि जवळ आहे याची खात्री करा.',
+    retry: 'पुन्हा प्रयत्न करा',
   },
   kn: {
     appName: 'WaterTank',
@@ -631,5 +648,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     helpTankLowAnswer: 'ಟ್ಯಾಂಕ್ ಕಡಿಮೆ ಇದ್ದು ಮೋಟಾರ್ ಶುರುವಾಗದಿದ್ದರೆ, ಊರಿನ ನೀರು ಇನ್ನೂ ಬಂದಿಲ್ಲ. ಕಾಯಿರಿ — ನೀರು ಬಂದಾಗ ಮೋಟಾರ್ ತಾನಾಗಿ ಶುರುವಾಗುತ್ತದೆ. ನೀರು ಬಂದಿದ್ದರೆ ಮೋಟಾರ್ ಶುರುವಾಗದಿದ್ದರೆ, WaterTank ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿ.',
     helpSyncQuestion: 'ಸಾಧನದಿಂದ ಹೊಸ ಡೇಟಾ ಹೇಗೆ ತರಬೇಕು?',
     helpSyncAnswer: 'ಅಪ್ಲಿಕೇಶನ್ ಸಾಧನಕ್ಕೆ ಸಂಪರ್ಕಗೊಂಡಾಗ ಡೇಟಾ ತಾನಾಗಿ ಅಪ್‌ಡೇಟ್ ಆಗುತ್ತದೆ. ತಕ್ಷಣ ರಿಫ್ರೆಶ್ ಮಾಡಲು, ಸಾಧನ ಸಂಪರ್ಕಿತವಾಗಿರುವಾಗ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಮೇಲ್ಭಾಗದ ಸಿಂಕ್ ಬಟನ್ ಒತ್ತಿ.',
+    pairDevice: 'ನಿಮ್ಮ ಸಾಧನ ಜೋಡಿಸಿ',
+    scanning: 'ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ…',
+    noDeviceFound: 'WATERTANK ಸಾಧನ ಸಿಗಲಿಲ್ಲ. ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿ.',
+    retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
   },
 };

@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 const STORAGE_KEY = '@watertank_theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [colorScheme, setScheme] = useState<ColorScheme>('dark');
+  const [colorScheme, setScheme] = useState<ColorScheme>('light');
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then(v => {

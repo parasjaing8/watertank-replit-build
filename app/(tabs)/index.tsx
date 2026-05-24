@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Platform,
@@ -18,6 +18,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { formatTankPct, formatRelativeTime } from "@/utils/formatters";
 import { STARTUP_DELAY_MS } from "@/constants/thresholds";
+import { Translations } from "@/constants/i18n";
 
 // ─── Pulsing connected dot ────────────────────────────────────────────────────
 function PulsingDot({ color }: { color: string }) {
@@ -77,7 +78,7 @@ function SearchingDots({ color }: { color: string }) {
 }
 
 // ─── Tank status helpers ──────────────────────────────────────────────────────
-function getTankStatusLabel(pct: number, motorOn: boolean, t: (k: any) => string): string {
+function getTankStatusLabel(pct: number, motorOn: boolean, t: (k: keyof Translations) => string): string {
   if (motorOn && pct < 95) return t("tankFilling");
   if (pct >= 95) return t("tankFull");
   if (pct >= 30) return t("tankHealthy");
@@ -181,8 +182,8 @@ export default function DashboardScreen() {
 
   // Derived display values
   const motorOn         = isLive ? deviceState.motorOn : false;
-  const tankStatusLabel = getTankStatusLabel(displayPct, motorOn, t);
-  const tankStatusColor = getTankStatusColor(displayPct, motorOn, colors);
+  const tankStatusLabel = useMemo(() => getTankStatusLabel(displayPct, motorOn, t), [displayPct, motorOn, t]);
+  const tankStatusColor = useMemo(() => getTankStatusColor(displayPct, motorOn, colors), [displayPct, motorOn, colors]);
   const pctColor        = motorOn ? colors.primary
     : displayPct >= 30 ? colors.primary
     : displayPct > 0   ? colors.warning

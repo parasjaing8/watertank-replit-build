@@ -11,6 +11,14 @@ import {
 import { getBleManager, bleModuleAvailable } from '@/services/BLEService';
 import { isTankDevice } from '@/constants/ble';
 import { useColors } from '@/hooks/useColors';
+import { useLanguage } from '@/context/LanguageContext';
+
+interface ScannedDevice {
+  id: string;
+  name: string | null;
+  connect(): Promise<unknown>;
+  cancelConnection(): Promise<unknown>;
+}
 
 interface Props {
   onClose: () => void;
@@ -19,11 +27,25 @@ interface Props {
 
 export function BlePairingSheet({ onClose, onSuccess }: Props) {
   const colors = useColors();
+  const { t } = useLanguage();
   const [scanning, setScanning] = useState(true);
-  const [devices, setDevices] = useState<any[]>([]);
+  const [devices, setDevices] = useState<ScannedDevice[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [scanKey, setScanKey] = useState(0);
   const managerRef = useRef<any>(null);
+  const mountedRef = useRef(true);
+  const connectingRef = useRef<ScannedDevice | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (connectingRef.current) {
+        try { connectingRef.current.cancelConnection(); } catch {}
+        connectingRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let manager: any;
@@ -38,8 +60,8 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
     setScanning(true);
     setDevices([]);
     setError(null);
-    const found = new Map<string, any>();
-    manager.startDeviceScan(null, { allowDuplicates: false }, (err, device) => {
+    const found = new Map<string, ScannedDevice>();
+    manager.startDeviceScan(null, { allowDuplicates: false }, (err: any, device: any) => {
       if (err) {
         setError(err.message);
         setScanning(false);
@@ -60,13 +82,16 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
     };
   }, [scanKey]);
 
-  async function connect(device: any) {
+  async function connect(device: ScannedDevice) {
     try {
       managerRef.current?.stopDeviceScan();
+      connectingRef.current = device;
       await device.connect();
-      onSuccess();
+      connectingRef.current = null;
+      if (mountedRef.current) onSuccess();
     } catch (e) {
-      setError(String(e));
+      connectingRef.current = null;
+      if (mountedRef.current) setError(String(e));
     }
   }
 
@@ -77,12 +102,12 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
           style={[styles.sheet, { backgroundColor: colors.card }]}
           onPress={(e) => e.stopPropagation()}
         >
-          <Text style={[styles.title, { color: colors.foreground }]}>Pair your device</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('pairDevice')}</Text>
 
           {scanning && (
             <View style={styles.scanRow}>
               <ActivityIndicator color={colors.primary} />
-              <Text style={[styles.scanText, { color: colors.mutedForeground }]}>Scanning…</Text>
+              <Text style={[styles.scanText, { color: colors.mutedForeground }]}>{t('scanning')}</Text>
             </View>
           )}
 
@@ -93,14 +118,14 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
           {!scanning && devices.length === 0 && !error && (
             <>
               <Text style={[styles.empty, { color: colors.mutedForeground }]}>
-                No WATERTANK devices found. Make sure your device is powered on and nearby.
+                {t('noDeviceFound')}
               </Text>
               <TouchableOpacity
                 onPress={() => setScanKey((k) => k + 1)}
                 style={[styles.retryBtn, { backgroundColor: colors.primary }]}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.retryText, { color: colors.primaryForeground }]}>Retry</Text>
+                <Text style={[styles.retryText, { color: colors.primaryForeground }]}>{t('retry')}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -118,7 +143,7 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
           ))}
 
           <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-            <Text style={[styles.cancelText, { color: colors.mutedForeground }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: colors.mutedForeground }]}>{t('cancel')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

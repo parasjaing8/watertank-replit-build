@@ -1,8 +1,8 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-23_
+_Last updated: 2026-05-24_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v18-release.apk` (pending)
+`1.0.0` (package.json) | Latest APK: `watertank-v19-release.apk` (audit P1 fixes — all 44 findings resolved)
 
 ## Build Status
 - Android release APK: `android/app/build/outputs/apk/release/app-release.apk`

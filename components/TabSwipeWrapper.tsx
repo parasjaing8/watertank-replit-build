@@ -13,7 +13,7 @@ interface Props {
 
 function navigate(idx: number) {
   const route = TAB_ROUTES[idx];
-  if (route) router.replace(route as any);
+  if (route) router.replace(route as Parameters<typeof router.replace>[0]);
 }
 
 export function TabSwipeWrapper({ index, children }: Props) {

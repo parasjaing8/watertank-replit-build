@@ -261,10 +261,10 @@ export default function SettingsScreen() {
             },
           ]}
         >
-          {(["black", "blue"] as const).map((variant) => {
+          {(["blue", "black"] as const).map((variant) => {
             const labels  = { black: t("tankColorBlack"), blue: t("tankColorBlue") };
             const swatches = { black: "#1B2B3C", blue: "#2563A8" };
-            const active   = (settings.tankColor ?? "black") === variant;
+            const active   = (settings.tankColor ?? "blue") === variant;
             return (
               <TouchableOpacity
                 key={variant}
