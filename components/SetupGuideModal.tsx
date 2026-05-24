@@ -29,7 +29,7 @@ const PAGES: Array<{
   {
     titleKey: 'setupPage1',
     source: require('@/assets/images/setup-inbox.png'),
-    imgHeight: IMG_W * 1.0,    // 1254×1254 square
+    imgHeight: IMG_W * 1.777,  // 941×1672 portrait
   },
   {
     titleKey: 'setupPage2',
