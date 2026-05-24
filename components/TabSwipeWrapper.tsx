@@ -18,13 +18,13 @@ function navigate(idx: number) {
 
 export function TabSwipeWrapper({ index, children }: Props) {
   const pan = Gesture.Pan()
-    .activeOffsetX([-20, 20])
-    .failOffsetY([-15, 15])
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-30, 30])
     .onEnd((e) => {
       const dx = e.translationX;
       const vx = e.velocityX;
-      const goLeft = dx < -80 || vx < -400;
-      const goRight = dx > 80 || vx > 400;
+      const goLeft = dx < -60 || vx < -300;
+      const goRight = dx > 60 || vx > 300;
       if (goLeft && index < 2) runOnJS(navigate)(index + 1);
       else if (goRight && index > 0) runOnJS(navigate)(index - 1);
     });
