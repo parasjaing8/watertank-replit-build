@@ -23,7 +23,8 @@ type OtaState =
   | "rebooting"
   | "confirming"
   | "done"
-  | "error";
+  | "error"
+  | "cancelled";
 
 export default function FirmwareUpdateScreen() {
   const colors = useColors();
@@ -55,6 +56,12 @@ export default function FirmwareUpdateScreen() {
     }, 1500);
     return () => clearTimeout(t);
   }, [otaState, deviceState.connected, deviceState.firmwareVersion, targetVersion]);
+
+  // Auto-clear cancelled state when board power-cycles (disconnects → idle for retry)
+  useEffect(() => {
+    if (otaState !== "cancelled") return;
+    if (!deviceState.connected) setOtaState("idle");
+  }, [otaState, deviceState.connected]);
 
   const startUpdate = useCallback(async () => {
     if (!firmwareManifest) return;
@@ -93,9 +100,11 @@ export default function FirmwareUpdateScreen() {
   }, [firmwareManifest]);
 
   const cancel = useCallback(() => {
+    const wasTransferring = otaState === "transferring";
     abortRef.current?.abort();
-    setOtaState("idle");
-  }, []);
+    // If transfer had started the board is mid-OTA and needs a power-cycle before retry
+    setOtaState(wasTransferring ? "cancelled" : "idle");
+  }, [otaState]);
 
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
@@ -191,6 +200,22 @@ export default function FirmwareUpdateScreen() {
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center" }]}>
               Device is now running firmware v{targetVersion}.
+            </Text>
+          </View>
+        )}
+
+        {/* Cancelled mid-transfer */}
+        {otaState === "cancelled" && (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Feather name="alert-triangle" size={40} color="#f59e0b" style={{ alignSelf: "center" }} />
+            <Text style={[styles.statusTitle, { color: colors.foreground, textAlign: "center", marginTop: 12 }]}>
+              Transfer cancelled
+            </Text>
+            <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center" }]}>
+              The device is mid-flash. Power-cycle the device before trying again — it will roll back to the previous firmware automatically.
+            </Text>
+            <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center", marginTop: 4 }]}>
+              Waiting for device to disconnect…
             </Text>
           </View>
         )}
