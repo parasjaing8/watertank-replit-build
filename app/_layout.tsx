@@ -27,7 +27,7 @@ import { DeviceProvider } from '@/context/DeviceContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import * as NotificationService from '@/services/NotificationService';
-import { init as initCrashReport } from '@/services/CrashReportService';
+import { init as initCrashReport, logAppError } from '@/services/CrashReportService';
 
 SplashScreen.preventAutoHideAsync();
 // Init before anything else so the global error handler is in place
@@ -101,7 +101,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
+      <ErrorBoundary onError={logAppError}>
         <LanguageProvider>
           <ThemeProvider>
             <DeviceProvider>

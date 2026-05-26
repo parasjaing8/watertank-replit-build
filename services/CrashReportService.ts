@@ -82,6 +82,16 @@ export function logOtaError(msg: string, ctx?: Record<string, unknown>): void {
   append("error", "ota", msg, ctx);
 }
 
+// ── App / render errors ───────────────────────────────────────────────────────
+
+/** Call from ErrorBoundary.onError to log React render crashes. */
+export function logAppError(error: Error, componentStack: string): void {
+  append("error", "app", error?.message ?? "render error", {
+    stack: error?.stack?.slice(0, 600),
+    componentStack: componentStack?.slice(0, 400),
+  });
+}
+
 // ── Board reset reason ────────────────────────────────────────────────────────
 
 const RESET_NAMES: Record<number, string> = {
