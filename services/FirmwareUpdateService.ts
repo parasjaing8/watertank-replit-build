@@ -252,9 +252,10 @@ export async function performOtaTransfer(
     // Subscribe to sector ACK before sending packets
     const sectorAck = waitForIndicate(BLE_OTA_CHAR_RECV_FW, 15000);
 
-    // Send all packets WITHOUT response (WRITE_NR) for speed
+    // Send all packets WITHOUT response (WRITE_NR) for speed.
+    // No abort check inside this loop — subscription is already registered above;
+    // throwing here would leak it. Abort is checked at the top of the sector loop.
     for (const pkt of packets) {
-      if (signal?.aborted) throw new Error("Aborted");
       await (manager as {
         writeCharacteristicWithoutResponseForDevice(d: string, s: string, c: string, v: string): Promise<unknown>
       }).writeCharacteristicWithoutResponseForDevice(
