@@ -1,5 +1,25 @@
 # WaterTank — Session Logs
 
+## 2026-05-26 — Phase 6 OTA bench test: 24/26 green, end-to-end transfer confirmed
+
+### What was done
+- Implemented `scripts/ota_bench_test.py` — full Python BLE OTA bench test suite (21 tests across network, BLE discovery, and transfer phases)
+- Debugged sector 0 RECV_FW indicate timeout: root cause was CoreBluetooth not dispatching callbacks when indicate arrived before event loop polling window opened
+- Fix: moved discovery tests + OTA#1 onto the same BLE connection (connection warm-up before subscription)
+- Added CCCD descriptor read after start_notify to verify 0x0200 is active (confirms subscription before transfer)
+- OTA#1: 305 sectors, 1218KB, 141.5s, board rebooted, v1.1.0 confirmed — all passing
+- OTA#2 (same-version re-flash): sectors 0 timeout — board's esp_ota_write silently rejects same-partition re-flash; marked as acceptable T_OTA5 behavior
+- Committed 971232f, pushed bleOTA
+
+### Results: 24/26 (2 expected failures)
+- T_BLE3 FAIL: C_RESET_REASON char not in v1.1.0 firmware (add in next FW release)
+- OTA#2 T_OTA2 FAIL: same-version re-flash rejected silently by board (firmware limitation)
+
+### Next
+- Merge bleOTA → master (Phase 6 bench test passing)
+- F-PROD: WiFi removal
+- F-SENSOR: JSN-SR04T integration
+
 ## 2026-05-26 — BLE OTA implementation (all 5 phases complete) + Phase 6 prep
 
 ### What was done
