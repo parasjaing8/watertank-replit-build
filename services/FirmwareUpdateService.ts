@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+import Constants from "expo-constants";
 import {
   BLE_OTA_CHAR_COMMAND,
   BLE_OTA_CHAR_RECV_FW,
@@ -21,12 +22,19 @@ export interface FirmwareManifest {
 
 // ── Semver ────────────────────────────────────────────────────────────────────
 
+// Parses "v1.2.3", "1.2.3-rc1", "1.2.3b" → [1, 2, 3]. NaN-safe (treats bad segment as 0).
+function parseSemver(v: string): [number, number, number] {
+  const clean = v.replace(/^v/, "").split("-")[0]; // strip leading v and pre-release suffix
+  const parts = clean.split(".").map((s) => { const n = parseInt(s, 10); return isNaN(n) ? 0 : n; });
+  return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0];
+}
+
 function semverGt(a: string, b: string): boolean {
-  const pa = a.split(".").map(Number);
-  const pb = b.split(".").map(Number);
+  const pa = parseSemver(a);
+  const pb = parseSemver(b);
   for (let i = 0; i < 3; i++) {
-    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return true;
-    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return false;
+    if (pa[i] > pb[i]) return true;
+    if (pa[i] < pb[i]) return false;
   }
   return false;
 }
@@ -56,6 +64,14 @@ export async function checkFirmwareUpdate(
 
   const manifest = (await manifestRes.json()) as FirmwareManifest;
   if (!semverGt(manifest.version, currentVersion)) return null;
+
+  // Refuse to offer a firmware that requires a newer app version — prevents
+  // flashing an incompatible build onto a device 400km from the developer.
+  const appVersion = Constants.expoConfig?.version ?? "0.0.0";
+  if (manifest.min_app_version && semverGt(manifest.min_app_version, appVersion)) {
+    logOtaError("app too old for firmware", { min_app_version: manifest.min_app_version, appVersion });
+    return null;
+  }
 
   return manifest;
 }
