@@ -38,22 +38,51 @@ export default function FirmwareUpdateScreen() {
 
   const abortRef = useRef<AbortController | null>(null);
 
+  // Rebooting timeout — if board never reconnects within 60s, surface an error
+  useEffect(() => {
+    if (otaState !== "rebooting") return;
+    const t = setTimeout(() => {
+      setErrorMsg("Device did not reconnect after 60 seconds. Check device power and retry.");
+      setOtaState("error");
+    }, 60000);
+    return () => clearTimeout(t);
+  }, [otaState]);
+
+  // Confirming timeout — BLEService should read firmwareVersion within a few seconds
+  useEffect(() => {
+    if (otaState !== "confirming") return;
+    const t = setTimeout(() => {
+      setErrorMsg(
+        `Version not confirmed within 30 seconds (device reports v${deviceState.firmwareVersion ?? "?"}).`,
+      );
+      setOtaState("error");
+    }, 30000);
+    return () => clearTimeout(t);
+    // intentionally no deviceState.firmwareVersion dep — fires once on entering confirming
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otaState]);
+
   // Watch for board reconnect after reboot to confirm success
   useEffect(() => {
     if (otaState !== "rebooting" && otaState !== "confirming") return;
     if (!deviceState.connected) return;
-    setOtaState("confirming");
-    // Give BLEService a moment to read the new firmware version
+
+    // Step 1: board just reconnected → enter confirming
+    if (otaState === "rebooting") { setOtaState("confirming"); return; }
+
+    // Step 2: wait for BLEService to populate firmwareVersion (it reads async after connect)
+    if (!deviceState.firmwareVersion) return;
+
     const t = setTimeout(() => {
       if (deviceState.firmwareVersion === targetVersion) {
         setOtaState("done");
       } else {
         setErrorMsg(
-          `Board reconnected but reports v${deviceState.firmwareVersion ?? "?"} instead of expected v${targetVersion}.`,
+          `Board reconnected but reports v${deviceState.firmwareVersion} instead of expected v${targetVersion}.`,
         );
         setOtaState("error");
       }
-    }, 1500);
+    }, 500);
     return () => clearTimeout(t);
   }, [otaState, deviceState.connected, deviceState.firmwareVersion, targetVersion]);
 
