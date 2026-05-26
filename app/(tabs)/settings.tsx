@@ -114,6 +114,9 @@ export default function SettingsScreen() {
     clearData,
     exportData,
     getDbInfo,
+    firmwareUpdateAvailable,
+    firmwareManifest,
+    deviceState,
   } = useDevice();
 
   const [showBleLog, setShowBleLog] = useState(false);
@@ -491,6 +494,38 @@ export default function SettingsScreen() {
           colors={colors}
         />
       </View>
+
+      {/* Device firmware */}
+      {deviceState.connected && (
+        <>
+          <SectionHeader title="DEVICE" colors={colors} />
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
+              onPress={() => router.push("/firmware-update")}
+              activeOpacity={0.7}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>Firmware Update</Text>
+                {deviceState.firmwareVersion && (
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground, fontSize: 12 }]}>
+                    Current: v{deviceState.firmwareVersion}
+                    {firmwareManifest ? `  →  v${firmwareManifest.version} available` : "  (up to date)"}
+                  </Text>
+                )}
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {firmwareUpdateAvailable && (
+                  <View style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ color: "#fff", fontSize: 11, fontWeight: "bold" }}>UPDATE</Text>
+                  </View>
+                )}
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       {/* About */}
       <SectionHeader title={t("about").toUpperCase()} colors={colors} />

@@ -16,6 +16,7 @@ import { Platform } from "react-native";
 import { Buffer } from "buffer";
 
 import {
+  BLE_CHAR_FW_VERSION,
   BLE_CHAR_LOG_CTRL,
   BLE_CHAR_LOG_DATA,
   BLE_CHAR_STATE,
@@ -237,6 +238,9 @@ export class BLEService implements IDeviceService {
         discoverAllServicesAndCharacteristics(): Promise<unknown>;
         requestMTU(size: number): Promise<unknown>;
         onDisconnected(cb: (err: unknown, d: unknown) => void): { remove(): void };
+        readCharacteristicForService(
+          service: string, char: string,
+        ): Promise<{ value?: string }>;
         writeCharacteristicWithResponseForService(
           service: string, char: string, base64: string,
         ): Promise<unknown>;
@@ -255,6 +259,15 @@ export class BLEService implements IDeviceService {
         await connected.requestMTU(BLE_MTU_SIZE);
       } catch {}
 
+      try {
+        const fwChar = await connected.readCharacteristicForService(BLE_SERVICE_UUID, BLE_CHAR_FW_VERSION);
+        if (fwChar?.value) {
+          const version = Buffer.from(fwChar.value, "base64").toString("utf8").trim();
+          this.state = { ...this.state, firmwareVersion: version };
+          this.log(`Firmware version: ${version}`);
+        }
+      } catch {}
+
       const ts = Math.floor(Date.now() / 1000);
       const buf = Buffer.alloc(4);
       buf.writeUInt32LE(ts, 0);
@@ -270,7 +283,7 @@ export class BLEService implements IDeviceService {
         this.device = null;
         this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
         this.subscriptions = [];
-        this.emit({ ...this.state, connected: false });
+        this.emit({ ...this.state, connected: false, firmwareVersion: null });
         if (this.running) this.scheduleReconnect();
       });
       this.subscriptions.push(disconnectSub);

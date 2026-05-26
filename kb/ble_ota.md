@@ -10,7 +10,7 @@ _Research date: 2026-05-26 | Last updated: 2026-05-26 | Author: Claude Sonnet 4.
 |---|---|---|
 | 1 | Partition table verification | DONE — default scheme already has OTA A/B slots (1.25MB each) |
 | 2 | Firmware OTA service + C_FWVER + rollback | DONE — committed c4b42b7, flashed, 43/43 tests passing |
-| 3 | GitHub Releases + release script | PENDING |
+| 3 | GitHub Releases + release script | DONE — fw-v1.0.0 live, manifest verified |
 | 4 | App version check (BLEService + DeviceContext + Settings badge) | PENDING |
 | 5 | App OTA transfer screen (FirmwareUpdateService + UI) | PENDING |
 | 6 | End-to-end bench validation | PENDING |
@@ -21,6 +21,17 @@ _Research date: 2026-05-26 | Last updated: 2026-05-26 | Author: Claude Sonnet 4.
 - OTA A/B slots already present — NO custom partitions.csv needed
 - `min_spiffs` scheme (1.9MB/slot) available if needed but requires serial flash to change
 - Current firmware at 94% of 1.25MB with WiFi+NimBLE — tight but workable in dev
+
+### Phase 3 Findings (2026-05-26)
+- Release script: `scripts/release_firmware.sh <version> <changelog>` — compile + SHA256 + manifest + gh release create
+- Tag format: `fw-vX.Y.Z` (e.g. `fw-v1.0.0`)
+- Script guards: FW_VERSION in .ino must match arg; binary must fit 1.25MB; tag must not already exist
+- manifest.json fields: version, url (direct download), size, sha256, changelog, min_app_version
+- GitHub API for version check: `GET /repos/parasjaing8/watertank-replit-build/releases/latest`
+  - Filter: only treat as firmware release if `tag_name` starts with `fw-v`
+  - manifest.json URL: `browser_download_url` of asset named `manifest.json`
+- First release `fw-v1.0.0` live and verified
+- BLE_CHAR_FW_VERSION added to constants/ble.ts
 
 ### Phase 2 Findings (2026-05-26)
 - NimBLEOta installed via arduino-cli `--git-url` — lives at `~/Documents/Arduino/libraries/NimBLEOta/`
