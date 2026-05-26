@@ -1,5 +1,25 @@
 # WaterTank — Session Logs
 
+## 2026-05-26 — BLE OTA implementation (all 5 phases complete) + Phase 6 prep
+
+### What was done
+- Implemented BLE OTA in 5 phases on `bleOTA` branch (from previous session + this session)
+- Phase 5 (OTA transfer screen): `firmware-update.tsx`, expanded `FirmwareUpdateService.ts` with full NimBLEOta protocol (CRC16, COMMAND start packet, sector chunking, ACK handling, post-reboot confirmation)
+- Phase 6 prep: bumped FW_VERSION → 1.1.0, compiled + published fw-v1.1.0 to GitHub Releases, built APK v25 (101MB)
+- Updated `kb/ble_ota.md` with Phase 6 bench test 7-step checklist
+
+### Key facts
+- fw-v1.0.0: board is running this (flashed via OTA previously)
+- fw-v1.1.0: published to GitHub Releases, SHA256 `f3c5860b...`, ready for OTA push from app
+- APK v25: `android/app/build/outputs/apk/release/app-release.apk`
+- bleOTA branch: 6 commits ahead of master, all phases 1-5 committed, Phase 6 pending physical test
+
+### Next
+- Install APK v25 on Android, connect to board, run 7-step Phase 6 bench test
+- After Phase 6 passes: merge bleOTA → master, commit protocol, then F-PROD (WiFi removal)
+
+---
+
 ## 2026-05-26 — Autonomous BLE backend testing session (41 tests, all green)
 
 ### What was done
