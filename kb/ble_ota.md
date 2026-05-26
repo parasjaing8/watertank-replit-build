@@ -13,7 +13,7 @@ _Research date: 2026-05-26 | Last updated: 2026-05-26 | Author: Claude Sonnet 4.
 | 3 | GitHub Releases + release script | DONE — fw-v1.0.0 live, manifest verified |
 | 4 | App version check (BLEService + DeviceContext + Settings badge) | DONE — committed c1f4ec1 |
 | 5 | App OTA transfer screen (FirmwareUpdateService + UI) | DONE — committed 2fb013e |
-| 6 | End-to-end bench validation | PENDING — requires APK build + physical test |
+| 6 | End-to-end bench validation | IN PROGRESS — APK built (v25), fw-v1.1.0 live on GitHub; physical test pending |
 
 ### Phase 1 Findings (2026-05-26)
 - Board uses `esp32:esp32:esp32wrover` with `default` partition scheme
@@ -32,6 +32,26 @@ _Research date: 2026-05-26 | Last updated: 2026-05-26 | Author: Claude Sonnet 4.
   - manifest.json URL: `browser_download_url` of asset named `manifest.json`
 - First release `fw-v1.0.0` live and verified
 - BLE_CHAR_FW_VERSION added to constants/ble.ts
+
+### Phase 6 Prep (2026-05-26) — awaiting physical test
+- fw-v1.1.0 compiled (1,248,096 bytes, 95%) and published to GitHub Releases
+  - SHA256: `f3c5860b0463dc38a98cdcff63097d7b57f0b9924f5ff9751caeb403aa4a3c55`
+  - URL: https://github.com/parasjaing8/watertank-replit-build/releases/tag/fw-v1.1.0
+- APK v25 built: `android/app/build/outputs/apk/release/app-release.apk` (101MB)
+
+**Physical test checklist (must pass before Samdoli):**
+1. Board still running v1.0.0 (flashed via espota.py earlier)
+2. Install APK v25 on Android device
+3. Connect → Settings → Firmware Update → confirm badge shows "v1.1.0 available"
+4. Tap Install → watch transfer (30–45s) → confirm "Update complete" + version reads 1.1.0
+5. Mid-transfer drop: restart transfer, kill app at ~50%, reopen → confirm resumes where it left off
+6. Bad firmware rollback: create intentionally bad build (change esp_restart to infinite loop), OTA it, confirm board auto-reverts to v1.1.0 within 60s watchdog window
+7. Re-OTA after rollback: do step 3-4 again — must succeed
+
+**Board setup for test:**
+- Board must be on same WiFi as Mac (for espota.py step if reflash to v1.0.0 needed)
+- Board IP: 192.168.0.126 (verify before test — may have changed)
+- To reflash to v1.0.0: `python scripts/espota.py -i 192.168.0.126 -p 3232 -f firmware/WaterTank/build/esp32.esp32.esp32wrover/WaterTank.ino.bin` (need to compile v1.0.0 first or use the github release bin)
 
 ### Phase 2 Findings (2026-05-26)
 - NimBLEOta installed via arduino-cli `--git-url` — lives at `~/Documents/Arduino/libraries/NimBLEOta/`
