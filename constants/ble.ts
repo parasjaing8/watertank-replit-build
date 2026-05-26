@@ -9,6 +9,7 @@ export const BLE_CHAR_TANK = "beb5483f-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_LOG_CTRL = "beb54840-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_LOG_DATA = "beb54841-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_TIME_SYNC = "beb54842-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_FW_VERSION = "beb54843-36e1-4688-b7f5-ea07361b26a8";
 
 export const BLE_LOG_START = 0x01;
 export const BLE_LOG_ACK = 0x02;
