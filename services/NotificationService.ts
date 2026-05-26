@@ -39,6 +39,14 @@ export async function requestPermissions(): Promise<boolean> {
 }
 
 async function notify(title: string, body: string) {
+  if (!permissionGranted) {
+    // Re-check OS status — handles cold-start race where events fire before
+    // requestPermissions() resolves but permission was already granted.
+    try {
+      const s = await Notifications.getPermissionsAsync();
+      permissionGranted = s.status === "granted";
+    } catch { return; }
+  }
   if (!permissionGranted) return;
   try {
     await Notifications.scheduleNotificationAsync({
