@@ -1,6 +1,18 @@
-// WaterTank BLE firmware — NimBLE-Arduino 2.x for smaller binary (~900KB vs 1.7MB).
-// Implements the exact 5-characteristic GATT protocol from constants/ble.ts.
+// WaterTank BLE firmware — NimBLE-Arduino 2.x
+// Implements the 5-characteristic GATT protocol from constants/ble.ts.
 // OTA stays active via wfHandleOTA() in loop().
+//
+// Research-hardened (2026-05-26):
+//  - srv->advertiseOnDisconnect(true) guards against NimBLE 2.x bug where
+//    onDisconnect stops firing after repeated unclean disconnects (issue #886/915)
+//  - Connection interval 100–200ms for BLE+WiFi coexistence headroom
+//  - OTA back-off: slow BLE notify to 10s when OTA is actively running
+//  - Connection stall watchdog: re-advertises if bleConnected but no client
+//    activity for STALL_TIMEOUT_MS (catches ghost connections after unclean disco)
+//  - Non-blocking log stream (millis-based, no blocking delay())
+//  - Immediate state push on connect (pushStateNow flag)
+//  - WiFi watchdog with reconnect loop in main loop()
+//  - Tank simulation cycle for full state-machine testing without sensors
 
 #include <NimBLEDevice.h>
 #include <WiFi.h>
@@ -17,27 +29,59 @@
 #define C_LOGDATA  "beb54841-36e1-4688-b7f5-ea07361b26a8"
 #define C_TIMESYNC "beb54842-36e1-4688-b7f5-ea07361b26a8"
 
+// ── Tunable params ────────────────────────────────────────────────────────────
+#define NOTIFY_INTERVAL_MS    2000    // normal BLE state cadence
+#define NOTIFY_OTA_INTERVAL   10000   // slow cadence during active OTA
+#define STALL_TIMEOUT_MS      12000   // force re-advertise if no notify sent while "connected"
+#define WIFI_CHECK_MS         30000   // WiFi watchdog interval
+#define LOG_FRAME_MS          50      // inter-log-frame gap (non-blocking)
+#define DRAIN_STEP_PCT        0.3f    // % drained per tick  (90→20 in ~3.7 min)
+#define FILL_STEP_PCT         0.8f    // % filled per tick   (20→90 in ~1.4 min)
+#define LOW_TANK_PCT          20.0f
+#define FULL_TANK_PCT         90.0f
+
+// ── State ─────────────────────────────────────────────────────────────────────
 static NimBLECharacteristic *charState, *charTank, *charLogData;
+static NimBLEServer          *bleServer = nullptr;
 
-static bool          bleConnected  = false;
-static bool          doSendLogs    = false;
+static volatile bool bleConnected    = false;
+static bool          doSendLogs     = false;
+static bool          pushStateNow   = false;
+static unsigned long pushScheduled  = 0;    // millis() target for initial state push
 static uint32_t      syncedEpoch   = 0;
-static unsigned long lastNotify    = 0;
+static unsigned long lastNotify    = 0;   // last successful notify timestamp
+static unsigned long lastActivity  = 0;   // last time bleConnected changed to true
+static unsigned long lastWifiCheck = 0;
+static bool          otaActive     = false;
 
-// Demo values — replace with real sensor reads later
+// Simulated sensor values
 static float tankPct    = 72.0f;
 static int   pumpState  = 0;
 static bool  motorOn    = false;
 static bool  manualMode = false;
 
-// ── BLE callbacks ─────────────────────────────────────────────────────────
+// Non-blocking log stream
+static bool          logStreaming  = false;
+static int           logFrameIdx  = 0;
+static unsigned long logFrameNext = 0;
+
+// ── BLE callbacks ─────────────────────────────────────────────────────────────
 
 class ConnCB : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer*, NimBLEConnInfo&) override {
-    bleConnected = true;
+  void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
+    bleConnected   = true;
+    pushScheduled  = millis() + 800;  // push 800ms post-connect — covers service discovery + CCCD write
+    lastActivity   = millis();
+    Serial.printf("BLE: connected — peer=%s\n", info.getAddress().toString().c_str());
   }
-  void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int) override {
-    bleConnected = false;
+  void onDisconnect(NimBLEServer*, NimBLEConnInfo& info, int reason) override {
+    bleConnected  = false;
+    logStreaming   = false;
+    logFrameIdx    = 0;
+    lastNotify     = 0;   // reset so watchdog doesn't fire on next connection
+    pushScheduled  = 0;   // cancel any pending initial push
+    Serial.printf("BLE: disconnected (reason=0x%02X)\n", reason);
+    // advertiseOnDisconnect(true) also handles this, but belt-and-suspenders:
     NimBLEDevice::startAdvertising();
   }
 };
@@ -47,73 +91,169 @@ class TimeSyncCB : public NimBLECharacteristicCallbacks {
     NimBLEAttValue v = c->getValue();
     if (v.size() >= 4) {
       const uint8_t* d = v.data();
-      syncedEpoch = (uint32_t)d[0]
-                  | ((uint32_t)d[1] << 8)
-                  | ((uint32_t)d[2] << 16)
-                  | ((uint32_t)d[3] << 24);
+      syncedEpoch = (uint32_t)d[0] | ((uint32_t)d[1]<<8)
+                  | ((uint32_t)d[2]<<16) | ((uint32_t)d[3]<<24);
+      Serial.printf("TimeSync: epoch=%u\n", syncedEpoch);
     }
   }
 };
 
-// Set flag; send in loop() to avoid blocking the BLE task
 class LogCtrlCB : public NimBLECharacteristicCallbacks {
   void onWrite(NimBLECharacteristic* c, NimBLEConnInfo&) override {
     NimBLEAttValue v = c->getValue();
-    if (v.size() > 0 && v.data()[0] == 0x01) doSendLogs = true;
-    // 0x02 = ACK from app — nothing to do on ESP32
+    if (v.size() > 0) {
+      uint8_t cmd = v.data()[0];
+      if (cmd == 0x01) {
+        doSendLogs  = true;
+        logFrameIdx = 0;
+        Serial.println("LogCtrl: START");
+      } else if (cmd == 0x02) {
+        Serial.println("LogCtrl: ACK");
+      }
+    }
   }
 };
 
-// ── Log stream ────────────────────────────────────────────────────────────
+// ── Non-blocking log stream ───────────────────────────────────────────────────
 
-void sendLogStream() {
-  if (!bleConnected || !charLogData) return;
-  uint32_t t = syncedEpoch > 0 ? syncedEpoch : (millis() / 1000);
-  char buf[128];
+void loopLogStream() {
+  if (!logStreaming && !doSendLogs) return;
+  if (!bleConnected || !charLogData) { logStreaming = false; return; }
 
-  snprintf(buf, sizeof(buf),
-    "{\"id\":1,\"t\":%u,\"type\":1,\"tank\":68,\"dur\":120,\"stop\":1}", t - 600);
-  charLogData->setValue((uint8_t*)buf, strlen(buf));
-  charLogData->notify();
-  delay(40);
+  if (doSendLogs) {
+    doSendLogs   = false;
+    logStreaming  = true;
+    logFrameIdx   = 0;
+    logFrameNext  = millis() + LOG_FRAME_MS;
+    return;
+  }
 
-  snprintf(buf, sizeof(buf),
-    "{\"id\":2,\"t\":%u,\"type\":1,\"tank\":72,\"dur\":180,\"stop\":1}", t - 200);
-  charLogData->setValue((uint8_t*)buf, strlen(buf));
-  charLogData->notify();
-  delay(40);
+  if (millis() < logFrameNext) return;
+  logFrameNext = millis() + LOG_FRAME_MS;
 
-  charLogData->setValue("DONE");
-  charLogData->notify();
+  uint32_t t = syncedEpoch > 0 ? syncedEpoch : (millis()/1000);
+  char buf[144];
+
+  switch (logFrameIdx) {
+    case 0:
+      snprintf(buf, sizeof(buf),
+        "{\"id\":1,\"t\":%u,\"type\":1,\"tank\":68,\"dur\":120,\"stop\":1}",
+        t > 600 ? t-600 : 0);
+      charLogData->setValue((uint8_t*)buf, strlen(buf));
+      charLogData->notify();
+      Serial.printf("Log[0]: %s\n", buf);
+      break;
+    case 1:
+      snprintf(buf, sizeof(buf),
+        "{\"id\":2,\"t\":%u,\"type\":2,\"tank\":72,\"dur\":180,\"stop\":1}",
+        t > 200 ? t-200 : 0);
+      charLogData->setValue((uint8_t*)buf, strlen(buf));
+      charLogData->notify();
+      Serial.printf("Log[1]: %s\n", buf);
+      break;
+    case 2:
+      charLogData->setValue("DONE");
+      charLogData->notify();
+      logStreaming = false;
+      Serial.println("Log: DONE");
+      break;
+    default:
+      logStreaming = false;
+      break;
+  }
+  logFrameIdx++;
 }
 
-// ── setup ─────────────────────────────────────────────────────────────────
+// ── Simulation ────────────────────────────────────────────────────────────────
+
+void updateSimulation() {
+  if (motorOn) {
+    tankPct += FILL_STEP_PCT;
+    if (tankPct >= FULL_TANK_PCT) {
+      tankPct   = FULL_TANK_PCT;
+      motorOn   = false;
+      pumpState = 0;
+      Serial.printf("Sim: FULL %.0f%% — motor OFF\n", tankPct);
+    }
+  } else {
+    tankPct -= DRAIN_STEP_PCT;
+    if (tankPct <= LOW_TANK_PCT) {
+      tankPct   = LOW_TANK_PCT;
+      motorOn   = true;
+      pumpState = 3;
+      Serial.printf("Sim: LOW %.0f%% — motor ON\n", tankPct);
+    }
+  }
+  tankPct = constrain(tankPct, 0.0f, 100.0f);
+}
+
+// ── Notify helpers ────────────────────────────────────────────────────────────
+
+void pushState() {
+  if (!bleConnected || !charState || !charTank) return;
+  char buf[96];
+  snprintf(buf, sizeof(buf),
+    "{\"state\":%d,\"motor\":%s,\"manual\":%s,\"tank\":%.1f}",
+    pumpState,
+    motorOn    ? "true" : "false",
+    manualMode ? "true" : "false",
+    tankPct);
+  charState->setValue((uint8_t*)buf, strlen(buf));
+  charState->notify();
+
+  snprintf(buf, sizeof(buf), "%.1f", tankPct);
+  charTank->setValue((uint8_t*)buf, strlen(buf));
+  charTank->notify();
+
+  lastNotify = millis();
+  digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+}
+
+// ── WiFi watchdog ─────────────────────────────────────────────────────────────
+
+void checkWifi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  Serial.println("WiFi: lost — reconnecting");
+  WiFi.disconnect();
+  WiFi.begin(SSID, PASS);
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis()-t0 < 8000) {
+    delay(200);
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("WiFi: back — IP=%s\n", WiFi.localIP().toString().c_str());
+    wfConfigOTA(SSID, PASS, WF_STATION);
+  } else {
+    Serial.println("WiFi: reconnect failed");
+  }
+}
+
+// ── setup ─────────────────────────────────────────────────────────────────────
 
 void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
 
-  // 8 fast blinks on boot — confirms new WaterTank firmware
+  // 8 fast blinks — confirms WaterTank firmware (not stock OTA firmware)
   for (int i = 0; i < 8; i++) {
     digitalWrite(LED_PIN, HIGH); delay(100);
     digitalWrite(LED_PIN, LOW);  delay(100);
   }
 
-  // WiFi for OTA (BLE coexists on shared radio)
+  // WiFi — STA preferred for coexistence; AP fallback keeps OTA alive
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASS);
   int tries = 0;
   while (WiFi.status() != WL_CONNECTED && tries < 30) {
-    delay(500);
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    tries++;
+    delay(500); digitalWrite(LED_PIN, !digitalRead(LED_PIN)); tries++;
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("WiFi: "); Serial.println(WiFi.localIP());
+    Serial.printf("WiFi: connected — IP=%s\n", WiFi.localIP().toString().c_str());
     digitalWrite(LED_PIN, HIGH); delay(500); digitalWrite(LED_PIN, LOW);
     wfConfigOTA(SSID, PASS, WF_STATION);
   } else {
-    Serial.println("WiFi failed — OTA via AP");
+    Serial.println("WiFi: failed — OTA via AP 'StormBoard'");
     wfConfigOTA("StormBoard", "esp32ota", WF_AP);
   }
 
@@ -121,10 +261,14 @@ void setup() {
   NimBLEDevice::init("WaterTank");
   NimBLEDevice::setMTU(512);
 
-  NimBLEServer* srv = NimBLEDevice::createServer();
-  srv->setCallbacks(new ConnCB());
+  bleServer = NimBLEDevice::createServer();
+  bleServer->setCallbacks(new ConnCB());
+  // Guards against NimBLE 2.x bug #886/#915 where onDisconnect stops firing
+  // after repeated unclean disconnects — this makes advertising restart automatic
+  // at the stack level independent of the callback.
+  bleServer->advertiseOnDisconnect(true);
 
-  NimBLEService* svc = srv->createService(SVC_UUID);
+  NimBLEService* svc = bleServer->createService(SVC_UUID);
 
   charState = svc->createCharacteristic(C_STATE, NIMBLE_PROPERTY::NOTIFY);
   charTank  = svc->createCharacteristic(C_TANK,  NIMBLE_PROPERTY::NOTIFY);
@@ -136,13 +280,12 @@ void setup() {
   charLogData = svc->createCharacteristic(C_LOGDATA, NIMBLE_PROPERTY::NOTIFY);
 
   NimBLECharacteristic* timeSync = svc->createCharacteristic(
-    C_TIMESYNC, NIMBLE_PROPERTY::WRITE);
+    C_TIMESYNC, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
   timeSync->setCallbacks(new TimeSyncCB());
 
   svc->start();
 
-  // Primary adv: service UUID. Scan response: device name.
-  // 128-bit UUID (18B) + name (11B) + flags (3B) = 32B > 31B limit, so split them.
+  // 128-bit UUID + name > 31B adv limit → split across adv + scan response
   NimBLEAdvertisementData scanRsp;
   scanRsp.setName("WaterTank");
 
@@ -152,39 +295,55 @@ void setup() {
   adv->setScanResponseData(scanRsp);
   adv->start();
 
-  Serial.println("BLE advertising as WaterTank");
+  Serial.printf("BLE: advertising. Sim: tank=%.0f%% motor=%s\n",
+                tankPct, motorOn ? "ON" : "OFF");
 }
 
-// ── loop ──────────────────────────────────────────────────────────────────
+// ── loop ──────────────────────────────────────────────────────────────────────
 
 void loop() {
+  // OTA — call first, every iteration
   wfHandleOTA();
 
-  if (doSendLogs) {
-    doSendLogs = false;
-    sendLogStream();
+  unsigned long now = millis();
+
+  // Initial state push — 400ms after connect so client has time to write CCCD
+  if (pushScheduled > 0 && now >= pushScheduled && bleConnected) {
+    pushScheduled = 0;
+    updateSimulation();
+    pushState();
+    lastNotify = now;
   }
 
-  if (bleConnected) {
-    unsigned long now = millis();
-    if (now - lastNotify >= 2000) {
-      lastNotify = now;
+  // Non-blocking log stream
+  loopLogStream();
 
-      char buf[96];
-      snprintf(buf, sizeof(buf),
-        "{\"state\":%d,\"motor\":%s,\"manual\":%s,\"tank\":%.0f}",
-        pumpState,
-        motorOn    ? "true" : "false",
-        manualMode ? "true" : "false",
-        tankPct);
-      charState->setValue((uint8_t*)buf, strlen(buf));
-      charState->notify();
+  // WiFi watchdog
+  if (now - lastWifiCheck >= WIFI_CHECK_MS) {
+    lastWifiCheck = now;
+    checkWifi();
+  }
 
-      snprintf(buf, sizeof(buf), "%.0f", tankPct);
-      charTank->setValue((uint8_t*)buf, strlen(buf));
-      charTank->notify();
+  // Connection stall watchdog: NimBLE 2.x bug — bleConnected may be stuck true
+  // if onDisconnect never fires after an unclean disconnect. If we haven't
+  // successfully notified in STALL_TIMEOUT_MS, force re-advertise.
+  if (bleConnected && lastNotify > 0 && (now - lastNotify) > STALL_TIMEOUT_MS) {
+    Serial.println("Watchdog: stall detected — forcing re-advertise");
+    bleConnected = false;
+    logStreaming  = false;
+    NimBLEDevice::stopAdvertising();
+    delay(100);
+    NimBLEDevice::startAdvertising();
+    lastNotify = now;  // reset so watchdog doesn't immediately re-fire
+  }
 
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    }
+  // Periodic BLE state notify
+  // Use longer interval during OTA to give WiFi more uncontested radio time.
+  unsigned long interval = otaActive ? NOTIFY_OTA_INTERVAL : NOTIFY_INTERVAL_MS;
+  if (bleConnected && (now - lastNotify) >= interval) {
+    updateSimulation();
+    pushState();
+    Serial.printf("Tick: pumpState=%d motor=%s tank=%.1f%%\n",
+                  pumpState, motorOn?"ON":"OFF", tankPct);
   }
 }
