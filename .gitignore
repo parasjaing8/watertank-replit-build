@@ -44,3 +44,6 @@ yarn-error.*
 # Build outputs
 *.apk
 *.aab
+
+# Arduino/firmware build artifacts
+firmware/WaterTank/build/
