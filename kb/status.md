@@ -67,6 +67,27 @@ All 44 findings resolved as of 2026-05-24.
 - F5: BlePairingSheet orphaned connection (architectural, low priority — only affects onboarding re-pair edge case)
 - Sensor integration: `USE_SENSOR=0` stub for JSN-SR04T not yet added (simulation only)
 
+## Future Plans (post-v1)
+
+### F-OTA: BLE Firmware Update (phone → board over Bluetooth)
+**Why:** Production units are WiFi-less. Physical access for firmware updates is impractical at scale.
+**How:**
+- Firmware: custom GATT OTA service using `esp_ota_begin/write/end/set_boot_partition` + `esp_restart()`
+- App: file picker → chunk .bin into 512B MTU chunks → sequential BLE writes → progress UI
+- Reference impl: `fbiego/esp32-ble-ota` (GitHub) — Arduino + Android
+- Transfer time: ~40–50s for 900KB binary over BLE
+**Prerequisite:** WiFi removal from production firmware must come first.
+**Priority:** Post-v1, when field units are deployed at scale.
+
+### F-PROD: Production firmware variant (BLE-only, no WiFi)
+**Why:** Field units won't have WiFi; WiFi draws ~100mA extra; wfHandleOTA() is dead weight.
+**How:** `#define USE_WIFI` compile flag — strips WiFi init, checkWifi(), wfHandleOTA(), otaActive, WFStorm include.
+**Battery impact:** ~20–40mA BLE-only vs ~120–180mA WiFi+BLE. 18650 goes from ~12h to ~3–5 days.
+
+### F-SENSOR: JSN-SR04T integration
+**How:** `#define USE_SENSOR 1` compile flag switches from simulation to real ultrasonic readings.
+**Priority:** Required before any real deployment.
+
 ## Key Files — DO NOT modify with local models
 - `services/BLEService.ts` — use Claude/Sonnet only
 - `components/WaterTankWidget.tsx` — complex SVG animation, use Claude/Sonnet only
