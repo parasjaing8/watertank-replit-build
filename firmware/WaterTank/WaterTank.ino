@@ -130,7 +130,7 @@ void setup() {
   charTank  = svc->createCharacteristic(C_TANK,  NIMBLE_PROPERTY::NOTIFY);
 
   NimBLECharacteristic* logCtrl = svc->createCharacteristic(
-    C_LOGCTRL, NIMBLE_PROPERTY::WRITE);
+    C_LOGCTRL, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
   logCtrl->setCallbacks(new LogCtrlCB());
 
   charLogData = svc->createCharacteristic(C_LOGDATA, NIMBLE_PROPERTY::NOTIFY);
