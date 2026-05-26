@@ -9,7 +9,7 @@ Usage:
 
 Tests:
   T1  — BLE advertisement scan + device name
-  T2  — GATT service / characteristic discovery (all 5 chars)
+  T2  — GATT service / characteristic discovery (6 chars incl. C_FWVER) + version read
   T3  — State + Tank notifications (cadence, JSON schema, type validation)
   T4  — Time-sync write (C_TIMESYNC little-endian uint32)
   T5  — Log stream (CCCD settle, JSON frames, DONE sentinel, ACK)
@@ -39,6 +39,7 @@ C_TANK   = "beb5483f-36e1-4688-b7f5-ea07361b26a8"
 C_LOGCTL = "beb54840-36e1-4688-b7f5-ea07361b26a8"
 C_LOGDAT = "beb54841-36e1-4688-b7f5-ea07361b26a8"
 C_TSYNC  = "beb54842-36e1-4688-b7f5-ea07361b26a8"
+C_FWVER  = "beb54843-36e1-4688-b7f5-ea07361b26a8"
 
 SCAN_TIMEOUT      = 15
 NOTIFY_COLLECT    = 7
@@ -99,9 +100,18 @@ async def test_services(client: BleakClient):
         return
     for label, uuid in [("C_STATE", C_STATE), ("C_TANK", C_TANK),
                          ("C_LOGCTL", C_LOGCTL), ("C_LOGDAT", C_LOGDAT),
-                         ("C_TSYNC", C_TSYNC)]:
+                         ("C_TSYNC", C_TSYNC), ("C_FWVER", C_FWVER)]:
         char = svc.get_characteristic(uuid)
         record(f"T2.2 {label} present", char is not None, uuid)
+
+    # T2.3: firmware version readable and semver-shaped
+    fwver_char = svc.get_characteristic(C_FWVER)
+    if fwver_char:
+        raw = await client.read_gatt_char(C_FWVER)
+        version = raw.decode("utf-8", errors="replace").strip()
+        parts = version.split(".")
+        valid = len(parts) == 3 and all(p.isdigit() for p in parts)
+        record("T2.3 C_FWVER readable semver", valid, f"version='{version}'")
 
 # ── T3 ─────────────────────────────────────────────────────────────────────────
 
