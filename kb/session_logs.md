@@ -1,5 +1,21 @@
 # WaterTank — Session Logs
 
+## 2026-05-26 — ESP32 firmware + OTA script added from pendrive
+
+### What was done
+- Copied 6 claude-memory files from pendrive to project memory: ESP32 Storm Board setup, OTA lessons, PL2303 HXA driver fix, wiring notes, user profile
+- Added `firmware/WaterTank/WaterTank.ino` — NimBLE ESP32 sketch implementing all 5 GATT characteristics matching `constants/ble.ts`; OTA via `wfHandleOTA()` in loop
+- Added `scripts/ota_flash.bat` — Windows batch script (arduino-cli compile + espota.py to 192.168.0.126:3232)
+- Committed `7b43003` and pushed to master
+
+### Key firmware details
+- NimBLE-Arduino (smaller binary ~900KB vs 1.7MB with BluetoothSerial stack)
+- Advertises as "WaterTank"; UUID split across adv + scan response (128-bit UUID > 31B adv limit)
+- WiFi fallback: connects Neo6G → wfConfigOTA(WF_STATION); on fail → AP mode "StormBoard"
+- OTA board IP: 192.168.0.126 (DHCP — re-scan via `arduino-cli board list` if changed)
+
+---
+
 ## 2026-05-24 — Fix water animation clip rect (TANK_WINDOW correction)
 
 ### Root cause
