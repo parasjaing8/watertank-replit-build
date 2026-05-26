@@ -19,6 +19,7 @@ import {
   BLE_CHAR_FW_VERSION,
   BLE_CHAR_LOG_CTRL,
   BLE_CHAR_LOG_DATA,
+  BLE_CHAR_RESET_REASON,
   BLE_CHAR_STATE,
   BLE_CHAR_TANK,
   BLE_CHAR_TIME_SYNC,
@@ -32,6 +33,7 @@ import {
   BLE_SCAN_TIMEOUT,
   BLE_SERVICE_UUID,
 } from "@/constants/ble";
+import { logBleInfo, logBleError, logBoardReset } from "@/services/CrashReportService";
 import { DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
 import { insertEvent, insertSyncLog } from "@/storage/database";
 
@@ -192,6 +194,7 @@ export class BLEService implements IDeviceService {
   }
 
   private startScan(): void {
+    logBleInfo("scan start", { attempt: this.reconnectAttempt });
     if (!this.running) return;
     const mgr = getBleManager() as {
       startDeviceScan(
@@ -218,6 +221,7 @@ export class BLEService implements IDeviceService {
       mgr.startDeviceScan(null, null, (err, device) => {
         if (err) {
           this.log(`Scan error: ${String(err)}`);
+          logBleError("scan error", { error: String(err) });
           this.scheduleReconnect();
           return;
         }
@@ -227,8 +231,10 @@ export class BLEService implements IDeviceService {
           this.scanTimer = null;
           try { mgr.stopDeviceScan(); } catch {}
           this.log(`Found ${dev.name} (${dev.id}) — connecting...`);
+          const devId = dev.id;
           this.connectToDevice(dev).catch((e) => {
             this.log(`Connect failed: ${String(e)}`);
+            logBleError("connect failed", { deviceId: devId, error: String(e) });
             this.scheduleReconnect();
           });
         }
@@ -267,14 +273,26 @@ export class BLEService implements IDeviceService {
         await connected.requestMTU(BLE_MTU_SIZE);
       } catch {}
 
+      let connectedFwVersion: string | undefined;
       try {
         const fwChar = await connected.readCharacteristicForService(BLE_SERVICE_UUID, BLE_CHAR_FW_VERSION);
         if (fwChar?.value) {
           const version = Buffer.from(fwChar.value, "base64").toString("utf8").trim();
           this.state = { ...this.state, firmwareVersion: version };
+          connectedFwVersion = version;
           this.log(`Firmware version: ${version}`);
         }
       } catch {}
+
+      try {
+        const rstChar = await connected.readCharacteristicForService(BLE_SERVICE_UUID, BLE_CHAR_RESET_REASON);
+        if (rstChar?.value) {
+          const code = Buffer.from(rstChar.value, "base64")[0];
+          logBoardReset(code);
+        }
+      } catch {}
+
+      logBleInfo("connected", { deviceId: connected.id, firmwareVersion: connectedFwVersion });
 
       const ts = Math.floor(Date.now() / 1000);
       const buf = Buffer.alloc(4);
@@ -288,6 +306,7 @@ export class BLEService implements IDeviceService {
 
       const disconnectSub = connected.onDisconnected((err) => {
         this.log(`Disconnected: ${err ? String(err) : "clean"}`);
+        logBleInfo("disconnected", { reason: err ? String(err) : "clean" });
         this.device = null;
         this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
         this.subscriptions = [];

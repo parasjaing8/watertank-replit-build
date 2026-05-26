@@ -27,8 +27,11 @@ import { DeviceProvider } from '@/context/DeviceContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import * as NotificationService from '@/services/NotificationService';
+import { init as initCrashReport } from '@/services/CrashReportService';
 
 SplashScreen.preventAutoHideAsync();
+// Init before anything else so the global error handler is in place
+initCrashReport().catch(() => {});
 
 async function requestBlePermissions(): Promise<void> {
   if (Platform.OS !== 'android' || Platform.Version < 31) return;

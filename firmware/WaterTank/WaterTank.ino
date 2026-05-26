@@ -34,6 +34,7 @@
 #define C_LOGDATA  "beb54841-36e1-4688-b7f5-ea07361b26a8"
 #define C_TIMESYNC "beb54842-36e1-4688-b7f5-ea07361b26a8"
 #define C_FWVER    "beb54843-36e1-4688-b7f5-ea07361b26a8"
+#define C_RESET_REASON "beb54844-36e1-4688-b7f5-ea07361b26a8"
 
 // ── Tunable params ────────────────────────────────────────────────────────────
 #define NOTIFY_INTERVAL_MS    2000    // normal BLE state cadence
@@ -327,6 +328,11 @@ void setup() {
   // C_FWVER: app reads this on connect to check if update is needed
   NimBLECharacteristic* fwVer = svc->createCharacteristic(C_FWVER, NIMBLE_PROPERTY::READ);
   fwVer->setValue(FW_VERSION);
+
+  // C_RESET_REASON: app reads last reset cause for crash diagnostics (zero SRAM cost — register read)
+  NimBLECharacteristic* rstReason = svc->createCharacteristic(C_RESET_REASON, NIMBLE_PROPERTY::READ);
+  uint8_t rstCode = (uint8_t)esp_reset_reason();
+  rstReason->setValue(&rstCode, 1);
 
   svc->start();
 

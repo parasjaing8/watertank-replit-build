@@ -24,6 +24,11 @@ import { formatDate, formatDuration } from "@/utils/formatters";
 import { useLanguage } from "@/context/LanguageContext";
 import { Lang } from "@/constants/i18n";
 import { SetupGuideModal } from "@/components/SetupGuideModal";
+import {
+  clearLogs,
+  exportLogs,
+  getLogStats,
+} from "@/services/CrashReportService";
 
 function SectionHeader({
   title,
@@ -125,6 +130,16 @@ export default function SettingsScreen() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCleared, setShowCleared] = useState(false);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
+  const [diagStats, setDiagStats] = useState(() => getLogStats());
+
+  const handleExportLogs = useCallback(async () => {
+    await exportLogs();
+  }, []);
+
+  const handleClearDiagLogs = useCallback(async () => {
+    await clearLogs();
+    setDiagStats({ count: 0, sizeKb: 0 });
+  }, []);
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
@@ -526,6 +541,35 @@ export default function SettingsScreen() {
           </View>
         </>
       )}
+
+      {/* Diagnostics */}
+      <SectionHeader title="DIAGNOSTICS" colors={colors} />
+      <View style={[styles.section, { borderColor: colors.border }]}>
+        <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Diagnostic logs</Text>
+          <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+            {diagStats.count} entries · {diagStats.sizeKb} KB
+          </Text>
+        </View>
+        <ActionRow
+          label="Export logs"
+          icon="share"
+          onPress={handleExportLogs}
+          colors={colors}
+        />
+        <ActionRow
+          label="Clear logs"
+          icon="trash-2"
+          destructive
+          onPress={() => {
+            Alert.alert("Clear diagnostic logs?", "This cannot be undone.", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Clear", style: "destructive", onPress: handleClearDiagLogs },
+            ]);
+          }}
+          colors={colors}
+        />
+      </View>
 
       {/* About */}
       <SectionHeader title={t("about").toUpperCase()} colors={colors} />

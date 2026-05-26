@@ -5,6 +5,7 @@ import {
   BLE_OTA_SERVICE_UUID,
 } from "@/constants/ble";
 import { getBleManager } from "@/services/BLEService";
+import { logOtaEvent, logOtaError } from "@/services/CrashReportService";
 
 const GITHUB_RELEASES_API =
   "https://api.github.com/repos/parasjaing8/watertank-replit-build/releases/latest";
@@ -203,6 +204,8 @@ export async function performOtaTransfer(
 
   if (signal?.aborted) throw new Error("Aborted");
 
+  logOtaEvent("transfer start", { deviceId, totalSectors, firmwareBytes: firmwareBytes.length });
+
   // Subscribe to COMMAND indicates before sending the start command
   const cmdAck = waitForIndicate(BLE_OTA_CHAR_COMMAND, 10000);
 
@@ -243,10 +246,13 @@ export async function performOtaTransfer(
     const ackData = await sectorAck;
     if (!isSectorAckSuccess(ackData)) {
       const errCode = ackData[2] | (ackData[3] << 8);
+      logOtaError("sector rejected", { sector: s, totalSectors, errCode });
       throw new Error(`Sector ${s} rejected by board (code ${errCode})`);
     }
 
     onProgress(s + 1, totalSectors);
   }
+
+  logOtaEvent("transfer complete", { totalSectors });
   // Board calls esp_restart() after last sector — no further action needed from app side
 }
