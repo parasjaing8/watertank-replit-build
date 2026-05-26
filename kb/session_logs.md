@@ -1,5 +1,38 @@
 # WaterTank — Session Logs
 
+## 2026-05-26 — Autonomous BLE backend testing session (41 tests, all green)
+
+### What was done
+- Flashed research-hardened firmware to board at 192.168.0.126 via OTA (espota.py)
+- Wrote Python BLE test suite `scripts/ble_test.py` using bleak — 13 test groups, 41 tests
+- Fixed 3 firmware bugs discovered during testing:
+  1. NimBLE 2.x compile error: removed `NimBLEDevice::setConnectionParams()` (doesn't exist in 2.x)
+  2. CCCD race: C_LOGCTRL + C_TIMESYNC needed `WRITE_NR` (bleak uses write-without-response by default)
+  3. Stall watchdog false-fire on reconnect: `lastNotify` carried over from previous connection → reset to 0 in `onDisconnect`
+- Corrected `BLE_NOTIFY_INTERVAL_MS` in constants/ble.ts: 5000→2000 (firmware always notified at 2s)
+
+### Final test results (commit 7502530)
+- 41/41 tests passing
+- MTU: 512B negotiated (T9 confirmed)
+- Notify cadence: avg 1.999s, max gap 2.04s, 0 missed ticks in 20-tick stability run (T7)
+- Rapid reconnect: 3/3 successful (T8)
+- Log stream: 2 JSON frames + DONE sentinel, all valid (T5)
+- Simulation cycling: tank values cycling 20%↔90% confirmed (T12)
+- Malformed write survival: board survived all 5 malformed payloads (T10)
+
+### Key firmware guards added (all research-hardened)
+- `srv->advertiseOnDisconnect(true)` — NimBLE bug #886/#915 (onDisconnect stops firing after 2-3 unclean disconnects)
+- Stall watchdog: 12s timeout, force re-advertise if `bleConnected=true` but no notify sent
+- 800ms delayed initial push: covers service discovery (~200-600ms) + CCCD write (~50-100ms)
+- Non-blocking log stream: millis-based 50ms inter-frame gap, no `delay()` (blocks OTA)
+- OTA back-off: `NOTIFY_OTA_INTERVAL=10000ms` when OTA active (reduces BLE+WiFi radio contention)
+- WiFi reconnect watchdog: 30s interval, reconnects if WiFi drops
+
+### Open issues (not yet fixed)
+- F5 BlePairingSheet orphaned connection: pairing sheet connects → board stops advertising → BLEService can't find it. Architectural fix needed (sheet should disconnect and let BLEService re-scan). Documented in memory.
+
+---
+
 ## 2026-05-26 — ESP32 firmware + OTA script added from pendrive
 
 ### What was done

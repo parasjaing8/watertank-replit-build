@@ -1,5 +1,5 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-24_
+_Last updated: 2026-05-26_
 
 ## App Version
 `1.0.0` (package.json) | Latest APK: `watertank-v24-release.apk`
@@ -55,6 +55,19 @@ All 44 findings resolved as of 2026-05-24.
 - A9 skipped (getTankColor actively used by TankLevelBar.tsx)
 - P4 skipped (50-item BLE log already bounded; FlatList not needed)
 
+## Firmware + BLE Protocol Status (2026-05-26)
+- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, research-hardened
+- OTA board IP: 192.168.0.126:3232
+- BLE test suite: `scripts/ble_test.py` — 41/41 passing
+- Board: Witty Fox Storm Board (ESP32), no USB-UART; OTA only via `scripts/espota.py` or `wfHandleOTA()`
+- Flash cmd: `python3 ~/Library/Arduino15/.../espota.py -i 192.168.0.126 -p 3232 -f firmware.bin`
+- Compile cmd: `arduino-cli compile --fqbn esp32:esp32:esp32wrover firmware/WaterTank/`
+
+### Open firmware issues
+- F5: BlePairingSheet orphaned connection (architectural, low priority — only affects onboarding re-pair edge case)
+- Sensor integration: `USE_SENSOR=0` stub for JSN-SR04T not yet added (simulation only)
+
 ## Key Files — DO NOT modify with local models
 - `services/BLEService.ts` — use Claude/Sonnet only
 - `components/WaterTankWidget.tsx` — complex SVG animation, use Claude/Sonnet only
+- `firmware/WaterTank/WaterTank.ino` — use Claude/Sonnet only (NimBLE 2.x API subtleties)
