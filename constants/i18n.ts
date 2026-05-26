@@ -149,6 +149,18 @@ export interface Translations {
   setupPage2: string;
   setupPage3: string;
   setupHint: string;
+  // Report problem
+  reportProblem: string;
+  reportSelectIssue: string;
+  issueMotorNotStart: string;
+  issueWrongLevel: string;
+  issueAppCrash: string;
+  issueOther: string;
+  reportSendWhatsApp: string;
+  reportMsgGreeting: string;
+  reportMsgIssue: string;
+  reportMsgTime: string;
+  reportMsgLog: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -284,6 +296,17 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'System Overview',
     setupPage3: 'Installation Steps',
     setupHint: 'Need help with hardware setup? See Setup Guide in Settings.',
+    reportProblem: 'Report a Problem',
+    reportSelectIssue: 'What went wrong?',
+    issueMotorNotStart: 'Motor did not start',
+    issueWrongLevel: 'Wrong water level shown',
+    issueAppCrash: 'App stopped working',
+    issueOther: 'Something else',
+    reportSendWhatsApp: 'Send via WhatsApp',
+    reportMsgGreeting: 'Hello,\nI have a problem with my WaterTank device.',
+    reportMsgIssue: 'Issue',
+    reportMsgTime: 'Time',
+    reportMsgLog: 'Diagnostic log',
   },
   hi: {
     appName: 'WaterTank',
@@ -417,6 +440,17 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'सिस्टम का अवलोकन',
     setupPage3: 'इंस्टॉलेशन के चरण',
     setupHint: 'हार्डवेयर सेटअप में मदद चाहिए? सेटिंग्स में सेटअप गाइड देखें।',
+    reportProblem: 'समस्या बताएं',
+    reportSelectIssue: 'क्या गड़बड़ी हुई?',
+    issueMotorNotStart: 'मोटर शुरू नहीं हुई',
+    issueWrongLevel: 'पानी का स्तर गलत दिख रहा है',
+    issueAppCrash: 'ऐप बंद हो गया',
+    issueOther: 'कोई और समस्या',
+    reportSendWhatsApp: 'WhatsApp पर भेजें',
+    reportMsgGreeting: 'नमस्कार,\nमेरे WaterTank डिवाइस में समस्या है।',
+    reportMsgIssue: 'समस्या',
+    reportMsgTime: 'समय',
+    reportMsgLog: 'डायग्नोस्टिक लॉग',
   },
   mr: {
     appName: 'WaterTank',
@@ -550,6 +584,17 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'सिस्टम आढावा',
     setupPage3: 'इंस्टॉलेशन चरण',
     setupHint: 'हार्डवेअर सेटअपसाठी मदत हवी? सेटिंग्जमध्ये सेटअप मार्गदर्शक पाहा.',
+    reportProblem: 'समस्या सांगा',
+    reportSelectIssue: 'काय समस्या आहे?',
+    issueMotorNotStart: 'मोटर चालू झाली नाही',
+    issueWrongLevel: 'चुकीची पाण्याची पातळी दिसत आहे',
+    issueAppCrash: 'अ‍ॅप बंद पडले',
+    issueOther: 'दुसरी समस्या',
+    reportSendWhatsApp: 'WhatsApp वर पाठवा',
+    reportMsgGreeting: 'नमस्कार,\nमाझ्या WaterTank डिव्हाइसमध्ये समस्या आहे.',
+    reportMsgIssue: 'समस्या',
+    reportMsgTime: 'वेळ',
+    reportMsgLog: 'डायग्नोस्टिक लॉग',
   },
   kn: {
     appName: 'WaterTank',
@@ -683,5 +728,16 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'ಸಿಸ್ಟಮ್ ಅವಲೋಕನ',
     setupPage3: 'ಅನುಸ್ಥಾಪನಾ ಹಂತಗಳು',
     setupHint: 'ಹಾರ್ಡ್‌ವೇರ್ ಸೆಟಪ್‌ಗೆ ಸಹಾಯ ಬೇಕೇ? ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ ನೋಡಿ.',
+    reportProblem: 'ಸಮಸ್ಯೆ ತಿಳಿಸಿ',
+    reportSelectIssue: 'ಏನು ತಪ್ಪಾಯಿತು?',
+    issueMotorNotStart: 'ಮೋಟಾರ್ ಚಾಲೂ ಆಗಲಿಲ್ಲ',
+    issueWrongLevel: 'ತಪ್ಪು ನೀರಿನ ಮಟ್ಟ ತೋರಿಸುತ್ತಿದೆ',
+    issueAppCrash: 'ಆ್ಯಪ್ ನಿಂತಿದೆ',
+    issueOther: 'ಇನ್ನೊಂದು ಸಮಸ್ಯೆ',
+    reportSendWhatsApp: 'WhatsApp ನಲ್ಲಿ ಕಳಿಸಿ',
+    reportMsgGreeting: 'ನಮಸ್ಕಾರ,\nನನ್ನ WaterTank ಸಾಧನದಲ್ಲಿ ಸಮಸ್ಯೆ ಇದೆ.',
+    reportMsgIssue: 'ಸಮಸ್ಯೆ',
+    reportMsgTime: 'ಸಮಯ',
+    reportMsgLog: 'ಡಯಾಗ್ನೋಸ್ಟಿಕ್ ಲಾಗ್',
   },
 };

@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { PulsingDot, SearchingDots } from "@/components/StatusIndicators";
+import { ReportProblemSheet } from "@/components/ReportProblemSheet";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
@@ -49,6 +50,7 @@ export default function DashboardScreen() {
   const [countdown, setCountdown]             = useState(Math.round(STARTUP_DELAY_MS / 1000));
   const countdownRef                           = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevPumpStateRef                       = useRef<number>(deviceState.pumpState);
+  const [showReport, setShowReport]            = useState(false);
   const [showFullToast, setShowFullToast]      = useState(false);
   const [disconnectedSec, setDisconnectedSec] = useState(0);
   const [lastKnownTank, setLastKnownTank]     = useState<{ pct: number; at: number } | null>(null);
@@ -353,7 +355,22 @@ export default function DashboardScreen() {
             </View>
           </View>
         )}
+
+        {/* ── REPORT PROBLEM ────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.reportBtn}
+          onPress={() => setShowReport(true)}
+          activeOpacity={0.7}
+        >
+          <Feather name="flag" size={13} color={colors.mutedForeground} />
+          <Text style={[styles.reportBtnText, { color: colors.mutedForeground }]}>
+            {t("reportProblem")}
+          </Text>
+        </TouchableOpacity>
+
       </ScrollView>
+
+      <ReportProblemSheet visible={showReport} onClose={() => setShowReport(false)} />
     </View>
   );
 }

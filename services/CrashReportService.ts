@@ -100,6 +100,16 @@ export function logBoardReset(reasonCode: number): void {
 
 // ── Stats & export ────────────────────────────────────────────────────────────
 
+/** Returns the last N log entries as plain-text lines for inclusion in reports. */
+export function getRecentLogs(n = 30): string {
+  const recent = _buffer.slice(-n);
+  return recent.map((e) => {
+    const d = new Date(e.ts).toISOString();
+    const ctx = e.ctx ? " " + JSON.stringify(e.ctx) : "";
+    return `${d} [${e.level.toUpperCase()}][${e.tag}] ${e.msg}${ctx}`;
+  }).join("\n");
+}
+
 export function getLogStats(): { count: number; sizeKb: number } {
   const approxBytes = _buffer.reduce((sum, e) => sum + JSON.stringify(e).length, 0);
   return { count: _buffer.length, sizeKb: Math.round(approxBytes / 1024) };

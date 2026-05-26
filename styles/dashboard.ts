@@ -231,4 +231,18 @@ export const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 14,
   },
+
+  // ── Report problem link
+  reportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 18,
+    paddingBottom: 8,
+  },
+  reportBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
 });
