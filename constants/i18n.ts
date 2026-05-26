@@ -149,6 +149,43 @@ export interface Translations {
   setupPage2: string;
   setupPage3: string;
   setupHint: string;
+  // Report problem
+  reportProblem: string;
+  reportSelectIssue: string;
+  issueMotorNotStart: string;
+  issueWrongLevel: string;
+  issueAppCrash: string;
+  issueOther: string;
+  reportSendWhatsApp: string;
+  reportMsgGreeting: string;
+  reportMsgIssue: string;
+  reportMsgTime: string;
+  reportMsgLog: string;
+  // Firmware update screen
+  fwUpdateTitle: string;
+  fwDeviceFirmware: string;
+  fwAvailable: string;
+  fwUpToDate: string;
+  fwChangelog: string;
+  fwDownloading: string;
+  fwTransferring: string;
+  fwKeepClose: string;
+  fwRebooting: string;
+  fwConfirming: string;
+  fwRebootHint: string;
+  fwConfirmHint: string;
+  fwDoneTitle: string;
+  fwDoneBody: string;
+  fwCancelledTitle: string;
+  fwCancelledBody: string;
+  fwCancelledWaiting: string;
+  fwErrorTitle: string;
+  fwErrorFallback: string;
+  fwErrorRollback: string;
+  fwInstall: string;
+  fwDone: string;
+  fwRetry: string;
+  fwTimeout60: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -284,6 +321,41 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'System Overview',
     setupPage3: 'Installation Steps',
     setupHint: 'Need help with hardware setup? See Setup Guide in Settings.',
+    reportProblem: 'Report a Problem',
+    reportSelectIssue: 'What went wrong?',
+    issueMotorNotStart: 'Motor did not start',
+    issueWrongLevel: 'Wrong water level shown',
+    issueAppCrash: 'App stopped working',
+    issueOther: 'Something else',
+    reportSendWhatsApp: 'Send via WhatsApp',
+    reportMsgGreeting: 'Hello,\nI have a problem with my WaterTank device.',
+    reportMsgIssue: 'Issue',
+    reportMsgTime: 'Time',
+    reportMsgLog: 'Diagnostic log',
+    fwUpdateTitle: 'Firmware Update',
+    fwDeviceFirmware: 'Device firmware',
+    fwAvailable: 'Available',
+    fwUpToDate: 'Firmware is up to date.',
+    fwChangelog: 'CHANGELOG',
+    fwDownloading: 'Downloading firmware…',
+    fwTransferring: 'Transferring firmware…',
+    fwKeepClose: 'Keep phone within 2 metres. Do not close the app.',
+    fwRebooting: 'Device rebooting…',
+    fwConfirming: 'Confirming update…',
+    fwRebootHint: 'The device will reconnect automatically in ~10 seconds.',
+    fwConfirmHint: 'Verifying new firmware version on device.',
+    fwDoneTitle: 'Update complete',
+    fwDoneBody: 'Device is now running firmware',
+    fwCancelledTitle: 'Transfer cancelled',
+    fwCancelledBody: 'The device is mid-flash. Power-cycle the device before trying again — it will roll back to the previous firmware automatically.',
+    fwCancelledWaiting: 'Waiting for device to disconnect…',
+    fwErrorTitle: 'Update failed',
+    fwErrorFallback: 'An unknown error occurred.',
+    fwErrorRollback: 'Device has automatically rolled back to the previous firmware.',
+    fwInstall: 'Install',
+    fwDone: 'Done',
+    fwRetry: 'Try Again',
+    fwTimeout60: 'Device did not reconnect after 60 seconds. Check device power and retry.',
   },
   hi: {
     appName: 'WaterTank',
@@ -417,6 +489,41 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'सिस्टम का अवलोकन',
     setupPage3: 'इंस्टॉलेशन के चरण',
     setupHint: 'हार्डवेयर सेटअप में मदद चाहिए? सेटिंग्स में सेटअप गाइड देखें।',
+    reportProblem: 'समस्या बताएं',
+    reportSelectIssue: 'क्या गड़बड़ी हुई?',
+    issueMotorNotStart: 'मोटर शुरू नहीं हुई',
+    issueWrongLevel: 'पानी का स्तर गलत दिख रहा है',
+    issueAppCrash: 'ऐप बंद हो गया',
+    issueOther: 'कोई और समस्या',
+    reportSendWhatsApp: 'WhatsApp पर भेजें',
+    reportMsgGreeting: 'नमस्कार,\nमेरे WaterTank डिवाइस में समस्या है।',
+    reportMsgIssue: 'समस्या',
+    reportMsgTime: 'समय',
+    reportMsgLog: 'डायग्नोस्टिक लॉग',
+    fwUpdateTitle: 'फर्मवेयर अपडेट',
+    fwDeviceFirmware: 'डिवाइस फर्मवेयर',
+    fwAvailable: 'उपलब्ध',
+    fwUpToDate: 'फर्मवेयर अप टू डेट है।',
+    fwChangelog: 'बदलाव',
+    fwDownloading: 'फर्मवेयर डाउनलोड हो रहा है…',
+    fwTransferring: 'फर्मवेयर भेजा जा रहा है…',
+    fwKeepClose: 'फोन 2 मीटर के पास रखें। ऐप बंद न करें।',
+    fwRebooting: 'डिवाइस रिस्टार्ट हो रहा है…',
+    fwConfirming: 'अपडेट की जांच हो रही है…',
+    fwRebootHint: 'डिवाइस लगभग 10 सेकंड में फिर से जुड़ जाएगा।',
+    fwConfirmHint: 'डिवाइस पर नए फर्मवेयर की जांच हो रही है।',
+    fwDoneTitle: 'अपडेट पूरा हुआ',
+    fwDoneBody: 'डिवाइस अब फर्मवेयर पर चल रहा है',
+    fwCancelledTitle: 'ट्रांसफर रद्द हुआ',
+    fwCancelledBody: 'डिवाइस आधे फ्लैश में है। दोबारा कोशिश से पहले डिवाइस को बंद-चालू करें — वह पुराने फर्मवेयर पर वापस आ जाएगा।',
+    fwCancelledWaiting: 'डिवाइस के डिस्कनेक्ट होने की प्रतीक्षा…',
+    fwErrorTitle: 'अपडेट विफल हुआ',
+    fwErrorFallback: 'अज्ञात त्रुटि हुई।',
+    fwErrorRollback: 'डिवाइस स्वचालित रूप से पुराने फर्मवेयर पर वापस आ गया।',
+    fwInstall: 'इंस्टॉल करें',
+    fwDone: 'हो गया',
+    fwRetry: 'फिर कोशिश करें',
+    fwTimeout60: '60 सेकंड बाद भी डिवाइस नहीं जुड़ा। डिवाइस की पावर जांचें और दोबारा कोशिश करें।',
   },
   mr: {
     appName: 'WaterTank',
@@ -550,6 +657,41 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'सिस्टम आढावा',
     setupPage3: 'इंस्टॉलेशन चरण',
     setupHint: 'हार्डवेअर सेटअपसाठी मदत हवी? सेटिंग्जमध्ये सेटअप मार्गदर्शक पाहा.',
+    reportProblem: 'समस्या सांगा',
+    reportSelectIssue: 'काय समस्या आहे?',
+    issueMotorNotStart: 'मोटर चालू झाली नाही',
+    issueWrongLevel: 'चुकीची पाण्याची पातळी दिसत आहे',
+    issueAppCrash: 'अ‍ॅप बंद पडले',
+    issueOther: 'दुसरी समस्या',
+    reportSendWhatsApp: 'WhatsApp वर पाठवा',
+    reportMsgGreeting: 'नमस्कार,\nमाझ्या WaterTank डिव्हाइसमध्ये समस्या आहे.',
+    reportMsgIssue: 'समस्या',
+    reportMsgTime: 'वेळ',
+    reportMsgLog: 'डायग्नोस्टिक लॉग',
+    fwUpdateTitle: 'फर्मवेयर अपडेट',
+    fwDeviceFirmware: 'डिव्हाइस फर्मवेयर',
+    fwAvailable: 'उपलब्ध',
+    fwUpToDate: 'फर्मवेयर अद्ययावत आहे.',
+    fwChangelog: 'बदल',
+    fwDownloading: 'फर्मवेयर डाउनलोड होत आहे…',
+    fwTransferring: 'फर्मवेयर हस्तांतरित होत आहे…',
+    fwKeepClose: 'फोन 2 मीटर जवळ ठेवा. ॲप बंद करू नका.',
+    fwRebooting: 'डिव्हाइस रीस्टार्ट होत आहे…',
+    fwConfirming: 'अपडेट तपासत आहे…',
+    fwRebootHint: 'डिव्हाइस सुमारे 10 सेकंदात पुन्हा जोडले जाईल.',
+    fwConfirmHint: 'डिव्हाइसवर नवीन फर्मवेयर तपासत आहे.',
+    fwDoneTitle: 'अपडेट पूर्ण झाले',
+    fwDoneBody: 'डिव्हाइस आता फर्मवेयरवर चालत आहे',
+    fwCancelledTitle: 'हस्तांतरण रद्द झाले',
+    fwCancelledBody: 'डिव्हाइस अर्ध्या फ्लॅशमध्ये आहे. पुन्हा प्रयत्न करण्यापूर्वी डिव्हाइस बंद-चालू करा — ते जुन्या फर्मवेयरवर परत येईल.',
+    fwCancelledWaiting: 'डिव्हाइस डिस्कनेक्ट होण्याची प्रतीक्षा…',
+    fwErrorTitle: 'अपडेट अयशस्वी झाले',
+    fwErrorFallback: 'अज्ञात त्रुटी आली.',
+    fwErrorRollback: 'डिव्हाइस आपोआप जुन्या फर्मवेयरवर परत आले.',
+    fwInstall: 'इन्स्टॉल करा',
+    fwDone: 'झाले',
+    fwRetry: 'पुन्हा प्रयत्न करा',
+    fwTimeout60: '60 सेकंदांनंतरही डिव्हाइस जोडले नाही. डिव्हाइसची पॉवर तपासा आणि पुन्हा प्रयत्न करा.',
   },
   kn: {
     appName: 'WaterTank',
@@ -683,5 +825,40 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     setupPage2: 'ಸಿಸ್ಟಮ್ ಅವಲೋಕನ',
     setupPage3: 'ಅನುಸ್ಥಾಪನಾ ಹಂತಗಳು',
     setupHint: 'ಹಾರ್ಡ್‌ವೇರ್ ಸೆಟಪ್‌ಗೆ ಸಹಾಯ ಬೇಕೇ? ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ ನೋಡಿ.',
+    reportProblem: 'ಸಮಸ್ಯೆ ತಿಳಿಸಿ',
+    reportSelectIssue: 'ಏನು ತಪ್ಪಾಯಿತು?',
+    issueMotorNotStart: 'ಮೋಟಾರ್ ಚಾಲೂ ಆಗಲಿಲ್ಲ',
+    issueWrongLevel: 'ತಪ್ಪು ನೀರಿನ ಮಟ್ಟ ತೋರಿಸುತ್ತಿದೆ',
+    issueAppCrash: 'ಆ್ಯಪ್ ನಿಂತಿದೆ',
+    issueOther: 'ಇನ್ನೊಂದು ಸಮಸ್ಯೆ',
+    reportSendWhatsApp: 'WhatsApp ನಲ್ಲಿ ಕಳಿಸಿ',
+    reportMsgGreeting: 'ನಮಸ್ಕಾರ,\nನನ್ನ WaterTank ಸಾಧನದಲ್ಲಿ ಸಮಸ್ಯೆ ಇದೆ.',
+    reportMsgIssue: 'ಸಮಸ್ಯೆ',
+    reportMsgTime: 'ಸಮಯ',
+    reportMsgLog: 'ಡಯಾಗ್ನೋಸ್ಟಿಕ್ ಲಾಗ್',
+    fwUpdateTitle: 'ಫರ್ಮ್‌ವೇರ್ ಅಪ್‌ಡೇಟ್',
+    fwDeviceFirmware: 'ಸಾಧನ ಫರ್ಮ್‌ವೇರ್',
+    fwAvailable: 'ಲಭ್ಯವಿದೆ',
+    fwUpToDate: 'ಫರ್ಮ್‌ವೇರ್ ನವೀನವಾಗಿದೆ.',
+    fwChangelog: 'ಬದಲಾವಣೆಗಳು',
+    fwDownloading: 'ಫರ್ಮ್‌ವೇರ್ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ…',
+    fwTransferring: 'ಫರ್ಮ್‌ವೇರ್ ವರ್ಗಾಯಿಸಲಾಗುತ್ತಿದೆ…',
+    fwKeepClose: 'ಫೋನ್ ಅನ್ನು 2 ಮೀಟರ್ ಹತ್ತಿರ ಇಡಿ. ಆ್ಯಪ್ ಮುಚ್ಚಬೇಡಿ.',
+    fwRebooting: 'ಸಾಧನ ರೀಸ್ಟಾರ್ಟ್ ಆಗುತ್ತಿದೆ…',
+    fwConfirming: 'ಅಪ್‌ಡೇಟ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…',
+    fwRebootHint: 'ಸಾಧನ ಸರಿಸುಮಾರು 10 ಸೆಕೆಂಡ್‌ಗಳಲ್ಲಿ ಮತ್ತೆ ಸಂಪರ್ಕಗೊಳ್ಳುತ್ತದೆ.',
+    fwConfirmHint: 'ಸಾಧನದಲ್ಲಿ ಹೊಸ ಫರ್ಮ್‌ವೇರ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ.',
+    fwDoneTitle: 'ಅಪ್‌ಡೇಟ್ ಪೂರ್ಣಗೊಂಡಿದೆ',
+    fwDoneBody: 'ಸಾಧನ ಈಗ ಫರ್ಮ್‌ವೇರ್‌ನಲ್ಲಿ ಚಾಲನೆಯಲ್ಲಿದೆ',
+    fwCancelledTitle: 'ವರ್ಗಾವಣೆ ರದ್ದುಗೊಂಡಿದೆ',
+    fwCancelledBody: 'ಸಾಧನ ಅರ್ಧ ಫ್ಲ್ಯಾಶ್‌ನಲ್ಲಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುವ ಮೊದಲು ಸಾಧನವನ್ನು ಆಫ್-ಆನ್ ಮಾಡಿ — ಅದು ಹಳೆಯ ಫರ್ಮ್‌ವೇರ್‌ಗೆ ಹಿಂದಿರುಗುತ್ತದೆ.',
+    fwCancelledWaiting: 'ಸಾಧನ ಡಿಸ್‌ಕನೆಕ್ಟ್ ಆಗಲು ಕಾಯುತ್ತಿದೆ…',
+    fwErrorTitle: 'ಅಪ್‌ಡೇಟ್ ವಿಫಲವಾಗಿದೆ',
+    fwErrorFallback: 'ಅಜ್ಞಾತ ದೋಷ ಸಂಭವಿಸಿದೆ.',
+    fwErrorRollback: 'ಸಾಧನ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹಳೆಯ ಫರ್ಮ್‌ವೇರ್‌ಗೆ ಹಿಂದಿರುಗಿದೆ.',
+    fwInstall: 'ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ',
+    fwDone: 'ಮುಗಿಯಿತು',
+    fwRetry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    fwTimeout60: '60 ಸೆಕೆಂಡ್ ನಂತರವೂ ಸಾಧನ ಸಂಪರ್ಕಗೊಳ್ಳಲಿಲ್ಲ. ಸಾಧನದ ಪವರ್ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   },
 };

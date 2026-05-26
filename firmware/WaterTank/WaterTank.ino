@@ -1,26 +1,31 @@
 // WaterTank BLE firmware — NimBLE-Arduino 2.x
 // Implements the 5-characteristic GATT protocol from constants/ble.ts.
-// OTA stays active via wfHandleOTA() in loop().
+// WiFi OTA stays active via wfHandleOTA() in loop() (dev builds only).
+// BLE OTA via NimBLEOta (h2zero) — supports remote firmware update over BLE.
 //
 // Research-hardened (2026-05-26):
-//  - srv->advertiseOnDisconnect(true) guards against NimBLE 2.x bug where
-//    onDisconnect stops firing after repeated unclean disconnects (issue #886/915)
-//  - Connection interval 100–200ms for BLE+WiFi coexistence headroom
-//  - OTA back-off: slow BLE notify to 10s when OTA is actively running
-//  - Connection stall watchdog: re-advertises if bleConnected but no client
-//    activity for STALL_TIMEOUT_MS (catches ghost connections after unclean disco)
+//  - srv->advertiseOnDisconnect(true) guards against NimBLE 2.x bug #886/#915
+//  - OTA back-off: slow BLE notify to 10s when WiFi OTA is actively running
+//  - Connection stall watchdog: re-advertises if bleConnected but no notify in 12s
 //  - Non-blocking log stream (millis-based, no blocking delay())
-//  - Immediate state push on connect (pushStateNow flag)
 //  - WiFi watchdog with reconnect loop in main loop()
-//  - Tank simulation cycle for full state-machine testing without sensors
+//  - Tank simulation cycle for sensor-free testing
+//
+// BLE OTA (2026-05-26):
+//  - NimBLEOta adds GATT service 0x8018 with RECV_FW (0x8020) + COMMAND (0x8022)
+//  - Resume on reconnect is built-in (NimBLEOta::Reconnected reason)
+//  - esp_ota_mark_app_valid_cancel_rollback() called after first successful notify
+//  - C_FWVER characteristic (READ) exposes FW_VERSION string for app version checks
 
 #include <NimBLEDevice.h>
 #include <WiFi.h>
 #include <WFStorm.h>
+#include "NimBLEOta.h"
 
 #define LED_PIN    2
 #define SSID       "Neo6G"
 #define PASS       "Passw01d"
+#define FW_VERSION "1.1.0"
 
 #define SVC_UUID   "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define C_STATE    "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -28,10 +33,12 @@
 #define C_LOGCTRL  "beb54840-36e1-4688-b7f5-ea07361b26a8"
 #define C_LOGDATA  "beb54841-36e1-4688-b7f5-ea07361b26a8"
 #define C_TIMESYNC "beb54842-36e1-4688-b7f5-ea07361b26a8"
+#define C_FWVER    "beb54843-36e1-4688-b7f5-ea07361b26a8"
+#define C_RESET_REASON "beb54844-36e1-4688-b7f5-ea07361b26a8"
 
 // ── Tunable params ────────────────────────────────────────────────────────────
 #define NOTIFY_INTERVAL_MS    2000    // normal BLE state cadence
-#define NOTIFY_OTA_INTERVAL   10000   // slow cadence during active OTA
+#define NOTIFY_OTA_INTERVAL   10000   // slow cadence during active WiFi OTA
 #define STALL_TIMEOUT_MS      12000   // force re-advertise if no notify sent while "connected"
 #define WIFI_CHECK_MS         30000   // WiFi watchdog interval
 #define LOG_FRAME_MS          50      // inter-log-frame gap (non-blocking)
@@ -43,16 +50,18 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 static NimBLECharacteristic *charState, *charTank, *charLogData;
 static NimBLEServer          *bleServer = nullptr;
+static NimBLEOta              bleOta;
 
 static volatile bool bleConnected    = false;
 static bool          doSendLogs     = false;
 static bool          pushStateNow   = false;
-static unsigned long pushScheduled  = 0;    // millis() target for initial state push
+static unsigned long pushScheduled  = 0;
 static uint32_t      syncedEpoch   = 0;
-static unsigned long lastNotify    = 0;   // last successful notify timestamp
-static unsigned long lastActivity  = 0;   // last time bleConnected changed to true
+static unsigned long lastNotify    = 0;
+static unsigned long lastActivity  = 0;
 static unsigned long lastWifiCheck = 0;
 static bool          otaActive     = false;
+static bool          fwValidated   = false;  // true after esp_ota_mark_app_valid called
 
 // Simulated sensor values
 static float tankPct    = 72.0f;
@@ -111,6 +120,31 @@ class LogCtrlCB : public NimBLECharacteristicCallbacks {
         Serial.println("LogCtrl: ACK");
       }
     }
+  }
+};
+
+// ── BLE OTA callbacks ─────────────────────────────────────────────────────────
+
+class OtaCB : public NimBLEOtaCallbacks {
+  void onStart(NimBLEOta*, uint32_t size, NimBLEOta::Reason reason) override {
+    Serial.printf("BLE-OTA: start size=%u reason=%d\n", size, reason);
+    otaActive = true;  // slow down BLE state notifies during transfer
+  }
+  void onProgress(NimBLEOta*, uint32_t current, uint32_t total) override {
+    Serial.printf("BLE-OTA: %u/%u (%.0f%%)\n", current, total, 100.f * current / total);
+  }
+  void onStop(NimBLEOta*, NimBLEOta::Reason reason) override {
+    Serial.printf("BLE-OTA: stopped reason=%d\n", reason);
+    otaActive = false;
+  }
+  void onComplete(NimBLEOta*) override {
+    Serial.println("BLE-OTA: complete — rebooting in 2s");
+    delay(2000);
+    esp_restart();
+  }
+  void onError(NimBLEOta*, esp_err_t err, NimBLEOta::Reason reason) override {
+    Serial.printf("BLE-OTA: error 0x%x reason=%d\n", err, reason);
+    otaActive = false;
   }
 };
 
@@ -207,6 +241,14 @@ void pushState() {
 
   lastNotify = millis();
   digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+
+  // Rollback validation: mark firmware valid after first successful notify.
+  // If firmware crashes before this call, bootloader auto-reverts to previous OTA slot.
+  if (!fwValidated) {
+    esp_ota_mark_app_valid_cancel_rollback();
+    fwValidated = true;
+    Serial.printf("OTA: firmware v%s validated\n", FW_VERSION);
+  }
 }
 
 // ── WiFi watchdog ─────────────────────────────────────────────────────────────
@@ -283,7 +325,21 @@ void setup() {
     C_TIMESYNC, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
   timeSync->setCallbacks(new TimeSyncCB());
 
+  // C_FWVER: app reads this on connect to check if update is needed
+  NimBLECharacteristic* fwVer = svc->createCharacteristic(C_FWVER, NIMBLE_PROPERTY::READ);
+  fwVer->setValue(FW_VERSION);
+
+  // C_RESET_REASON: app reads last reset cause for crash diagnostics (zero SRAM cost — register read)
+  NimBLECharacteristic* rstReason = svc->createCharacteristic(C_RESET_REASON, NIMBLE_PROPERTY::READ);
+  uint8_t rstCode = (uint8_t)esp_reset_reason();
+  rstReason->setValue(&rstCode, 1);
+
   svc->start();
+
+  // BLE OTA service (separate GATT service, UUID 0x8018)
+  bleOta.start(new OtaCB());
+  // Abort any stuck OTA after 5 minutes — prevents hung transfer blocking BLE
+  bleOta.startAbortTimer(300);
 
   // 128-bit UUID + name > 31B adv limit → split across adv + scan response
   NimBLEAdvertisementData scanRsp;
@@ -295,8 +351,8 @@ void setup() {
   adv->setScanResponseData(scanRsp);
   adv->start();
 
-  Serial.printf("BLE: advertising. Sim: tank=%.0f%% motor=%s\n",
-                tankPct, motorOn ? "ON" : "OFF");
+  Serial.printf("BLE: advertising v%s. Sim: tank=%.0f%% motor=%s\n",
+                FW_VERSION, tankPct, motorOn ? "ON" : "OFF");
 }
 
 // ── loop ──────────────────────────────────────────────────────────────────────

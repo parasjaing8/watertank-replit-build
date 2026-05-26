@@ -11,7 +11,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { DATA_RETENTION_DEFAULT_DAYS, TANK_LOW_PCT } from "@/constants/thresholds";
 import { DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
-import { BLEService, bleModuleAvailable } from "@/services/BLEService";
+import { BLEService, bleModuleAvailable, registerBleService } from "@/services/BLEService";
+import { checkFirmwareUpdate, FirmwareManifest } from "@/services/FirmwareUpdateService";
 import * as NotificationService from "@/services/NotificationService";
 import { useLanguage } from "@/context/LanguageContext";
 import { IDeviceService } from "@/services/IDeviceService";
@@ -68,6 +69,8 @@ interface DeviceContextValue {
   exportData: () => WaterEvent[];
   refreshKey: number;
   refreshData: () => void;
+  firmwareUpdateAvailable: boolean;
+  firmwareManifest: FirmwareManifest | null;
 }
 
 const DeviceContext = createContext<DeviceContextValue | null>(null);
@@ -81,6 +84,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const [bleLog, setBleLog] = useState<string[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [firmwareUpdateAvailable, setFirmwareUpdateAvailable] = useState(false);
+  const [firmwareManifest, setFirmwareManifest] = useState<FirmwareManifest | null>(null);
   const serviceRef = useRef<IDeviceService | null>(null);
   const { t } = useLanguage();
   const tRef = useRef(t);
@@ -91,6 +96,20 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   const lastStopReasonRef = useRef<StopReason>(StopReason.NONE);
   const prevManualRef = useRef<boolean>(false);
+
+  // When firmware version is read from board on connect, check GitHub for update
+  useEffect(() => {
+    const version = deviceState.firmwareVersion;
+    if (!version) return;
+    checkFirmwareUpdate(version)
+      .then((manifest) => {
+        setFirmwareManifest(manifest);
+        setFirmwareUpdateAvailable(manifest !== null);
+      })
+      .catch(() => {
+        // no network — silently ignore, do not clear existing update state
+      });
+  }, [deviceState.firmwareVersion]);
 
   // Initialise DB, load persisted settings, THEN start BLE service so retention
   // uses the user's actual saved value rather than the default.
@@ -144,6 +163,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
     const svc = new BLEService();
     serviceRef.current = svc;
+    registerBleService(svc);
 
     svc.subscribe((state) => {
       setDeviceState(state);
@@ -316,6 +336,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         exportData,
         refreshKey,
         refreshData,
+        firmwareUpdateAvailable,
+        firmwareManifest,
       }}
     >
       {children}

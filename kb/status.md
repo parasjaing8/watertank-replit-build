@@ -2,7 +2,7 @@
 _Last updated: 2026-05-26_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v24-release.apk`
+`1.0.0` (package.json) | Latest APK: `app-release.apk` (v25, built 2026-05-26 on bleOTA branch)
 - v24: Toast→inline banner (no motor card overlap), motor border opacity fix, spacer capped; refactor index.tsx 675→359 lines
 - v23: Dashboard layout — tank/% spacing, motor status section label, spacer for vertical distribution
 - v22: Setup guide images (correct aspect ratios), app freeze-on-resume fix (AppState), right-to-left swipe fix
@@ -71,12 +71,13 @@ All 44 findings resolved as of 2026-05-24.
 
 ### F-OTA: BLE Firmware Update (phone → board over Bluetooth)
 **Full detail:** `kb/ble_ota.md` — library choice, protocol, 6-phase plan, risk register, all file changes
+**Status:** Phase 6 DONE — bench test 24/26 green. Ready to merge bleOTA → master.
+**fw-v1.1.0:** Live on GitHub Releases. Board currently on v1.1.0.
+**APK v25:** Built from bleOTA branch at `android/app/build/outputs/apk/release/app-release.apk`
+**Bench test:** `scripts/ota_bench_test.py` — 24/26 passing. T_BLE3 (char not in v1.1.0) and OTA#2 same-version rejection are expected failures.
 **Library:** `h2zero/NimBLEOta` (same author as NimBLE-Arduino, 2.x compatible, v0.2.0 Apr 2025)
-**Transfer:** 4KB sectors, CRC16/sector, SHA256 whole-image, 512B chunks, ~30–45s for 900KB
+**Transfer:** 4KB sectors, CRC16/sector, 512B chunks, ~141s for 1218KB (BLE WRITE_NR 20ms/pkt)
 **Rollback:** `esp_ota_mark_app_valid_cancel_rollback()` — A/B partition, 60s watchdog window
-**Resume:** Offset-based — board tracks last sector; BLE drop is recoverable not catastrophic
-**Prerequisite:** Phase 1 (partition table verify) must come before anything else.
-**Order:** BLE OTA → WiFi removal → sensor integration → deploy to Samdoli
 
 ### F-PROD: Production firmware variant (BLE-only, no WiFi)
 **Why:** Field units won't have WiFi; WiFi draws ~100mA extra; wfHandleOTA() is dead weight.

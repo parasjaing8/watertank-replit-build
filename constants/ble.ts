@@ -9,6 +9,14 @@ export const BLE_CHAR_TANK = "beb5483f-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_LOG_CTRL = "beb54840-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_LOG_DATA = "beb54841-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_TIME_SYNC = "beb54842-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_FW_VERSION = "beb54843-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_RESET_REASON = "beb54844-36e1-4688-b7f5-ea07361b26a8";
+
+// NimBLEOta service — separate GATT service added by h2zero/NimBLEOta
+// Short UUIDs 0x8018/0x8020/0x8022 expand to full 128-bit with BT base UUID
+export const BLE_OTA_SERVICE_UUID = "00008018-0000-1000-8000-00805f9b34fb";
+export const BLE_OTA_CHAR_RECV_FW = "00008020-0000-1000-8000-00805f9b34fb";
+export const BLE_OTA_CHAR_COMMAND = "00008022-0000-1000-8000-00805f9b34fb";
 
 export const BLE_LOG_START = 0x01;
 export const BLE_LOG_ACK = 0x02;

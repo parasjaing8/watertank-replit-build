@@ -52,10 +52,12 @@ function getStopReasonColor(
 }
 
 export function EventRow({ event }: EventRowProps) {
-  if (HIDDEN_EVENT_TYPES.includes(event.type)) return null;
   const colors = useColors();
   const { t } = useLanguage();
   const font = useAppFont();
+
+  // Guard must come AFTER all hook calls — Rules of Hooks forbids conditional hooks
+  if (HIDDEN_EVENT_TYPES.includes(event.type)) return null;
   const borderColor = getLeftBorderColor(event, colors);
   const timeStr = formatTime(event.epoch);
 

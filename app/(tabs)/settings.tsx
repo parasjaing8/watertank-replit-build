@@ -24,6 +24,11 @@ import { formatDate, formatDuration } from "@/utils/formatters";
 import { useLanguage } from "@/context/LanguageContext";
 import { Lang } from "@/constants/i18n";
 import { SetupGuideModal } from "@/components/SetupGuideModal";
+import {
+  clearLogs,
+  exportLogs,
+  getLogStats,
+} from "@/services/CrashReportService";
 
 function SectionHeader({
   title,
@@ -114,6 +119,9 @@ export default function SettingsScreen() {
     clearData,
     exportData,
     getDbInfo,
+    firmwareUpdateAvailable,
+    firmwareManifest,
+    deviceState,
   } = useDevice();
 
   const [showBleLog, setShowBleLog] = useState(false);
@@ -122,6 +130,16 @@ export default function SettingsScreen() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCleared, setShowCleared] = useState(false);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
+  const [diagStats, setDiagStats] = useState(() => getLogStats());
+
+  const handleExportLogs = useCallback(async () => {
+    await exportLogs();
+  }, []);
+
+  const handleClearDiagLogs = useCallback(async () => {
+    await clearLogs();
+    setDiagStats({ count: 0, sizeKb: 0 });
+  }, []);
 
   const dbInfo = getDbInfo();
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
@@ -488,6 +506,67 @@ export default function SettingsScreen() {
           icon="trash-2"
           destructive
           onPress={handleClearData}
+          colors={colors}
+        />
+      </View>
+
+      {/* Device firmware */}
+      {deviceState.connected && (
+        <>
+          <SectionHeader title="DEVICE" colors={colors} />
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
+              onPress={() => router.push("/firmware-update")}
+              activeOpacity={0.7}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>Firmware Update</Text>
+                {deviceState.firmwareVersion && (
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground, fontSize: 12 }]}>
+                    Current: v{deviceState.firmwareVersion}
+                    {firmwareManifest ? `  →  v${firmwareManifest.version} available` : "  (up to date)"}
+                  </Text>
+                )}
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {firmwareUpdateAvailable && (
+                  <View style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ color: "#fff", fontSize: 11, fontWeight: "bold" }}>UPDATE</Text>
+                  </View>
+                )}
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      {/* Diagnostics */}
+      <SectionHeader title="DIAGNOSTICS" colors={colors} />
+      <View style={[styles.section, { borderColor: colors.border }]}>
+        <View style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Diagnostic logs</Text>
+          <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+            {diagStats.count} entries · {diagStats.sizeKb} KB
+          </Text>
+        </View>
+        <ActionRow
+          label="Export logs"
+          icon="share"
+          onPress={handleExportLogs}
+          colors={colors}
+        />
+        <ActionRow
+          label="Clear logs"
+          icon="trash-2"
+          destructive
+          onPress={() => {
+            Alert.alert("Clear diagnostic logs?", "This cannot be undone.", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Clear", style: "destructive", onPress: handleClearDiagLogs },
+            ]);
+          }}
           colors={colors}
         />
       </View>
