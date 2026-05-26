@@ -1,5 +1,15 @@
 # WaterTank — Session Logs
 
+## 2026-05-26 — Merge bleOTA → master, build APK v26
+
+### What was done
+- Merged bleOTA → master (no-ff, 24 commits, all BLE OTA phases 1-6)
+- Built release APK v26: `android/app/build/outputs/apk/release/app-release.apk` (100MB)
+- Pushed master to origin
+
+### Next
+- Install APK v26 on Android phone and test BLE OTA flow end-to-end
+
 ## 2026-05-26 — Phase 6 OTA bench test: 24/26 green, end-to-end transfer confirmed
 
 ### What was done

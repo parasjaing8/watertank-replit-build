@@ -2,7 +2,7 @@
 _Last updated: 2026-05-26_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `app-release.apk` (v25, built 2026-05-26 on bleOTA branch)
+`1.0.0` (package.json) | Latest APK: `app-release.apk` (v26, built 2026-05-26, master branch, includes full BLE OTA)
 - v24: Toast→inline banner (no motor card overlap), motor border opacity fix, spacer capped; refactor index.tsx 675→359 lines
 - v23: Dashboard layout — tank/% spacing, motor status section label, spacer for vertical distribution
 - v22: Setup guide images (correct aspect ratios), app freeze-on-resume fix (AppState), right-to-left swipe fix
