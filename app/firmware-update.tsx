@@ -12,6 +12,7 @@ import { router, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDevice } from "@/context/DeviceContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { getBleService } from "@/services/BLEService";
 import { downloadFirmware, performOtaTransfer } from "@/services/FirmwareUpdateService";
@@ -27,6 +28,7 @@ type OtaState =
   | "cancelled";
 
 export default function FirmwareUpdateScreen() {
+  const { t } = useLanguage();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { deviceState, firmwareUpdateAvailable, firmwareManifest } = useDevice();
@@ -42,7 +44,7 @@ export default function FirmwareUpdateScreen() {
   useEffect(() => {
     if (otaState !== "rebooting") return;
     const t = setTimeout(() => {
-      setErrorMsg("Device did not reconnect after 60 seconds. Check device power and retry.");
+      setErrorMsg(t("fwTimeout60"));
       setOtaState("error");
     }, 60000);
     return () => clearTimeout(t);
@@ -143,7 +145,7 @@ export default function FirmwareUpdateScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Firmware Update",
+          title: t("fwUpdateTitle"),
           headerStyle: { backgroundColor: colors.card },
           headerTintColor: colors.foreground,
         }}
@@ -154,13 +156,13 @@ export default function FirmwareUpdateScreen() {
       >
         {/* Current / available versions */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Row label="Device firmware" value={deviceState.firmwareVersion ? `v${deviceState.firmwareVersion}` : "—"} colors={colors} />
+          <Row label={t("fwDeviceFirmware")} value={deviceState.firmwareVersion ? `v${deviceState.firmwareVersion}` : "—"} colors={colors} />
           {firmwareManifest && (
-            <Row label="Available" value={`v${firmwareManifest.version}`} colors={colors} highlight />
+            <Row label={t("fwAvailable")} value={`v${firmwareManifest.version}`} colors={colors} highlight />
           )}
           {!firmwareUpdateAvailable && otaState === "idle" && (
             <Text style={[styles.upToDate, { color: colors.mutedForeground }]}>
-              Firmware is up to date.
+              {t("fwUpToDate")}
             </Text>
           )}
         </View>
@@ -168,7 +170,7 @@ export default function FirmwareUpdateScreen() {
         {/* Changelog */}
         {firmwareManifest?.changelog && otaState === "idle" && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>CHANGELOG</Text>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>{t("fwChangelog")}</Text>
             <Text style={[styles.changelog, { color: colors.foreground }]}>
               {firmwareManifest.changelog}
             </Text>
@@ -184,7 +186,7 @@ export default function FirmwareUpdateScreen() {
         {(otaState === "downloading" || otaState === "transferring") && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.statusTitle, { color: colors.foreground }]}>
-              {otaState === "downloading" ? "Downloading firmware…" : `Transferring firmware…`}
+              {otaState === "downloading" ? t("fwDownloading") : t("fwTransferring")}
             </Text>
             {otaState === "transferring" && progress.total > 0 && (
               <>
@@ -200,7 +202,7 @@ export default function FirmwareUpdateScreen() {
             )}
             {otaState === "downloading" && <ActivityIndicator color={colors.primary} style={{ marginTop: 12 }} />}
             <Text style={[styles.warning, { color: colors.mutedForeground }]}>
-              Keep phone within 2 metres. Do not close the app.
+              {t("fwKeepClose")}
             </Text>
           </View>
         )}
@@ -210,12 +212,10 @@ export default function FirmwareUpdateScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <ActivityIndicator color={colors.primary} />
             <Text style={[styles.statusTitle, { color: colors.foreground, marginTop: 12 }]}>
-              {otaState === "rebooting" ? "Device rebooting…" : "Confirming update…"}
+              {otaState === "rebooting" ? t("fwRebooting") : t("fwConfirming")}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-              {otaState === "rebooting"
-                ? "The device will reconnect automatically in ~10 seconds."
-                : "Verifying new firmware version on device."}
+              {otaState === "rebooting" ? t("fwRebootHint") : t("fwConfirmHint")}
             </Text>
           </View>
         )}
@@ -225,10 +225,10 @@ export default function FirmwareUpdateScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Feather name="check-circle" size={40} color="#22c55e" style={{ alignSelf: "center" }} />
             <Text style={[styles.statusTitle, { color: colors.foreground, textAlign: "center", marginTop: 12 }]}>
-              Update complete
+              {t("fwDoneTitle")}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center" }]}>
-              Device is now running firmware v{targetVersion}.
+              {t("fwDoneBody")} v{targetVersion}.
             </Text>
           </View>
         )}
@@ -238,13 +238,13 @@ export default function FirmwareUpdateScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Feather name="alert-triangle" size={40} color="#f59e0b" style={{ alignSelf: "center" }} />
             <Text style={[styles.statusTitle, { color: colors.foreground, textAlign: "center", marginTop: 12 }]}>
-              Transfer cancelled
+              {t("fwCancelledTitle")}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center" }]}>
-              The device is mid-flash. Power-cycle the device before trying again — it will roll back to the previous firmware automatically.
+              {t("fwCancelledBody")}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center", marginTop: 4 }]}>
-              Waiting for device to disconnect…
+              {t("fwCancelledWaiting")}
             </Text>
           </View>
         )}
@@ -254,13 +254,13 @@ export default function FirmwareUpdateScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Feather name="alert-circle" size={40} color="#ef4444" style={{ alignSelf: "center" }} />
             <Text style={[styles.statusTitle, { color: colors.foreground, textAlign: "center", marginTop: 12 }]}>
-              Update failed
+              {t("fwErrorTitle")}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center" }]}>
-              {errorMsg || "An unknown error occurred."}
+              {errorMsg || t("fwErrorFallback")}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground, textAlign: "center", marginTop: 4 }]}>
-              Device has automatically rolled back to the previous firmware.
+              {t("fwErrorRollback")}
             </Text>
           </View>
         )}
@@ -273,7 +273,7 @@ export default function FirmwareUpdateScreen() {
               onPress={startUpdate}
             >
               <Text style={[styles.btnText, { color: "#fff" }]}>
-                Install v{firmwareManifest?.version}
+                {t("fwInstall")} v{firmwareManifest?.version}
               </Text>
             </TouchableOpacity>
           )}
@@ -282,7 +282,7 @@ export default function FirmwareUpdateScreen() {
               style={[styles.btn, { backgroundColor: colors.muted }]}
               onPress={cancel}
             >
-              <Text style={[styles.btnText, { color: colors.foreground }]}>Cancel</Text>
+              <Text style={[styles.btnText, { color: colors.foreground }]}>{t("cancel")}</Text>
             </TouchableOpacity>
           )}
           {(otaState === "done" || otaState === "error") && (
@@ -290,7 +290,7 @@ export default function FirmwareUpdateScreen() {
               style={[styles.btn, { backgroundColor: colors.muted }]}
               onPress={() => router.back()}
             >
-              <Text style={[styles.btnText, { color: colors.foreground }]}>Done</Text>
+              <Text style={[styles.btnText, { color: colors.foreground }]}>{t("fwDone")}</Text>
             </TouchableOpacity>
           )}
           {otaState === "error" && (
@@ -298,7 +298,7 @@ export default function FirmwareUpdateScreen() {
               style={[styles.btn, { backgroundColor: colors.primary, marginTop: 8 }]}
               onPress={() => setOtaState("idle")}
             >
-              <Text style={[styles.btnText, { color: "#fff" }]}>Try Again</Text>
+              <Text style={[styles.btnText, { color: "#fff" }]}>{t("fwRetry")}</Text>
             </TouchableOpacity>
           )}
         </View>
