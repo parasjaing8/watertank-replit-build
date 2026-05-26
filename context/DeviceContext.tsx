@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { DATA_RETENTION_DEFAULT_DAYS, TANK_LOW_PCT } from "@/constants/thresholds";
 import { DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
-import { BLEService, bleModuleAvailable } from "@/services/BLEService";
+import { BLEService, bleModuleAvailable, registerBleService } from "@/services/BLEService";
 import { checkFirmwareUpdate, FirmwareManifest } from "@/services/FirmwareUpdateService";
 import * as NotificationService from "@/services/NotificationService";
 import { useLanguage } from "@/context/LanguageContext";
@@ -163,6 +163,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
     const svc = new BLEService();
     serviceRef.current = svc;
+    registerBleService(svc);
 
     svc.subscribe((state) => {
       setDeviceState(state);

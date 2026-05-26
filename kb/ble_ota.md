@@ -11,7 +11,7 @@ _Research date: 2026-05-26 | Last updated: 2026-05-26 | Author: Claude Sonnet 4.
 | 1 | Partition table verification | DONE — default scheme already has OTA A/B slots (1.25MB each) |
 | 2 | Firmware OTA service + C_FWVER + rollback | DONE — committed c4b42b7, flashed, 43/43 tests passing |
 | 3 | GitHub Releases + release script | DONE — fw-v1.0.0 live, manifest verified |
-| 4 | App version check (BLEService + DeviceContext + Settings badge) | PENDING |
+| 4 | App version check (BLEService + DeviceContext + Settings badge) | DONE — committed c1f4ec1 |
 | 5 | App OTA transfer screen (FirmwareUpdateService + UI) | PENDING |
 | 6 | End-to-end bench validation | PENDING |
 

@@ -58,6 +58,7 @@ if (Platform.OS === "android" || Platform.OS === "ios") {
 export { bleModuleAvailable };
 
 let _managerInstance: unknown = null;
+let _bleServiceInstance: BLEService | null = null;
 
 export function getBleManager(): unknown {
   if (!bleModuleAvailable || !BleManagerClass) return null;
@@ -66,6 +67,9 @@ export function getBleManager(): unknown {
   }
   return _managerInstance;
 }
+
+export function getBleService(): BLEService | null { return _bleServiceInstance; }
+export function registerBleService(svc: BLEService): void { _bleServiceInstance = svc; }
 
 // Initialise from current timestamp so IDs are always higher than any
 // previously stored value after an app restart or hot-reload.
@@ -110,6 +114,10 @@ export class BLEService implements IDeviceService {
     return () => {
       this.listeners = this.listeners.filter((l) => l !== fn);
     };
+  }
+
+  getConnectedDeviceId(): string | null {
+    return (this.device as { id?: string } | null)?.id ?? null;
   }
 
   subscribeEvents(fn: EventListener): () => void {
