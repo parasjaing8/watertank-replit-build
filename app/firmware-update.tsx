@@ -103,7 +103,7 @@ export default function FirmwareUpdateScreen() {
       // 1. Download
       setOtaState("downloading");
       setProgress({ done: 0, total: 0 });
-      const firmwareBytes = await downloadFirmware(firmwareManifest.url);
+      const firmwareBytes = await downloadFirmware(firmwareManifest.url, firmwareManifest.sha256 || undefined);
 
       if (abortRef.current.signal.aborted) return;
 

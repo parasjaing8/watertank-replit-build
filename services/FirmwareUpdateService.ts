@@ -80,6 +80,7 @@ export async function checkFirmwareUpdate(
 
 export async function downloadFirmware(
   url: string,
+  expectedSha256?: string,
   onProgress?: (pct: number) => void,
 ): Promise<Uint8Array> {
   const res = await fetch(url);
@@ -88,6 +89,18 @@ export async function downloadFirmware(
   // React Native / Hermes supports arrayBuffer() on fetch responses
   const buffer = await res.arrayBuffer();
   onProgress?.(100);
+
+  if (expectedSha256) {
+    // crypto.subtle is available in Hermes (RN 0.74+) and web
+    const hashBuf = await crypto.subtle.digest("SHA-256", buffer);
+    const hashHex = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    if (hashHex !== expectedSha256.toLowerCase()) {
+      throw new Error(`Firmware SHA-256 mismatch — download may be corrupted`);
+    }
+  }
+
   return new Uint8Array(buffer);
 }
 
