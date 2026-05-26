@@ -81,7 +81,10 @@ export async function downloadFirmware(
 //           variable-size RECV_FW packets with [sectorLo,sectorHi,packetNum,...data]
 
 const SECTOR_SIZE   = 4096;           // firmware bytes per OTA sector
-const MAX_DATA_PER_PACKET = 509;      // 512 MTU - 3 header bytes
+// ATT WRITE_NR payload cap = MTU - 3 = 509 bytes.
+// Non-last frame: 3-byte header + data         → max data = 506
+// Last frame:     3-byte header + data + 2 CRC → max data = 504  (binding constraint)
+const MAX_DATA_PER_PACKET = 504;
 
 // CRC16 — polynomial 0x1021, matches NimBLEOta::getCrc16()
 function crc16(data: Uint8Array, len?: number): number {
