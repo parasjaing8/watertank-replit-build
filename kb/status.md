@@ -70,14 +70,13 @@ All 44 findings resolved as of 2026-05-24.
 ## Future Plans (post-v1)
 
 ### F-OTA: BLE Firmware Update (phone → board over Bluetooth)
-**Why:** Production units are WiFi-less. Physical access for firmware updates is impractical at scale.
-**How:**
-- Firmware: custom GATT OTA service using `esp_ota_begin/write/end/set_boot_partition` + `esp_restart()`
-- App: file picker → chunk .bin into 512B MTU chunks → sequential BLE writes → progress UI
-- Reference impl: `fbiego/esp32-ble-ota` (GitHub) — Arduino + Android
-- Transfer time: ~40–50s for 900KB binary over BLE
-**Prerequisite:** WiFi removal from production firmware must come first.
-**Priority:** Post-v1, when field units are deployed at scale.
+**Full detail:** `kb/ble_ota.md` — library choice, protocol, 6-phase plan, risk register, all file changes
+**Library:** `h2zero/NimBLEOta` (same author as NimBLE-Arduino, 2.x compatible, v0.2.0 Apr 2025)
+**Transfer:** 4KB sectors, CRC16/sector, SHA256 whole-image, 512B chunks, ~30–45s for 900KB
+**Rollback:** `esp_ota_mark_app_valid_cancel_rollback()` — A/B partition, 60s watchdog window
+**Resume:** Offset-based — board tracks last sector; BLE drop is recoverable not catastrophic
+**Prerequisite:** Phase 1 (partition table verify) must come before anything else.
+**Order:** BLE OTA → WiFi removal → sensor integration → deploy to Samdoli
 
 ### F-PROD: Production firmware variant (BLE-only, no WiFi)
 **Why:** Field units won't have WiFi; WiFi draws ~100mA extra; wfHandleOTA() is dead weight.
