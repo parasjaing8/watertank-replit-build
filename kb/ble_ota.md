@@ -1,6 +1,38 @@
 # BLE OTA Firmware Update — Full Reference
 
-_Research date: 2026-05-26 | Author: Claude Sonnet 4.6_
+_Research date: 2026-05-26 | Last updated: 2026-05-26 | Author: Claude Sonnet 4.6_
+
+---
+
+## Implementation Status
+
+| Phase | Description | Status |
+|---|---|---|
+| 1 | Partition table verification | DONE — default scheme already has OTA A/B slots (1.25MB each) |
+| 2 | Firmware OTA service + C_FWVER + rollback | DONE — committed c4b42b7, flashed, 43/43 tests passing |
+| 3 | GitHub Releases + release script | PENDING |
+| 4 | App version check (BLEService + DeviceContext + Settings badge) | PENDING |
+| 5 | App OTA transfer screen (FirmwareUpdateService + UI) | PENDING |
+| 6 | End-to-end bench validation | PENDING |
+
+### Phase 1 Findings (2026-05-26)
+- Board uses `esp32:esp32:esp32wrover` with `default` partition scheme
+- Default has: nvs + otadata + app0/ota_0 (1.25MB) + app1/ota_1 (1.25MB) + spiffs + coredump
+- OTA A/B slots already present — NO custom partitions.csv needed
+- `min_spiffs` scheme (1.9MB/slot) available if needed but requires serial flash to change
+- Current firmware at 94% of 1.25MB with WiFi+NimBLE — tight but workable in dev
+
+### Phase 2 Findings (2026-05-26)
+- NimBLEOta installed via arduino-cli `--git-url` — lives at `~/Documents/Arduino/libraries/NimBLEOta/`
+- Binary size after adding NimBLEOta: 1,247,943 bytes (95%, +8KB from 1,239,687)
+- 62KB headroom remains in 1.25MB OTA slot — fits
+- Resume-on-reconnect is built-in in NimBLEOta (Reconnected reason in commandOnWrite)
+- `start()` uses `NimBLEDevice::createServer()` singleton — safe alongside existing server
+- Rollback validation placed in `pushState()` after first successful notify (fwValidated flag)
+- 5-minute abort timer via `bleOta.startAbortTimer(300)` — prevents hung transfer blocking BLE
+- C_FWVER UUID: `beb54843-36e1-4688-b7f5-ea07361b26a8` (next in existing sequence)
+- FW_VERSION: `"1.0.0"` — bump this define for every release
+- Test suite updated: 41→43 tests (T2.2 C_FWVER present + T2.3 semver read)
 
 ---
 
