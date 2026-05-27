@@ -214,7 +214,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
           if (!simModeRef.current) {
             startBleService(settingsRef.current.retentionDays);
           }
-        }, 300);
+        }, 500);
       }
     });
     return () => sub.remove();

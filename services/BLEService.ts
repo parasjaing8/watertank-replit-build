@@ -204,46 +204,60 @@ export class BLEService implements IDeviceService {
         cb: (err: unknown, device: unknown) => void,
       ): void;
       stopDeviceScan(): void;
-      state(cb: (err: unknown, state: string) => void): void;
+      state(): Promise<string>;
     } | null;
     if (!mgr) return;
 
     this.log("Scanning for WaterTank...");
     this.emit({ ...this.state, connected: false });
 
-    this.scanTimer = setTimeout(() => {
-      if (!this.running) return;
-      this.log("Scan timeout — retrying...");
-      try { mgr.stopDeviceScan(); } catch {}
-      this.scheduleReconnect();
-    }, BLE_SCAN_TIMEOUT);
+    const doScan = () => {
+      this.scanTimer = setTimeout(() => {
+        if (!this.running) return;
+        this.log("Scan timeout — retrying...");
+        try { mgr.stopDeviceScan(); } catch {}
+        this.scheduleReconnect();
+      }, BLE_SCAN_TIMEOUT);
 
-    try {
-      mgr.startDeviceScan(null, null, (err, device) => {
-        if (err) {
-          this.log(`Scan error: ${String(err)}`);
-          logBleError("scan error", { error: String(err) });
-          this.scheduleReconnect();
-          return;
-        }
-        const dev = device as { name?: string; id: string; connect(): Promise<unknown> } | null;
-        if (isTankDevice(dev?.name)) {
-          if (this.scanTimer) clearTimeout(this.scanTimer);
-          this.scanTimer = null;
-          try { mgr.stopDeviceScan(); } catch {}
-          this.log(`Found ${dev.name} (${dev.id}) — connecting...`);
-          const devId = dev.id;
-          this.connectToDevice(dev).catch((e) => {
-            this.log(`Connect failed: ${String(e)}`);
-            logBleError("connect failed", { deviceId: devId, error: String(e) });
+      try {
+        mgr.startDeviceScan(null, null, (err, device) => {
+          if (err) {
+            this.log(`Scan error: ${String(err)}`);
+            logBleError("scan error", { error: String(err) });
             this.scheduleReconnect();
-          });
-        }
-      });
-    } catch (e) {
-      this.log(`startDeviceScan threw: ${String(e)}`);
-      this.scheduleReconnect();
-    }
+            return;
+          }
+          const dev = device as { name?: string; id: string; connect(): Promise<unknown> } | null;
+          if (isTankDevice(dev?.name)) {
+            if (this.scanTimer) clearTimeout(this.scanTimer);
+            this.scanTimer = null;
+            try { mgr.stopDeviceScan(); } catch {}
+            this.log(`Found ${dev.name} (${dev.id}) — connecting...`);
+            const devId = dev.id;
+            this.connectToDevice(dev).catch((e) => {
+              this.log(`Connect failed: ${String(e)}`);
+              logBleError("connect failed", { deviceId: devId, error: String(e) });
+              this.scheduleReconnect();
+            });
+          }
+        });
+      } catch (e) {
+        this.log(`startDeviceScan threw: ${String(e)}`);
+        this.scheduleReconnect();
+      }
+    };
+
+    // On Android, BLE adapter may be in Resetting/Unknown state briefly after
+    // app resumes from background. Check before scanning; retry in 1s if not ready.
+    mgr.state().then((s) => {
+      if (!this.running) return;
+      if (s !== 'PoweredOn') {
+        this.log(`BLE adapter not ready (${s}) — retry in 1s`);
+        setTimeout(() => { if (this.running) this.startScan(); }, 1000);
+        return;
+      }
+      doScan();
+    }).catch(() => doScan());
   }
 
   private async connectToDevice(dev: { id: string; connect(): Promise<unknown> }): Promise<void> {
