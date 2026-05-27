@@ -78,10 +78,16 @@ let _bleServiceInstance: BLEService | null = null;
 export function getBleManager(): unknown {
   if (!bleModuleAvailable || !BleManagerClass) return null;
   if (!_managerInstance) {
-    _managerInstance = new (BleManagerClass as new () => unknown)();
+    try {
+      _managerInstance = new (BleManagerClass as new () => unknown)();
+    } catch {
+      return null;
+    }
   }
   return _managerInstance;
 }
+
+export function resetBleManager(): void { _managerInstance = null; }
 
 export function getBleService(): BLEService | null { return _bleServiceInstance; }
 export function registerBleService(svc: BLEService): void { _bleServiceInstance = svc; }
@@ -238,11 +244,20 @@ export class BLEService implements IDeviceService {
     if (this.logStreamTimer) { clearTimeout(this.logStreamTimer); this.logStreamTimer = null; }
     this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
     this.subscriptions = [];
-    const mgr = getBleManager() as { stopDeviceScan(): void; cancelDeviceConnection(id: string): Promise<void> } | null;
+    const mgr = getBleManager() as {
+      stopDeviceScan(): void;
+      cancelDeviceConnection(id: string): Promise<void>;
+      destroy(): void;
+    } | null;
     if (mgr) {
       try { mgr.stopDeviceScan(); } catch {}
       if (this.device?.id) mgr.cancelDeviceConnection(this.device.id).catch(() => {});
+      // destroy() unregisters the GATT client from Android's BT stack immediately,
+      // preventing stale scanner registrations from saturating Android's 5-per-app limit.
+      try { mgr.destroy(); } catch {}
     }
+    // Reset singleton so next start() creates a fresh BleManager
+    resetBleManager();
     this.device = null;
   }
 
@@ -311,7 +326,9 @@ export class BLEService implements IDeviceService {
 
       let connecting = false;
       try {
-        mgr.startDeviceScan([BLE_SERVICE_UUID], null, (err, device) => {
+        // Scan with null filter (no hardware UUID filter) — more compatible across Android
+        // versions and OEM BT stacks. Identify our board by serviceUUIDs or name in callback.
+        mgr.startDeviceScan(null, null, (err, device) => {
           if (err) {
             this.log(`Scan error: ${String(err)}`);
             logBleError("scan error", { error: String(err) });
@@ -321,12 +338,22 @@ export class BLEService implements IDeviceService {
             return;
           }
           if (connecting) return;
-          const dev = device as { name?: string; id: string; connect(opts?: unknown): Promise<ConnectedDevice> } | null;
+          const dev = device as {
+            name?: string; localName?: string; id: string;
+            serviceUUIDs?: string[];
+            connect(opts?: unknown): Promise<ConnectedDevice>;
+          } | null;
           if (!dev?.id) return;
+          // Identify WaterTank board by service UUID or name
+          const hasServiceUUID = dev.serviceUUIDs?.some(
+            (u) => u.toLowerCase() === BLE_SERVICE_UUID.toLowerCase(),
+          );
+          const hasName = (dev.name ?? dev.localName ?? "").toLowerCase().includes("watertank");
+          if (!hasServiceUUID && !hasName) return;
           connecting = true;
           if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
           try { mgr.stopDeviceScan(); } catch {}
-          this.log(`Found ${dev.name ?? "WaterTank"} (${dev.id}) — connecting...`);
+          this.log(`Found ${dev.name ?? dev.localName ?? "WaterTank"} (${dev.id}) — connecting...`);
           const devId = dev.id;
           dev.connect().then((connected) => this.setupConnectedDevice(connected)).catch((e) => {
             this.log(`Connect failed: ${String(e)}`);
