@@ -219,6 +219,10 @@ export class BLEService implements IDeviceService {
         this.scheduleReconnect();
       }, BLE_SCAN_TIMEOUT);
 
+      // Guard: native BLE callbacks for multiple matching devices can arrive
+      // before stopDeviceScan() flushes — this prevents double connectToDevice.
+      let connecting = false;
+
       try {
         // Filter by service UUID so Android matches on the advertising packet.
         // Device name ("WaterTank") is in the scan response — it arrives after
@@ -231,8 +235,10 @@ export class BLEService implements IDeviceService {
             this.scheduleReconnect();
             return;
           }
+          if (connecting) return;
           const dev = device as { name?: string; id: string; connect(): Promise<unknown> } | null;
           if (!dev?.id) return;
+          connecting = true;
           if (this.scanTimer) clearTimeout(this.scanTimer);
           this.scanTimer = null;
           try { mgr.stopDeviceScan(); } catch {}
