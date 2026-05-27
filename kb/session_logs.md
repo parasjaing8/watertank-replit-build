@@ -1,5 +1,24 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — Phase 4: Auth test suite 24/24 green + firmware 30s post-claim window
+
+### Phase 4 complete
+- `scripts/auth_test.py` — 24-test BLE auth suite. Covers AUTH_01-05 (claimed read, wrong pw, default pw, token reuse, invalid token), SETUP_01-04 (unauthenticated reject, claim flow, old pw rejected, new pw accepted), VIS_01-03 (unauthenticated write rejected, auth enable/disable advertising), TOKEN_01 (5-slot eviction), RESET_01 (manual factory reset, skippable), EXISTING_01 (C_STATE/C_TANK/C_FILL_TARGET/log stream regression post-auth).
+- `--reset-board` flag: OTA NVS-clear + real firmware flash in one command — board starts in factory state automatically.
+- All 24/24 tests green against real firmware v1.3.0 on Witty Fox Storm Board.
+
+### Firmware change: 30s post-claim visibility window
+- **Before**: `SetupCB::onWrite` immediately called `stopAdvertising()` after claiming.
+- **After**: sets `bleVisible=true`, `visibilityEnd=millis()+30000` — board keeps advertising as the new name for 30s after setup. Allows the paired phone to re-verify the connection immediately after first setup without a BLE dead-zone.
+- Compiled and OTA-flashed to board at 192.168.0.126.
+
+### Lessons: macOS CoreBluetooth + bleak
+- `BleakClient(uuid)` requires the peripheral to have been seen in a BLE scan during the **current Python process** (new process = empty CoreBluetooth cache). Always scan before direct connects.
+- `retrievePeripheralsWithIdentifiers` returns empty for non-advertising peripherals even if connected recently — cannot reconnect to a silent peripheral on macOS without advertising.
+- `NimBLEDevice::advertiseOnDisconnect(true)` restart window is ~1 loop iteration (~50ms) — not catchable by a scan.
+- Hardware BOOT button factory reset requires board running normally; holding during power-on enters download mode instead.
+- OTA via espota.py is the reliable reset path when SW2 factory reset doesn't work.
+
 ## 2026-05-27 — Phase 3: Pairing UI (auth gate, PairingSheet, DeviceSetupModal, Settings Paired Devices)
 
 ### Phase 3 complete (no APK yet — needs firmware v1.3.0 on board first)

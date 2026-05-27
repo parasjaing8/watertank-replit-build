@@ -60,11 +60,12 @@ All 44 findings resolved as of 2026-05-24.
 - A9 skipped (getTankColor actively used by TankLevelBar.tsx)
 - P4 skipped (50-item BLE log already bounded; FlatList not needed)
 
-## Firmware + BLE Protocol Status (2026-05-26)
-- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, research-hardened
+## Firmware + BLE Protocol Status (2026-05-28)
+- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.3.0 with auth characteristics + 30s post-claim visibility window
 - OTA board IP: 192.168.0.126:3232
-- BLE test suite: `scripts/ble_test.py` — 41/41 passing
+- BLE test suite: `scripts/ble_test.py` — 41/41 passing; `scripts/auth_test.py` — 24/24 passing
 - Board: Witty Fox Storm Board (ESP32), no USB-UART; OTA only via `scripts/espota.py` or `wfHandleOTA()`
+- Run auth tests: `python3 scripts/auth_test.py --reset-board --skip-reset` (OTA resets NVS, skip manual BOOT reset)
 - Flash cmd: `python3 ~/Library/Arduino15/.../espota.py -i 192.168.0.126 -p 3232 -f firmware.bin`
 - Compile cmd: `arduino-cli compile --fqbn esp32:esp32:esp32wrover firmware/WaterTank/`
 
