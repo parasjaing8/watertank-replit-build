@@ -99,6 +99,7 @@ export class BLEService implements IDeviceService {
   private device: ConnectedDevice | null = null;
   private reconnectAttempt = 0;
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private logStreamTimer: ReturnType<typeof setTimeout> | null = null;
   private subscriptions: Array<{ remove(): void }> = [];
 
@@ -233,6 +234,7 @@ export class BLEService implements IDeviceService {
 
   private cleanup(): void {
     if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     if (this.logStreamTimer) { clearTimeout(this.logStreamTimer); this.logStreamTimer = null; }
     this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
     this.subscriptions = [];
@@ -246,12 +248,13 @@ export class BLEService implements IDeviceService {
 
   private scheduleReconnect(): void {
     if (!this.running) return;
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     const delay = BLE_RECONNECT_DELAYS[Math.min(this.reconnectAttempt, BLE_RECONNECT_DELAYS.length - 1)];
     this.reconnectAttempt++;
     this.log(`Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempt})...`);
-    setTimeout(() => {
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       if (!this.running) return;
-      // Try direct connect first, then scan
       this.tryDirectConnect().then((ok) => {
         if (!ok && this.running) this.startScan();
       }).catch(() => {
@@ -312,6 +315,8 @@ export class BLEService implements IDeviceService {
           if (err) {
             this.log(`Scan error: ${String(err)}`);
             logBleError("scan error", { error: String(err) });
+            if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+            try { mgr.stopDeviceScan(); } catch {}
             this.scheduleReconnect();
             return;
           }
