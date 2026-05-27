@@ -221,4 +221,4 @@ Rationale: home appliance UX — users don't expect periodic re-auth. Threat mod
 | PHASE 2 — App auth service | DONE | AuthService, BLEService refactor, DeviceContext wired |
 | PHASE 3 — Pairing UI | DONE | PairingSheet, DeviceSetupModal, dashboard auth gate, settings Paired Devices |
 | PHASE 4 — Test suite | DONE | 24/24 green against real hw; --reset-board flag for OTA reset |
-| PHASE 5 — Release build | NOT STARTED | |
+| PHASE 5 — Release build | DONE | v32 APK built + tagged; board in factory state for smoke test |

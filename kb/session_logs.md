@@ -1,5 +1,14 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — Phase 5: v32 APK built + released
+
+### Phase 5 complete (pending manual smoke test)
+- Deleted stale `.cxx` NDK artifacts that blocked `gradlew clean`
+- `gradlew clean && gradlew assembleRelease` — BUILD SUCCESSFUL in 3m 53s, 101MB APK
+- `watertank-v32.apk` tagged and pushed to GitHub Releases: https://github.com/parasjaing8/watertank-replit-build/releases/tag/v32
+- Board reset to factory state (WaterTank, unclaimed, pw=1234) via OTA NVS-clear for manual smoke test
+- Manual smoke test checklist: see Phase 5 tasks in kb/plan.md
+
 ## 2026-05-28 — Phase 4: Auth test suite 24/24 green + firmware 30s post-claim window
 
 ### Phase 4 complete
