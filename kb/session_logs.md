@@ -1,5 +1,15 @@
 # WaterTank — Session Logs
 
+## 2026-05-27 — Phase 3: Pairing UI (auth gate, PairingSheet, DeviceSetupModal, Settings Paired Devices)
+
+### Phase 3 complete (no APK yet — needs firmware v1.3.0 on board first)
+- `components/PairingSheet.tsx` — bottom-sheet password entry, shown when device connected but authState != 'ok'. Handles both claimed (wrong token → need password) and unclaimed (first setup → default "1234") flows. Shows hint text for unclaimed device, eye toggle, loading state, error on FAIL.
+- `components/DeviceSetupModal.tsx` — mandatory full-screen overlay (absolute positioned, not dismissable). Device name + new password + confirm. Validates min 4 chars + match. On success, authState becomes 'ok' via BLEService → DeviceContext → useEffect hides modal.
+- `app/(tabs)/index.tsx` — `isLive` now requires `authState === 'ok'`. Dashboard shows disconnected card while awaiting auth; PairingSheet overlays when connected-but-not-authed; DeviceSetupModal overlays after first successful password on unclaimed device.
+- `app/(tabs)/settings.tsx` — "PAIRED DEVICES" section shown when device connected: 5-min pairing window with countdown, list stored sessions by deviceName, "Allow New Device to Pair" (setVisibility), "Remove All Paired Devices" (clearSession for all stored MACs).
+- `constants/i18n.ts` — 16 new keys: authEnterPassword, authPasswordHint, authConnect, authWrongPassword, authConnecting, setupTitle, setupSubtitle, setupDeviceName, setupDeviceNamePlaceholder, setupNewPassword, setupConfirmPassword, setupPasswordMismatch, setupPasswordTooShort, setupSave, setupSaving, pairedDevices, allowNewPairing, pairingWindowOpen, removeThisDevice, removeDeviceConfirmTitle, removeDeviceConfirmMsg — all 4 languages (en/hi/mr/kn).
+- kb/plan.md: Phase 3 marked DONE.
+
 ## 2026-05-27 — BLE reconnect fix (v30), freeze fix (v29), hardware architecture (v27)
 
 ### v31 — Fix BLE discovery: scan by service UUID (this session)
