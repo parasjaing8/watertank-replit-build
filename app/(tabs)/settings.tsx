@@ -122,6 +122,7 @@ export default function SettingsScreen() {
     firmwareUpdateAvailable,
     firmwareManifest,
     deviceState,
+    setFillTarget,
   } = useDevice();
 
   const [showBleLog, setShowBleLog] = useState(false);
@@ -131,6 +132,23 @@ export default function SettingsScreen() {
   const [showCleared, setShowCleared] = useState(false);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [diagStats, setDiagStats] = useState(() => getLogStats());
+
+  // Local fill target state — synced from board on connect, debounced write on change
+  const [localFillTarget, setLocalFillTarget] = useState<number>(90);
+  const fillSaveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (deviceState.fillTarget !== null) setLocalFillTarget(deviceState.fillTarget);
+  }, [deviceState.fillTarget]);
+
+  const handleFillTarget = useCallback((val: number) => {
+    const clamped = Math.max(1, Math.min(98, val));
+    setLocalFillTarget(clamped);
+    if (fillSaveTimer.current) clearTimeout(fillSaveTimer.current);
+    fillSaveTimer.current = setTimeout(() => {
+      setFillTarget(clamped).catch(() => {});
+    }, 600);
+  }, [setFillTarget]);
 
   const handleExportLogs = useCallback(async () => {
     await exportLogs();
@@ -515,6 +533,39 @@ export default function SettingsScreen() {
         <>
           <SectionHeader title="DEVICE" colors={colors} />
           <View style={[styles.section, { borderColor: colors.border }]}>
+            {/* Fill target */}
+            <View style={{ backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+              <View style={[styles.row, { borderBottomColor: "transparent" }]}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  {t("fillTargetLabel")}
+                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => handleFillTarget(localFillTarget - 1)}
+                    onLongPress={() => handleFillTarget(localFillTarget - 5)}
+                    style={[styles.stepBtn, { backgroundColor: colors.muted }]}
+                    disabled={localFillTarget <= 1}
+                  >
+                    <Feather name="minus" size={16} color={localFillTarget <= 1 ? colors.border : colors.foreground} />
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: colors.primary, minWidth: 44, textAlign: "center" }}>
+                    {localFillTarget}%
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleFillTarget(localFillTarget + 1)}
+                    onLongPress={() => handleFillTarget(localFillTarget + 5)}
+                    style={[styles.stepBtn, { backgroundColor: colors.muted }]}
+                    disabled={localFillTarget >= 98}
+                  >
+                    <Feather name="plus" size={16} color={localFillTarget >= 98 ? colors.border : colors.foreground} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <Text style={{ paddingHorizontal: 20, paddingBottom: 10, fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+                {t("fillTargetHint")}
+              </Text>
+            </View>
+
             <TouchableOpacity
               style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
               onPress={() => router.push("/firmware-update")}
@@ -833,6 +884,13 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "right",
     maxWidth: "60%",
+  },
+  stepBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   retentionRow: {
     flexDirection: "row",

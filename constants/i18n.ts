@@ -112,6 +112,8 @@ export interface Translations {
   tankSizeLabel: string;
   tankSizePlaceholder: string;
   configureTankSize: string;
+  fillTargetLabel: string;
+  fillTargetHint: string;
   // dev mode
   hideDeveloperOptions: string;
   // tank status labels
@@ -292,6 +294,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizeLabel: 'Tank size',
     tankSizePlaceholder: '1000',
     configureTankSize: 'Set tank size to see litres',
+    fillTargetLabel: 'Auto-stop fill level',
+    fillTargetHint: 'Motor stops when tank reaches this level',
     hideDeveloperOptions: 'Hide developer options',
     tankHealthy: 'Tank Healthy',
     tankEmpty: 'Tank Empty',
@@ -460,6 +464,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizeLabel: 'टंकी का आकार',
     tankSizePlaceholder: '1000',
     configureTankSize: 'लीटर देखने के लिए टंकी का आकार सेट करें',
+    fillTargetLabel: 'स्वतः बंद स्तर',
+    fillTargetHint: 'टंकी इस स्तर पर पहुँचने पर मोटर बंद हो जाएगी',
     hideDeveloperOptions: 'डेवलपर विकल्प छुपाएँ',
     tankHealthy: 'टंकी ठीक है',
     tankEmpty: 'टंकी खाली है',
@@ -628,6 +634,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizeLabel: 'टाकीचा आकार',
     tankSizePlaceholder: '1000',
     configureTankSize: 'लीटर पाहण्यासाठी टाकीचा आकार सेट करा',
+    fillTargetLabel: 'स्वयं-बंद पातळी',
+    fillTargetHint: 'टाकी या पातळीवर पोहोचल्यावर मोटर बंद होईल',
     hideDeveloperOptions: 'डेव्हलपर पर्याय लपवा',
     tankHealthy: 'टाकी ठीक आहे',
     tankEmpty: 'टाकी रिकामी आहे',
@@ -796,6 +804,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankSizeLabel: 'ಟ್ಯಾಂಕ್ ಗಾತ್ರ',
     tankSizePlaceholder: '1000',
     configureTankSize: 'ಲೀಟರ್ ನೋಡಲು ಟ್ಯಾಂಕ್ ಗಾತ್ರವನ್ನು ಹೊಂದಿಸಿ',
+    fillTargetLabel: 'ಸ್ವಯಂ-ನಿಲ್ಲಿಸುವ ಮಟ್ಟ',
+    fillTargetHint: 'ಟ್ಯಾಂಕ್ ಈ ಮಟ್ಟಕ್ಕೆ ತಲುಪಿದಾಗ ಮೋಟಾರ್ ನಿಲ್ಲುತ್ತದೆ',
     hideDeveloperOptions: 'ಡೆವಲಪರ್ ಆಯ್ಕೆಗಳನ್ನು ಮರೆಮಾಡಿ',
     tankHealthy: 'ಟ್ಯಾಂಕ್ ಸ್ವಸ್ಥವಾಗಿದೆ',
     tankEmpty: 'ಟ್ಯಾಂಕ್ ಖಾಲಿಯಾಗಿದೆ',

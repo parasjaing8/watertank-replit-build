@@ -16,6 +16,7 @@ import { Platform } from "react-native";
 import { Buffer } from "buffer";
 
 import {
+  BLE_CHAR_FILL_TARGET,
   BLE_CHAR_FW_VERSION,
   BLE_CHAR_LOG_CTRL,
   BLE_CHAR_LOG_DATA,
@@ -292,6 +293,14 @@ export class BLEService implements IDeviceService {
         }
       } catch {}
 
+      try {
+        const ftChar = await connected.readCharacteristicForService(BLE_SERVICE_UUID, BLE_CHAR_FILL_TARGET);
+        if (ftChar?.value) {
+          const pct = parseInt(Buffer.from(ftChar.value, "base64").toString("utf8").trim(), 10);
+          if (!isNaN(pct)) this.state = { ...this.state, fillTarget: pct };
+        }
+      } catch {}
+
       logBleInfo("connected", { deviceId: connected.id, firmwareVersion: connectedFwVersion });
 
       const ts = Math.floor(Date.now() / 1000);
@@ -365,6 +374,21 @@ export class BLEService implements IDeviceService {
       this.device = null;
       this.scheduleReconnect();
     }
+  }
+
+  async writeFillTarget(pct: number): Promise<void> {
+    const connected = this.device as {
+      writeCharacteristicWithResponseForService(s: string, c: string, v: string): Promise<unknown>;
+    } | null;
+    if (!connected) throw new Error("Not connected");
+    const clamped = Math.max(1, Math.min(98, Math.round(pct)));
+    await connected.writeCharacteristicWithResponseForService(
+      BLE_SERVICE_UUID,
+      BLE_CHAR_FILL_TARGET,
+      Buffer.from(String(clamped)).toString("base64"),
+    );
+    this.state = { ...this.state, fillTarget: clamped };
+    this.emit({ ...this.state });
   }
 
   private async requestLogStream(): Promise<void> {

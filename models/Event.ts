@@ -34,6 +34,7 @@ export interface DeviceState {
   pumpState: number;
   lastSyncAt: number | null;
   firmwareVersion: string | null;
+  fillTarget: number | null;
 }
 
 export interface DailyStats {
@@ -74,6 +75,7 @@ export const DEFAULT_DEVICE_STATE: DeviceState = {
   pumpState: 0,
   lastSyncAt: null,
   firmwareVersion: null,
+  fillTarget: null,
 };
 
 export const HIDDEN_EVENT_TYPES: EventType[] = [EventType.BLE_SYNCED];

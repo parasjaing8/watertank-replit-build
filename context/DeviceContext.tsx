@@ -62,6 +62,7 @@ interface DeviceContextValue {
   settings: AppSettings;
   updateSettings: (patch: Partial<AppSettings>) => void;
   triggerSync: () => void;
+  setFillTarget: (pct: number) => Promise<void>;
   getEventsForDate: (date: Date) => WaterEvent[];
   getStats: () => ReturnType<typeof getDailyStats>;
   getDbInfo: () => ReturnType<typeof getDbStats>;
@@ -295,6 +296,11 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     serviceRef.current?.triggerSync?.();
   }, []);
 
+  const setFillTarget = useCallback(async (pct: number) => {
+    const svc = serviceRef.current as BLEService | null;
+    if (svc?.writeFillTarget) await svc.writeFillTarget(pct);
+  }, []);
+
   const getEventsForDate = useCallback(
     (date: Date): WaterEvent[] => {
       const { start, end } = getDayBounds(date);
@@ -329,6 +335,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         settings,
         updateSettings,
         triggerSync,
+        setFillTarget,
         getEventsForDate,
         getStats,
         getDbInfo,

@@ -18,6 +18,7 @@
 //  - C_FWVER characteristic (READ) exposes FW_VERSION string for app version checks
 
 #include <NimBLEDevice.h>
+#include <Preferences.h>
 #include <WiFi.h>
 #include <WFStorm.h>
 #include "NimBLEOta.h"
@@ -33,8 +34,9 @@
 #define C_LOGCTRL  "beb54840-36e1-4688-b7f5-ea07361b26a8"
 #define C_LOGDATA  "beb54841-36e1-4688-b7f5-ea07361b26a8"
 #define C_TIMESYNC "beb54842-36e1-4688-b7f5-ea07361b26a8"
-#define C_FWVER    "beb54843-36e1-4688-b7f5-ea07361b26a8"
+#define C_FWVER        "beb54843-36e1-4688-b7f5-ea07361b26a8"
 #define C_RESET_REASON "beb54844-36e1-4688-b7f5-ea07361b26a8"
+#define C_FILL_TARGET  "beb54845-36e1-4688-b7f5-ea07361b26a8"
 
 // ── Tunable params ────────────────────────────────────────────────────────────
 #define NOTIFY_INTERVAL_MS    2000    // normal BLE state cadence
@@ -45,12 +47,14 @@
 #define DRAIN_STEP_PCT        0.3f    // % drained per tick  (90→20 in ~3.7 min)
 #define FILL_STEP_PCT         0.8f    // % filled per tick   (20→90 in ~1.4 min)
 #define LOW_TANK_PCT          20.0f
-#define FULL_TANK_PCT         90.0f
+#define FULL_TANK_PCT_DEFAULT 90.0f
 
 // ── State ─────────────────────────────────────────────────────────────────────
 static NimBLECharacteristic *charState, *charTank, *charLogData;
 static NimBLEServer          *bleServer = nullptr;
 static NimBLEOta              bleOta;
+static Preferences            prefs;
+static float                  fullTankPct = FULL_TANK_PCT_DEFAULT;
 
 static volatile bool bleConnected    = false;
 static bool          doSendLogs     = false;
@@ -203,8 +207,8 @@ void loopLogStream() {
 void updateSimulation() {
   if (motorOn) {
     tankPct += FILL_STEP_PCT;
-    if (tankPct >= FULL_TANK_PCT) {
-      tankPct   = FULL_TANK_PCT;
+    if (tankPct >= fullTankPct) {
+      tankPct   = fullTankPct;
       motorOn   = false;
       pumpState = 0;
       Serial.printf("Sim: FULL %.0f%% — motor OFF\n", tankPct);
@@ -271,6 +275,23 @@ void checkWifi() {
   }
 }
 
+class FillTargetCB : public NimBLECharacteristicCallbacks {
+  void onRead(NimBLECharacteristic* c, NimBLEConnInfo&) override {
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d", (int)fullTankPct);
+    c->setValue(buf);
+  }
+  void onWrite(NimBLECharacteristic* c, NimBLEConnInfo&) override {
+    NimBLEAttValue v = c->getValue();
+    if (v.size() == 0) return;
+    int pct = atoi((const char*)v.data());
+    pct = constrain(pct, 1, 98);
+    fullTankPct = (float)pct;
+    prefs.putFloat("fill_pct", fullTankPct);
+    Serial.printf("FillTarget: set to %d%%\n", pct);
+  }
+};
+
 // ── setup ─────────────────────────────────────────────────────────────────────
 
 void setup() {
@@ -282,6 +303,11 @@ void setup() {
     digitalWrite(LED_PIN, HIGH); delay(100);
     digitalWrite(LED_PIN, LOW);  delay(100);
   }
+
+  // Load user-configurable fill target from NVS (persists across reboots)
+  prefs.begin("watertank", false);
+  fullTankPct = constrain(prefs.getFloat("fill_pct", FULL_TANK_PCT_DEFAULT), 1.0f, 98.0f);
+  Serial.printf("FillTarget: loaded %.0f%% from NVS\n", fullTankPct);
 
   // WiFi — STA preferred for coexistence; AP fallback keeps OTA alive
   WiFi.mode(WIFI_STA);
@@ -333,6 +359,14 @@ void setup() {
   NimBLECharacteristic* rstReason = svc->createCharacteristic(C_RESET_REASON, NIMBLE_PROPERTY::READ);
   uint8_t rstCode = (uint8_t)esp_reset_reason();
   rstReason->setValue(&rstCode, 1);
+
+  // C_FILL_TARGET: user-configurable motor stop level (1-98%), stored in NVS
+  NimBLECharacteristic* fillTarget = svc->createCharacteristic(
+    C_FILL_TARGET, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
+  fillTarget->setCallbacks(new FillTargetCB());
+  char ftBuf[8];
+  snprintf(ftBuf, sizeof(ftBuf), "%d", (int)fullTankPct);
+  fillTarget->setValue(ftBuf);
 
   svc->start();
 
