@@ -1,5 +1,24 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v40: Fix 7 HIGH audit items + ESP32-C3 bringup
+
+- Branch: `deepseek`, commit 3ae25c3
+- ESP32-C3 board: firmware compiled + flashed + BLE tested (40/41 pass)
+- C3-specific: added `BOARD_TYPE` selector, C3 GPIO map, `CDCOnBoot=cdc`
+
+### HIGH fixes (7 items)
+- **1.4**: OTA `onComplete` no longer blocks BLE stack — uses `pendingRestart` flag
+- **1.5**: Firmware validation moved from `pushState()` to `TimeSyncCB::onWrite` (after app confirms version)
+- **3.2**: Per-device 16-byte salt added to password hash (`saltedHash()`), migration path for existing boards
+- **2.5**: Motor/inlet ON/OFF badges localized across en/hi/mr/kn
+- **4.1**: Removed 3 dead components (StatusDot, TankLevelBar, KeyboardAwareScrollViewCompat)
+- **4.2**: Removed 9 unused exports (thresholds, ble, formatters, Event model) + updated tests
+- **5.1**: ErrorFallback fully localized with 4 new i18n keys
+
+### Remaining
+- 2 HIGH (2.2 BLE permissions, 2.3 GitHub rate limit, 2.4 exportData limit, 3.3 firmware signing)
+- 20 MEDIUM, 7 LOW still open
+
 ## 2026-05-28 — v38: Deepseek production-readiness audit (auditDeepseek.md)
 
 - Deep analysis of full codebase (126 commits, firmware + app) by deepseek-v4-pro

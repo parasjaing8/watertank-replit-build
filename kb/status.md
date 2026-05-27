@@ -1,12 +1,16 @@
 # WaterTank — Project Status
 _Last updated: 2026-05-28_
 
-## Deepseek Audit (v38-v39)
-`auditDeepseek.md` — 44 findings (~~4 BLOCKER~~, 9 HIGH, 20 MEDIUM, 7 LOW). All 4 BLOCKERs resolved on `deepseek` branch (f2772ce, v39):
-- BLOCKER 1.2: WiFi gated behind `USE_WIFI` flag (0=BLE-only prod), creds in gitignored file
-- BLOCKER 1.3: Event ring buffer persisted to NVS, survives power cycles
-- BLOCKER 1.1: JSN-SR04T sensor driver (median filter + EMA, USE_SENSOR=1)
-- BLOCKER 7.1: Jest test infra — 52 tests across 4 suites, all green
+## Deepseek Audit (v38-v40)
+`auditDeepseek.md` — 44 findings (~~4 BLOCKER~~, ~~7 HIGH~~, 20 MEDIUM, 7 LOW).
+
+### Resolved
+- **4 BLOCKERs** (v39, f2772ce): WiFi gate, NVS events, sensor driver, Jest tests
+- **7 HIGH** (v40, 3ae25c3): OTA callback non-blocking, fw validation timing, salted password hash, ON/OFF i18n, dead component removal, unused constant cleanup, ErrorFallback i18n
+
+### Remaining
+- **2 HIGH**: 2.2 BLE Android 12+ permissions, 2.3 GitHub rate limit on fw check
+- **20 MEDIUM**, **7 LOW** still open
 
 ## App Version
 `1.0.0` (package.json) | Latest APK: `watertank-v37.apk` (v37, built 2026-05-28, master branch, BOOT reconnect + LED fix)
