@@ -219,6 +219,6 @@ Rationale: home appliance UX — users don't expect periodic re-auth. Threat mod
 |---|---|---|
 | PHASE 1 — Firmware auth | DONE | v1.3.0 compiled clean, 730 lines |
 | PHASE 2 — App auth service | DONE | AuthService, BLEService refactor, DeviceContext wired |
-| PHASE 3 — Pairing UI | NOT STARTED | |
+| PHASE 3 — Pairing UI | DONE | PairingSheet, DeviceSetupModal, dashboard auth gate, settings Paired Devices |
 | PHASE 4 — Test suite | NOT STARTED | |
 | PHASE 5 — Release build | NOT STARTED | |

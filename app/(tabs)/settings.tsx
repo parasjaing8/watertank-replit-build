@@ -16,6 +16,8 @@ import Constants from "expo-constants";
 import { router } from "expo-router";
 
 import { useDevice } from "@/context/DeviceContext";
+import * as AuthService from "@/services/AuthService";
+import type { StoredDevice } from "@/services/AuthService";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/context/ThemeContext";
 import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
@@ -123,15 +125,36 @@ export default function SettingsScreen() {
     firmwareManifest,
     deviceState,
     setFillTarget,
+    setVisibility,
   } = useDevice();
 
   const [showBleLog, setShowBleLog] = useState(false);
+  const [pairedSessions, setPairedSessions] = useState<StoredDevice[]>([]);
+  const [pairingWindowEnd, setPairingWindowEnd] = useState<number | null>(null);
+  const [pairingWindowSec, setPairingWindowSec] = useState(0);
   const [versionTaps, setVersionTaps] = useState(0);
   const [devMode, setDevMode] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showCleared, setShowCleared] = useState(false);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [diagStats, setDiagStats] = useState(() => getLogStats());
+
+  useEffect(() => {
+    AuthService.listSessions().then(setPairedSessions);
+  }, []);
+
+  useEffect(() => {
+    if (!pairingWindowEnd) return;
+    const id = setInterval(() => {
+      const remaining = Math.max(0, Math.round((pairingWindowEnd - Date.now()) / 1000));
+      setPairingWindowSec(remaining);
+      if (remaining === 0) {
+        setPairingWindowEnd(null);
+        clearInterval(id);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [pairingWindowEnd]);
 
   // Local fill target state — synced from board on connect, debounced write on change
   const [localFillTarget, setLocalFillTarget] = useState<number>(90);
@@ -589,6 +612,64 @@ export default function SettingsScreen() {
                 <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
               </View>
             </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      {/* Paired devices */}
+      {deviceState.connected && (
+        <>
+          <SectionHeader title={t("pairedDevices").toUpperCase()} colors={colors} />
+          <View style={[styles.section, { borderColor: colors.border }]}>
+            {pairingWindowEnd && (
+              <View style={{ backgroundColor: colors.primary + "18", paddingHorizontal: 20, paddingVertical: 12 }}>
+                <Text style={{ color: colors.primary, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                  {t("pairingWindowOpen")} — {Math.floor(pairingWindowSec / 60)}:{String(pairingWindowSec % 60).padStart(2, "0")}
+                </Text>
+              </View>
+            )}
+            {pairedSessions.length > 0 && pairedSessions.map((s) => (
+              <View key={s.deviceMac} style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.deviceName}</Text>
+                <Text style={[styles.rowValue, { color: colors.mutedForeground, fontSize: 12 }]}>
+                  {s.deviceMac.slice(-5).toUpperCase()}
+                </Text>
+              </View>
+            ))}
+            <ActionRow
+              label={t("allowNewPairing")}
+              icon="bluetooth"
+              onPress={async () => {
+                await setVisibility(true);
+                const end = Date.now() + 5 * 60 * 1000;
+                setPairingWindowEnd(end);
+                setPairingWindowSec(300);
+              }}
+              colors={colors}
+            />
+            <ActionRow
+              label={t("removeThisDevice")}
+              icon="trash-2"
+              destructive
+              onPress={() => {
+                Alert.alert(
+                  t("removeDeviceConfirmTitle"),
+                  t("removeDeviceConfirmMsg"),
+                  [
+                    { text: t("cancel"), style: "cancel" },
+                    {
+                      text: t("deleteAll"),
+                      style: "destructive",
+                      onPress: async () => {
+                        for (const s of pairedSessions) await AuthService.clearSession(s.deviceMac);
+                        setPairedSessions([]);
+                      },
+                    },
+                  ]
+                );
+              }}
+              colors={colors}
+            />
           </View>
         </>
       )}

@@ -192,6 +192,30 @@ export interface Translations {
   municipalSupply: string;
   supplyOn: string;
   supplyOff: string;
+  // Auth / pairing
+  authEnterPassword: string;
+  authPasswordHint: string;
+  authConnect: string;
+  authWrongPassword: string;
+  authConnecting: string;
+  // First-time setup modal
+  setupTitle: string;
+  setupSubtitle: string;
+  setupDeviceName: string;
+  setupDeviceNamePlaceholder: string;
+  setupNewPassword: string;
+  setupConfirmPassword: string;
+  setupPasswordMismatch: string;
+  setupPasswordTooShort: string;
+  setupSave: string;
+  setupSaving: string;
+  // Settings — paired devices
+  pairedDevices: string;
+  allowNewPairing: string;
+  pairingWindowOpen: string;
+  removeThisDevice: string;
+  removeDeviceConfirmTitle: string;
+  removeDeviceConfirmMsg: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -367,6 +391,27 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     municipalSupply: 'Municipal Supply',
     supplyOn: 'Water Available',
     supplyOff: 'No Water at Inlet',
+    authEnterPassword: 'Enter Password',
+    authPasswordHint: 'New device detected. Default password: 1234',
+    authConnect: 'Connect',
+    authWrongPassword: 'Incorrect password. Try again.',
+    authConnecting: 'Verifying…',
+    setupTitle: 'Set Up Your Device',
+    setupSubtitle: 'Choose a name and new password for your WaterTank device.',
+    setupDeviceName: 'Device Name',
+    setupDeviceNamePlaceholder: 'WaterTank',
+    setupNewPassword: 'New Password',
+    setupConfirmPassword: 'Confirm Password',
+    setupPasswordMismatch: 'Passwords do not match.',
+    setupPasswordTooShort: 'Password must be at least 4 characters.',
+    setupSave: 'Save & Connect',
+    setupSaving: 'Saving…',
+    pairedDevices: 'Paired Devices',
+    allowNewPairing: 'Allow New Device to Pair',
+    pairingWindowOpen: 'Pairing window open',
+    removeThisDevice: 'Remove All Paired Devices',
+    removeDeviceConfirmTitle: 'Remove paired devices?',
+    removeDeviceConfirmMsg: 'This phone will need to enter the password again to reconnect.',
   },
   hi: {
     appName: 'WaterTank',
@@ -540,6 +585,27 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     municipalSupply: 'नगरपालिका सप्लाई',
     supplyOn: 'पानी उपलब्ध है',
     supplyOff: 'इनलेट पर पानी नहीं',
+    authEnterPassword: 'पासवर्ड डालें',
+    authPasswordHint: 'नया डिवाइस मिला। डिफ़ॉल्ट पासवर्ड: 1234',
+    authConnect: 'जोड़ें',
+    authWrongPassword: 'गलत पासवर्ड। फिर कोशिश करें।',
+    authConnecting: 'जाँच हो रही है…',
+    setupTitle: 'डिवाइस सेटअप करें',
+    setupSubtitle: 'अपने WaterTank डिवाइस के लिए नाम और नया पासवर्ड चुनें।',
+    setupDeviceName: 'डिवाइस का नाम',
+    setupDeviceNamePlaceholder: 'WaterTank',
+    setupNewPassword: 'नया पासवर्ड',
+    setupConfirmPassword: 'पासवर्ड की पुष्टि करें',
+    setupPasswordMismatch: 'पासवर्ड मेल नहीं खाते।',
+    setupPasswordTooShort: 'पासवर्ड कम से कम 4 अक्षर का होना चाहिए।',
+    setupSave: 'सेव करें और जोड़ें',
+    setupSaving: 'सेव हो रहा है…',
+    pairedDevices: 'जुड़े डिवाइस',
+    allowNewPairing: 'नए डिवाइस को जोड़ने दें',
+    pairingWindowOpen: 'पेयरिंग विंडो खुली है',
+    removeThisDevice: 'सभी जुड़े डिवाइस हटाएँ',
+    removeDeviceConfirmTitle: 'जुड़े डिवाइस हटाएँ?',
+    removeDeviceConfirmMsg: 'इस फोन को दोबारा जोड़ने के लिए पासवर्ड डालना होगा।',
   },
   mr: {
     appName: 'WaterTank',
@@ -713,6 +779,27 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     municipalSupply: 'नगरपालिका पुरवठा',
     supplyOn: 'पाणी उपलब्ध आहे',
     supplyOff: 'इनलेटवर पाणी नाही',
+    authEnterPassword: 'पासवर्ड टाका',
+    authPasswordHint: 'नवीन डिव्हाइस सापडले. डीफॉल्ट पासवर्ड: 1234',
+    authConnect: 'जोडा',
+    authWrongPassword: 'चुकीचा पासवर्ड. पुन्हा प्रयत्न करा.',
+    authConnecting: 'तपासत आहे…',
+    setupTitle: 'डिव्हाइस सेट करा',
+    setupSubtitle: 'तुमच्या WaterTank डिव्हाइससाठी नाव आणि नवीन पासवर्ड निवडा.',
+    setupDeviceName: 'डिव्हाइसचे नाव',
+    setupDeviceNamePlaceholder: 'WaterTank',
+    setupNewPassword: 'नवीन पासवर्ड',
+    setupConfirmPassword: 'पासवर्ड पुष्टी करा',
+    setupPasswordMismatch: 'पासवर्ड जुळत नाहीत.',
+    setupPasswordTooShort: 'पासवर्ड किमान 4 अक्षरांचा असावा.',
+    setupSave: 'सेव्ह करा आणि जोडा',
+    setupSaving: 'सेव्ह होत आहे…',
+    pairedDevices: 'जोडलेले डिव्हाइस',
+    allowNewPairing: 'नवीन डिव्हाइस जोडण्यास परवानगी द्या',
+    pairingWindowOpen: 'पेअरिंग विंडो उघडी आहे',
+    removeThisDevice: 'सर्व जोडलेले डिव्हाइस काढा',
+    removeDeviceConfirmTitle: 'जोडलेले डिव्हाइस काढायचे?',
+    removeDeviceConfirmMsg: 'या फोनला पुन्हा जोडण्यासाठी पासवर्ड टाकावा लागेल.',
   },
   kn: {
     appName: 'WaterTank',
@@ -886,5 +973,26 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     municipalSupply: 'ನಗರ ಪಾಲಿಕೆ ಪೂರೈಕೆ',
     supplyOn: 'ನೀರು ಲಭ್ಯವಿದೆ',
     supplyOff: 'ಇನ್‌ಲೆಟ್‌ನಲ್ಲಿ ನೀರಿಲ್ಲ',
+    authEnterPassword: 'ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ',
+    authPasswordHint: 'ಹೊಸ ಸಾಧನ ಸಿಕ್ಕಿದೆ. ಡೀಫಾಲ್ಟ್ ಪಾಸ್‌ವರ್ಡ್: 1234',
+    authConnect: 'ಸಂಪರ್ಕಿಸಿ',
+    authWrongPassword: 'ತಪ್ಪು ಪಾಸ್‌ವರ್ಡ್. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+    authConnecting: 'ಪರಿಶೀಲಿಸುತ್ತಿದೆ…',
+    setupTitle: 'ನಿಮ್ಮ ಸಾಧನ ಸೆಟಪ್ ಮಾಡಿ',
+    setupSubtitle: 'WaterTank ಸಾಧನಕ್ಕೆ ಹೆಸರು ಮತ್ತು ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಆರಿಸಿ.',
+    setupDeviceName: 'ಸಾಧನದ ಹೆಸರು',
+    setupDeviceNamePlaceholder: 'WaterTank',
+    setupNewPassword: 'ಹೊಸ ಪಾಸ್‌ವರ್ಡ್',
+    setupConfirmPassword: 'ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ',
+    setupPasswordMismatch: 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ.',
+    setupPasswordTooShort: 'ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 4 ಅಕ್ಷರಗಳಿರಬೇಕು.',
+    setupSave: 'ಉಳಿಸಿ ಮತ್ತು ಸಂಪರ್ಕಿಸಿ',
+    setupSaving: 'ಉಳಿಸಲಾಗುತ್ತಿದೆ…',
+    pairedDevices: 'ಜೋಡಿಸಿದ ಸಾಧನಗಳು',
+    allowNewPairing: 'ಹೊಸ ಸಾಧನ ಜೋಡಿಸಲು ಅನುಮತಿ ನೀಡಿ',
+    pairingWindowOpen: 'ಪೇರಿಂಗ್ ವಿಂಡೋ ತೆರೆದಿದೆ',
+    removeThisDevice: 'ಎಲ್ಲಾ ಜೋಡಿಸಿದ ಸಾಧನಗಳನ್ನು ತೆಗೆಯಿರಿ',
+    removeDeviceConfirmTitle: 'ಜೋಡಿಸಿದ ಸಾಧನಗಳನ್ನು ತೆಗೆಯಬೇಕೇ?',
+    removeDeviceConfirmMsg: 'ಈ ಫೋನ್ ಮತ್ತೆ ಸಂಪರ್ಕಿಸಲು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಬೇಕಾಗುತ್ತದೆ.',
   },
 };

@@ -14,6 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { PulsingDot, SearchingDots } from "@/components/StatusIndicators";
 import { ReportProblemSheet } from "@/components/ReportProblemSheet";
+import { PairingSheet } from "@/components/PairingSheet";
+import { DeviceSetupModal } from "@/components/DeviceSetupModal";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
@@ -44,9 +46,10 @@ function getTankStatusColor(pct: number, motorOn: boolean, c: ColorTokens): stri
 export default function DashboardScreen() {
   const { t } = useLanguage();
   const colors = useColors();
-  const { deviceState, simMode, runSimulation, stopSimulation, settings, triggerSync } = useDevice();
+  const { deviceState, simMode, runSimulation, stopSimulation, settings, triggerSync, submitPassword, submitSetup } = useDevice();
   const insets = useSafeAreaInsets();
 
+  const [showSetupModal, setShowSetupModal]    = useState(false);
   const [countdown, setCountdown]             = useState(Math.round(STARTUP_DELAY_MS / 1000));
   const countdownRef                           = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevPumpStateRef                       = useRef<number>(deviceState.pumpState);
@@ -57,7 +60,8 @@ export default function DashboardScreen() {
   const toastAnim                              = useRef(new Animated.Value(0)).current;
 
   const isStartupDelay = deviceState.pumpState === 2;
-  const isLive         = deviceState.connected || simMode;
+  const isAuthed       = deviceState.authState === "ok";
+  const isLive         = (deviceState.connected && isAuthed) || simMode;
   const isLastKnown    = !isLive && !!lastKnownTank;
   const showTank       = isLive || isLastKnown;
   const displayPct     = isLive ? deviceState.tank : (lastKnownTank?.pct ?? 0);
@@ -100,8 +104,14 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (!deviceState.connected) {
       prevPumpStateRef.current = 0;
+      setShowSetupModal(false);
     }
   }, [deviceState.connected]);
+
+  // Dismiss setup modal once auth succeeds
+  useEffect(() => {
+    if (deviceState.authState === "ok") setShowSetupModal(false);
+  }, [deviceState.authState]);
 
   // Tank full inline banner when motor transitions off after filling
   useEffect(() => {
@@ -419,6 +429,20 @@ export default function DashboardScreen() {
       </ScrollView>
 
       <ReportProblemSheet visible={showReport} onClose={() => setShowReport(false)} />
+
+      <PairingSheet
+        visible={deviceState.connected && !isAuthed && !simMode && !showSetupModal}
+        isFirstTimeSetup={deviceState.authState === "setup_required"}
+        onSetupRequired={() => setShowSetupModal(true)}
+        onSubmit={submitPassword}
+      />
+
+      {showSetupModal && (
+        <DeviceSetupModal
+          visible={showSetupModal}
+          onSubmit={submitSetup}
+        />
+      )}
     </View>
   );
 }
