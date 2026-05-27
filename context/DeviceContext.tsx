@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Alert } from "react-native";
+import { Alert, AppState, AppStateStatus } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { DATA_RETENTION_DEFAULT_DAYS, TANK_LOW_PCT } from "@/constants/thresholds";
@@ -97,6 +97,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   const lastStopReasonRef = useRef<StopReason>(StopReason.NONE);
   const prevManualRef = useRef<boolean>(false);
+  const simModeRef = useRef(false);
+  useEffect(() => { simModeRef.current = simMode; }, [simMode]);
+  const bgPausedRef = useRef(false);
 
   // When firmware version is read from board on connect, check GitHub for update
   useEffect(() => {
@@ -133,6 +136,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       serviceRef.current?.stop();
       serviceRef.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadSettings(): Promise<AppSettings> {
@@ -154,7 +158,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_SETTINGS;
   }
 
-  function startBleService(retentionDays?: number) {
+  const startBleService = useCallback((retentionDays?: number) => {
     serviceRef.current?.stop();
     serviceRef.current = null;
 
@@ -189,7 +193,32 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => {
       try { deleteOldEvents(days); } catch {}
     }, 3000);
-  }
+  // stable: only uses refs and React state setters (no closure over state/props)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Pause BLE when app goes to background, resume on foreground.
+  // Prevents: (1) battery drain from background scanning, (2) JS bridge event
+  // backlog that causes freeze when restoring from recent apps.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'background' && !simModeRef.current) {
+        bgPausedRef.current = true;
+        serviceRef.current?.stop();
+        serviceRef.current = null;
+      } else if (nextState === 'active' && bgPausedRef.current) {
+        bgPausedRef.current = false;
+        // Small delay lets the JS bridge flush any queued native events before
+        // BLE scanning starts, avoiding a freeze on resume.
+        setTimeout(() => {
+          if (!simModeRef.current) {
+            startBleService(settingsRef.current.retentionDays);
+          }
+        }, 300);
+      }
+    });
+    return () => sub.remove();
+  }, [startBleService]);
 
   const runSimulation = useCallback(() => {
     if (simMode) return;
@@ -221,7 +250,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     });
 
     svc.start();
-  }, [simMode]);
+  }, [simMode, startBleService]);
 
   const stopSimulation = useCallback(() => {
     if (!simMode) return;
@@ -230,7 +259,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     setSimMode(false);
     setSimDone(false);
     startBleService(settingsRef.current.retentionDays);
-  }, [simMode]);
+  }, [simMode, startBleService]);
 
   const dismissSimDone = useCallback(() => {
     setSimDone(false);
