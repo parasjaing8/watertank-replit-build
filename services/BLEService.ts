@@ -199,7 +199,7 @@ export class BLEService implements IDeviceService {
     if (!this.running) return;
     const mgr = getBleManager() as {
       startDeviceScan(
-        uuids: null,
+        uuids: string[] | null,
         opts: null,
         cb: (err: unknown, device: unknown) => void,
       ): void;
@@ -220,7 +220,11 @@ export class BLEService implements IDeviceService {
       }, BLE_SCAN_TIMEOUT);
 
       try {
-        mgr.startDeviceScan(null, null, (err, device) => {
+        // Filter by service UUID so Android matches on the advertising packet.
+        // Device name ("WaterTank") is in the scan response — it arrives after
+        // the advertising packet, so dev.name is often null at callback time when
+        // scanning with null UUIDs. UUID filtering bypasses this entirely.
+        mgr.startDeviceScan([BLE_SERVICE_UUID], null, (err, device) => {
           if (err) {
             this.log(`Scan error: ${String(err)}`);
             logBleError("scan error", { error: String(err) });
@@ -228,18 +232,17 @@ export class BLEService implements IDeviceService {
             return;
           }
           const dev = device as { name?: string; id: string; connect(): Promise<unknown> } | null;
-          if (isTankDevice(dev?.name)) {
-            if (this.scanTimer) clearTimeout(this.scanTimer);
-            this.scanTimer = null;
-            try { mgr.stopDeviceScan(); } catch {}
-            this.log(`Found ${dev.name} (${dev.id}) — connecting...`);
-            const devId = dev.id;
-            this.connectToDevice(dev).catch((e) => {
-              this.log(`Connect failed: ${String(e)}`);
-              logBleError("connect failed", { deviceId: devId, error: String(e) });
-              this.scheduleReconnect();
-            });
-          }
+          if (!dev?.id) return;
+          if (this.scanTimer) clearTimeout(this.scanTimer);
+          this.scanTimer = null;
+          try { mgr.stopDeviceScan(); } catch {}
+          this.log(`Found ${dev.name ?? "WaterTank"} (${dev.id}) — connecting...`);
+          const devId = dev.id;
+          this.connectToDevice(dev).catch((e) => {
+            this.log(`Connect failed: ${String(e)}`);
+            logBleError("connect failed", { deviceId: devId, error: String(e) });
+            this.scheduleReconnect();
+          });
         });
       } catch (e) {
         this.log(`startDeviceScan threw: ${String(e)}`);
