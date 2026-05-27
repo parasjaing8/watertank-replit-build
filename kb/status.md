@@ -2,7 +2,8 @@
 _Last updated: 2026-05-27_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v30.apk` (v30, built 2026-05-27, master branch, BLE reconnect fix)
+`1.0.0` (package.json) | Latest APK: `watertank-v31.apk` (v31, built 2026-05-27, master branch, BLE discovery fix)
+- v31: BLE discovery fix — startDeviceScan([SERVICE_UUID]) bypasses null dev.name race (name is in scan response, UUID is in adv packet)
 - v30: BLE reconnect fix — adapter state check before startDeviceScan; no more stuck "looking for device" on resume
 - v29: App freeze fix — BLE stop/start on AppState change; WhatsApp deep link fix
 - v27: New hardware architecture — firmware v1.2.0, automation state machine, inlet status on dashboard

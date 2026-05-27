@@ -2,6 +2,11 @@
 
 ## 2026-05-27 — BLE reconnect fix (v30), freeze fix (v29), hardware architecture (v27)
 
+### v31 — Fix BLE discovery: scan by service UUID (this session)
+- **Root cause found**: `startDeviceScan(null, null, cb)` delivers callback on advertising packet received. Firmware puts device name in **scan response** packet, not advertising packet — so `dev.name` is `null` when callback fires. `isTankDevice(null)` → false → board silently skipped every scan cycle.
+- **Fix**: `startDeviceScan([BLE_SERVICE_UUID], null, cb)` — OS hardware-filters on the service UUID in the advertising packet. Any device the callback receives is guaranteed to be our board; no name check needed.
+- Built APK v31; released at GitHub Releases v31
+
 ### v30 — BLE adapter state check (this session)
 - **Root cause**: `mgr.startDeviceScan()` called immediately on resume without checking BLE adapter state; Android BLE adapter in Resetting/Unknown state briefly after background → scan started on not-ready adapter, silently got no callbacks
 - **Fix**: `startScan()` now calls `mgr.state()` (Promise) before scanning; if not `PoweredOn`, logs "BLE adapter not ready" and retries in 1s until ready. Falls through to scan on any state() error.
