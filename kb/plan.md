@@ -81,30 +81,20 @@ Software: Settings → Reset → requires owner token auth → clears NVS
 **Goal:** ESP32 stores password hash + sessions, exposes C_AUTH / C_SESSION / C_CLAIMED / C_SETUP / C_VISIBILITY characteristics. No app changes yet — validate with nRF Connect manually.
 
 Tasks:
-- [ ] F1.1 — Add `#include <nvs_flash.h>` and NVS helpers: `nvsGetStr`, `nvsSetStr`, `nvsGetBool`, `nvsSetBool`
-- [ ] F1.2 — On boot: load `claimed`, `device_name`, `password_hash`, `sessions[]` from NVS. If not found, write factory defaults (name="WaterTank", password_hash=SHA256("1234"), claimed=false)
-- [ ] F1.3 — Implement SHA256 helper (mbedTLS is available on ESP32: `mbedtls_md`)
-- [ ] F1.4 — Add 5 new characteristic UUIDs (define in firmware header alongside existing ones)
-- [ ] F1.5 — Implement `C_CLAIMED` read handler — returns 0 or 1
-- [ ] F1.6 — Implement `C_AUTH` write handler:
-  - If input is 16 bytes → treat as session token, validate against `sessions[]`
-  - If input is string → SHA256 it, compare to `password_hash`
-  - On success: generate 16-byte random token, store in `sessions[]` (evict oldest if full), write to `C_SESSION`
-  - Response: write "OK", "FAIL", or "SETUP_REQUIRED" to C_AUTH read value
-- [ ] F1.7 — Implement `C_SETUP` write handler:
-  - Parse JSON `{name, password}`
-  - Validate: requires valid auth session (track `authedSession` flag per connection)
-  - Save `device_name` and `SHA256(password)` to NVS
-  - Set `claimed=true` in NVS
-  - Restart BLE advertising with new name
-- [ ] F1.8 — Implement `C_VISIBILITY` write handler:
-  - `1` → `NimBLEDevice::startAdvertising()`, start 5-min countdown timer, then `stopAdvertising()`
-  - `0` → `NimBLEDevice::stopAdvertising()` immediately
-  - Only accepted from authed session
-- [ ] F1.9 — Add BLE channel encryption: `NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_ENC)` + `BLE_HS_IO_NO_INPUT_OUTPUT`
-- [ ] F1.10 — Update `advertiseOnDisconnect` logic: after claiming, only re-advertise if `ble_visible=true`
-- [ ] F1.11 — Hardware factory reset: detect 10s button hold in `loop()`, clear NVS namespace, restart
-- [ ] F1.12 — Password change (via C_SETUP on claimed device): clear all existing `sessions[]` before saving new password hash — forces all paired devices to re-auth
+- [x] F1.1 — `#include <mbedtls/md.h>`; NVS via existing `Preferences` (`prefs.putBytes`, `prefs.getBytes`, etc.)
+- [x] F1.2 — `nvsLoadAuth()`: loads claimed, dev_name, pw_hash, sessions from NVS; writes factory defaults if pw_hash missing
+- [x] F1.3 — `sha256()` helper via mbedTLS `mbedtls_md_context_t`
+- [x] F1.4 — 5 new char UUIDs: C_AUTH (beb54846), C_SESSION (beb54847), C_SETUP (beb54848), C_VISIBILITY (beb54849), C_CLAIMED (beb5484a)
+- [x] F1.5 — `ClaimedCB::onRead` returns 0 or 1
+- [x] F1.6 — `AuthCB::onWrite`: 16-byte → token auth; string → SHA256 compare; on OK: genToken, sessionAdd, set C_SESSION, respond "OK"/"SETUP_REQUIRED"; on fail: "FAIL", connAuthed=false
+- [x] F1.7 — `SetupCB::onWrite`: format "name|password" (pipe-delimited, not JSON); requires connAuthed; saves name+hash, sessionsClearAll, fresh token, sets claimed, stops advertising
+- [x] F1.8 — `VisibilityCB::onWrite`: 0x01 → start adv + 5-min timer; 0x00 → stop; requires connAuthed
+- [x] F1.9 — `NimBLEDevice::setSecurityAuth(true, false, true)` + `BLE_HS_IO_NO_INPUT_OUTPUT`; factory reset clears bonds via `NimBLEDevice::deleteAllBonds()`
+- [x] F1.10 — `advertiseOnDisconnect(true)` kept for bug #886 workaround; `loop()` suppresses advertising within one tick if `claimed && !bleVisible && !bleConnected`
+- [x] F1.11 — `GPIO_BOOT (0)` hold 10s → `prefs.clear()` + `deleteAllBonds()` + restart
+- [x] F1.12 — `SetupCB` calls `sessionsClearAll()` before saving new password hash
+
+**Wire format note:** C_SETUP uses `"name|password"` (pipe-delimited), not JSON. App side must match.
 
 ---
 
@@ -227,7 +217,7 @@ Rationale: home appliance UX — users don't expect periodic re-auth. Threat mod
 
 | Phase | Status | Notes |
 |---|---|---|
-| PHASE 1 — Firmware auth | NOT STARTED | |
+| PHASE 1 — Firmware auth | DONE | v1.3.0 compiled clean, 730 lines |
 | PHASE 2 — App auth service | NOT STARTED | |
 | PHASE 3 — Pairing UI | NOT STARTED | |
 | PHASE 4 — Test suite | NOT STARTED | |
