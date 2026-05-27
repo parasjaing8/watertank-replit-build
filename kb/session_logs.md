@@ -1,5 +1,27 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v33: Fix exponential BLE reconnect timer bug
+
+### Root cause (discovered from BLE log — 232,139 concurrent timers)
+- `startScan()` error callback called `scheduleReconnect()` without clearing `scanTimer`
+- 15s later, `scanTimer` also fired → also called `scheduleReconnect()`
+- Both paths independently rescheduled → exponential growth per cycle
+- After hours of running: 232k+ concurrent setTimeout handles → Android BLE scan quota exhausted → "Cannot start scanning operation" on every attempt
+
+### Fixes in `services/BLEService.ts`
+1. Scan error callback: clear `scanTimer` + call `mgr.stopDeviceScan()` before `scheduleReconnect()`
+2. Added `reconnectTimer` field — `scheduleReconnect()` now stores its setTimeout reference, cancels any existing pending reconnect before scheduling new one
+3. `cleanup()` now also cancels `reconnectTimer` — `stop()` fully halts all pending timers
+
+### Build
+- v33 APK built (`./gradlew clean && ./gradlew assembleRelease`, 3m 56s) — also includes `BLUETOOTH_SCAN neverForLocation` manifest fix from source (was in source but not v32 APK)
+- Installed on device via `adb install -r`
+- Commit: 571d0a8, pushed to master
+
+### Pending
+- Verify scan works on fresh app start (no stored sessions) with v33 installed
+- Full manual smoke test once scan confirmed working
+
 ## 2026-05-28 — Phase 5: v32 APK built + released
 
 ### Phase 5 complete (pending manual smoke test)

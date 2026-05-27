@@ -2,8 +2,9 @@
 _Last updated: 2026-05-27_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v32.apk` (v32, built 2026-05-28, master branch, full auth/pairing system)
+`1.0.0` (package.json) | Latest APK: `watertank-v33.apk` (v33, built 2026-05-28, master branch, BLE timer fix)
 - Phase 3 complete (pairing UI) — no new APK yet, needs firmware v1.3.0 on board first
+- v33: BLE exponential timer fix — scan error callback now clears scanTimer before scheduleReconnect; adds reconnectTimer field for clean cancellation. Fixes 232k+ concurrent timer bug.
 - v32: Full auth/pairing system — PairingSheet, DeviceSetupModal, session tokens, C_AUTH/SESSION/SETUP/VISIBILITY/CLAIMED chars, 24/24 test suite
 - v31: BLE discovery fix — startDeviceScan([SERVICE_UUID]) bypasses null dev.name race (name is in scan response, UUID is in adv packet)
 - v30: BLE reconnect fix — adapter state check before startDeviceScan; no more stuck "looking for device" on resume
