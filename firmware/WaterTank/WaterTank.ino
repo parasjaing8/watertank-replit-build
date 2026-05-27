@@ -243,17 +243,18 @@ class SetupCB : public NimBLECharacteristicCallbacks {
     genToken(token);
     sessionAdd(token);
     charSession->setValue(token, SESSION_LEN);
-    // Mark claimed, hide device
-    claimed    = true;
-    bleVisible = false;
+    // Mark claimed; keep advertising for 30s so the paired device can verify connection
+    claimed       = true;
+    bleVisible    = true;
+    visibilityEnd = millis() + 30000UL;
     prefs.putBool("claimed", true);
-    // Update scan response name and stop advertising
+    // Update scan response name; restart advertising with new name
     NimBLEAdvertisementData scanRsp;
     scanRsp.setName(deviceName);
     NimBLEDevice::getAdvertising()->setScanResponseData(scanRsp);
-    NimBLEDevice::stopAdvertising();
+    NimBLEDevice::startAdvertising();
     c->setValue((uint8_t*)"OK", 2);
-    Serial.printf("Setup: name='%s' claimed=true\n", deviceName);
+    Serial.printf("Setup: name='%s' claimed=true (30s visibility window)\n", deviceName);
   }
 };
 
