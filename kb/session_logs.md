@@ -1,5 +1,18 @@
 # WaterTank — Session Logs
 
+## 2026-05-27 — Implement new hardware architecture (firmware v1.2.0 + app), build APK v27
+
+### What was done
+- **Firmware v1.2.0**: Added `USE_SENSOR` flag (0=sim, 1=real); GPIO defines for relay/aux/inlet/JSN-SR04T; real automation state machine (start on inlet, stop on tank full or supply cut); manual override detection via GPIO_AUX optocoupler; 64-entry event ring buffer replacing mock log frames; BLE JSON now includes `inlet` field
+- **App**: `inletActive` field in DeviceState; parse `inlet` from BLE JSON; Municipal Supply status card on dashboard (below Motor Status); `PUMP_STATE_LABELS` adds state 4 (Tank Full) + 5 (Manual); SimulationService emits `inletActive` through demo cycle; i18n keys `municipalSupply`/`supplyOn`/`supplyOff` in en/hi/mr/kn
+- **Build note**: `expo prebuild --clean` required (fresh prebuild resolved Gradle autolinking namespace mismatch that broke clean build)
+- Built APK v27: `watertank-v27.apk` (101MB) — commit 42639ed
+
+### Next
+- Flash firmware v1.2.0 to board (OTA via WiFi or BLE)
+- Wire real hardware: GPIO_INLET float switch, GPIO_AUX optocoupler, GPIO_RELAY
+- Set `USE_SENSOR 1` and test real automation
+
 ## 2026-05-26 — Merge bleOTA → master, build APK v26
 
 ### What was done

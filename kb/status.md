@@ -1,8 +1,9 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-26_
+_Last updated: 2026-05-27_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `app-release.apk` (v26, built 2026-05-26, master branch, includes full BLE OTA)
+`1.0.0` (package.json) | Latest APK: `watertank-v27.apk` (v27, built 2026-05-27, master branch, new hardware architecture)
+- v27: New hardware architecture — firmware v1.2.0, automation state machine, inlet status on dashboard
 - v24: Toast→inline banner (no motor card overlap), motor border opacity fix, spacer capped; refactor index.tsx 675→359 lines
 - v23: Dashboard layout — tank/% spacing, motor status section label, spacer for vertical distribution
 - v22: Setup guide images (correct aspect ratios), app freeze-on-resume fix (AppState), right-to-left swipe fix
@@ -84,7 +85,7 @@ All 44 findings resolved as of 2026-05-24.
 **How:** `#define USE_WIFI` compile flag — strips WiFi init, checkWifi(), wfHandleOTA(), otaActive, WFStorm include.
 **Battery impact:** ~20–40mA BLE-only vs ~120–180mA WiFi+BLE. 18650 goes from ~12h to ~3–5 days.
 
-### F-SENSOR: Full sensor + automation + manual override wiring
+### F-SENSOR: Wire real hardware (firmware v1.2.0 architecture done, USE_SENSOR=0 sim)
 **Full detail:** `kb/hardware_architecture.md`
 **Scope:** JSN-SR04T tank level + inlet float switch + contactor aux contact feedback (optocoupler)
 **Motor start:** Inlet float switch detects municipal water → ESP32 energises relay → contactor closes → motor runs
