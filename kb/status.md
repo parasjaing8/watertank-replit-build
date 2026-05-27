@@ -84,8 +84,12 @@ All 44 findings resolved as of 2026-05-24.
 **How:** `#define USE_WIFI` compile flag — strips WiFi init, checkWifi(), wfHandleOTA(), otaActive, WFStorm include.
 **Battery impact:** ~20–40mA BLE-only vs ~120–180mA WiFi+BLE. 18650 goes from ~12h to ~3–5 days.
 
-### F-SENSOR: JSN-SR04T integration
-**How:** `#define USE_SENSOR 1` compile flag switches from simulation to real ultrasonic readings.
+### F-SENSOR: Full sensor + automation + manual override wiring
+**Full detail:** `kb/hardware_architecture.md`
+**Scope:** JSN-SR04T tank level + inlet float switch + contactor aux contact feedback (optocoupler)
+**Motor start:** Inlet float switch detects municipal water → ESP32 energises relay → contactor closes → motor runs
+**Motor stop:** Tank hits fill target % OR inlet float goes HIGH (supply cut) — whichever first
+**Manual override:** SW_MANUAL wired in PARALLEL with ESP32 relay coil, directly to contactor — zero electronics in manual path. User retains original manual control even if ESP32 is dead/unplugged. Aux contact feeds back to ESP32 GPIO via optocoupler (sensing only — ESP32 knows motor state but cannot block manual).
 **Priority:** Required before any real deployment.
 
 ## Key Files — DO NOT modify with local models
