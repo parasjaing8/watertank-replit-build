@@ -11,7 +11,13 @@ export const BLE_CHAR_LOG_DATA = "beb54841-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_TIME_SYNC = "beb54842-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_FW_VERSION = "beb54843-36e1-4688-b7f5-ea07361b26a8";
 export const BLE_CHAR_RESET_REASON = "beb54844-36e1-4688-b7f5-ea07361b26a8";
-export const BLE_CHAR_FILL_TARGET = "beb54845-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_FILL_TARGET  = "beb54845-36e1-4688-b7f5-ea07361b26a8";
+// Auth characteristics (firmware v1.3.0+)
+export const BLE_CHAR_AUTH         = "beb54846-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_SESSION      = "beb54847-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_SETUP        = "beb54848-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_VISIBILITY   = "beb54849-36e1-4688-b7f5-ea07361b26a8";
+export const BLE_CHAR_CLAIMED      = "beb5484a-36e1-4688-b7f5-ea07361b26a8";
 
 // NimBLEOta service — separate GATT service added by h2zero/NimBLEOta
 // Short UUIDs 0x8018/0x8020/0x8022 expand to full 128-bit with BT base UUID

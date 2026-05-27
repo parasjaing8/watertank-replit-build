@@ -63,6 +63,9 @@ interface DeviceContextValue {
   updateSettings: (patch: Partial<AppSettings>) => void;
   triggerSync: () => void;
   setFillTarget: (pct: number) => Promise<void>;
+  submitPassword: (password: string) => Promise<'ok' | 'fail' | 'setup_required'>;
+  submitSetup: (name: string, password: string) => Promise<void>;
+  setVisibility: (on: boolean) => Promise<void>;
   getEventsForDate: (date: Date) => WaterEvent[];
   getStats: () => ReturnType<typeof getDailyStats>;
   getDbInfo: () => ReturnType<typeof getDbStats>;
@@ -330,6 +333,22 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     if (svc?.writeFillTarget) await svc.writeFillTarget(pct);
   }, []);
 
+  const submitPassword = useCallback(async (password: string): Promise<'ok' | 'fail' | 'setup_required'> => {
+    const svc = serviceRef.current as BLEService | null;
+    if (svc?.submitPassword) return svc.submitPassword(password);
+    return 'fail';
+  }, []);
+
+  const submitSetup = useCallback(async (name: string, password: string): Promise<void> => {
+    const svc = serviceRef.current as BLEService | null;
+    if (svc?.submitSetup) await svc.submitSetup(name, password);
+  }, []);
+
+  const setVisibility = useCallback(async (on: boolean): Promise<void> => {
+    const svc = serviceRef.current as BLEService | null;
+    if (svc?.setVisibility) await svc.setVisibility(on);
+  }, []);
+
   const getEventsForDate = useCallback(
     (date: Date): WaterEvent[] => {
       const { start, end } = getDayBounds(date);
@@ -365,6 +384,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         updateSettings,
         triggerSync,
         setFillTarget,
+        submitPassword,
+        submitSetup,
+        setVisibility,
         getEventsForDate,
         getStats,
         getDbInfo,

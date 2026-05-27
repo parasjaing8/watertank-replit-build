@@ -52,6 +52,7 @@ export class SimulationService implements IDeviceService {
       firmwareVersion: null,
       fillTarget: null,
       inletActive: false,
+      authState: 'pending',
     };
     this.schedule(1000, () => this.stepConnect());
   }
@@ -96,7 +97,7 @@ export class SimulationService implements IDeviceService {
   // ── Cycle steps ──────────────────────────────────────────────────────────
 
   private stepConnect(): void {
-    this.emit({ connected: true });
+    this.emit({ connected: true, authState: 'ok' });
     try { insertSyncLog(Math.floor(Date.now() / 1000)); } catch {}
     this.schedule(2000, () => this.stepSupplyDetected());
   }

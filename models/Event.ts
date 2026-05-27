@@ -26,6 +26,8 @@ export interface WaterEvent {
   synced: boolean;
 }
 
+export type AuthState = 'pending' | 'ok' | 'fail' | 'setup_required';
+
 export interface DeviceState {
   connected: boolean;
   tank: number;
@@ -36,6 +38,7 @@ export interface DeviceState {
   firmwareVersion: string | null;
   fillTarget: number | null;
   inletActive: boolean;
+  authState: AuthState;
 }
 
 export interface DailyStats {
@@ -80,6 +83,7 @@ export const DEFAULT_DEVICE_STATE: DeviceState = {
   firmwareVersion: null,
   fillTarget: null,
   inletActive: false,
+  authState: 'pending',
 };
 
 export const HIDDEN_EVENT_TYPES: EventType[] = [EventType.BLE_SYNCED];
