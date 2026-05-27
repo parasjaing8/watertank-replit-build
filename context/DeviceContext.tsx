@@ -103,11 +103,17 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const simModeRef = useRef(false);
   useEffect(() => { simModeRef.current = simMode; }, [simMode]);
   const bgPausedRef = useRef(false);
+  const lastFwCheckRef = useRef<{ at: number; version: string }>({ at: 0, version: '' });
 
-  // When firmware version is read from board on connect, check GitHub for update
+  // When firmware version is read from board on connect, check GitHub for update.
+  // Throttled: at most once per 6 hours per version to avoid GitHub rate limiting.
   useEffect(() => {
     const version = deviceState.firmwareVersion;
     if (!version) return;
+    const now = Date.now();
+    const last = lastFwCheckRef.current;
+    if (version === last.version && now - last.at < 6 * 3600 * 1000) return;
+    lastFwCheckRef.current = { at: now, version };
     checkFirmwareUpdate(version)
       .then((manifest) => {
         setFirmwareManifest(manifest);

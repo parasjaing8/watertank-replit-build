@@ -157,7 +157,7 @@ export function getAllEvents(): WaterEvent[] {
           stop_reason: number;
           duration_sec: number;
           synced: number;
-        }>(`SELECT * FROM events ORDER BY epoch ASC`)
+        }>(`SELECT * FROM (SELECT * FROM events ORDER BY epoch DESC LIMIT 5000) ORDER BY epoch ASC`)
         ?.map(rowToEvent) ?? []
     );
   } catch {

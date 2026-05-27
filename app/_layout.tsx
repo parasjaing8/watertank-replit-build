@@ -95,8 +95,10 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    requestBlePermissions();
-    NotificationService.requestPermissions();
+    (async () => {
+      await requestBlePermissions();
+      NotificationService.requestPermissions();
+    })();
   }, []);
 
   return (
