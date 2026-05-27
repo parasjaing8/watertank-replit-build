@@ -1,6 +1,9 @@
 # WaterTank — Project Status
 _Last updated: 2026-05-28_
 
+## Deepseek Audit (v38)
+`auditDeepseek.md` — 44 findings (4 BLOCKER, 9 HIGH, 20 MEDIUM, 7 LOW). Covers firmware production-readiness, app reliability, security, code health, UX, operations, and testing. Primary gap: no real sensor integration (USE_SENSOR=0 only), Wi-Fi creds in source, event log volatile, zero automated app tests.
+
 ## App Version
 `1.0.0` (package.json) | Latest APK: `watertank-v37.apk` (v37, built 2026-05-28, master branch, BOOT reconnect + LED fix)
 - Phase 3 complete (pairing UI) — no new APK yet, needs firmware v1.3.0 on board first

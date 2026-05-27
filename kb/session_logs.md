@@ -1,5 +1,13 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v38: Deepseek production-readiness audit (auditDeepseek.md)
+
+- Deep analysis of full codebase (126 commits, firmware + app) by deepseek-v4-pro
+- 44 findings: 4 BLOCKER, 9 HIGH, 20 MEDIUM, 7 LOW
+- Key blockers: USE_SENSOR=0 only (no real sensor code), Wi-Fi creds in git, event log in volatile DRAM, zero automated app tests
+- Audit file: auditDeepseek.md — covers firmware, app reliability, security, code health, UX, operations, testing
+- Commit: 743c9e6, pushed to master
+
 ## 2026-05-28 — v37: BOOT short-press reconnect + LED stuck-on fix
 
 ### Problems
