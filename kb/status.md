@@ -9,7 +9,7 @@ _Last updated: 2026-05-28_
 - **7 HIGH** (v40, 3ae25c3): OTA callback non-blocking, fw validation timing, salted password hash, ON/OFF i18n, dead component removal, unused constant cleanup, ErrorFallback i18n
 
 ### Remaining
-- **2 HIGH**: 2.2 BLE Android 12+ permissions, 2.3 GitHub rate limit on fw check
+- **0 HIGH** remaining — all 9 resolved
 - **20 MEDIUM**, **7 LOW** still open
 
 ## App Version

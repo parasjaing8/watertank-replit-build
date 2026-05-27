@@ -1,5 +1,12 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v41: Fix HIGH 2.2, 2.3, 2.4
+
+- Branch: `deepseek`, commit 318f602
+- **2.2**: Await BLE permissions request (was fire-and-forget, race with first scan)
+- **2.3**: `checkFirmwareUpdate` throttled to once per 6h per version (GitHub rate limit)
+- **2.4**: `getAllEvents()` capped at 5000 most recent rows (prevents Share crash)
+
 ## 2026-05-28 — v40: Fix 7 HIGH audit items + ESP32-C3 bringup
 
 - Branch: `deepseek`, commit 3ae25c3
