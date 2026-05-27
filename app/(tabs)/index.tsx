@@ -356,6 +356,54 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* ── MUNICIPAL SUPPLY STATUS CARD ────────────────────────────────── */}
+        {isLive && (
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            {t("municipalSupply")}
+          </Text>
+        )}
+        {isLive && (
+          <View style={[
+            styles.card,
+            {
+              backgroundColor: deviceState.inletActive ? colors.primary + "1A" : colors.card,
+              borderColor:     deviceState.inletActive ? colors.primary + "CC" : colors.border,
+              borderWidth:     deviceState.inletActive ? 2 : 1,
+            },
+          ]}>
+            <View style={[
+              styles.motorAccentBar,
+              { backgroundColor: deviceState.inletActive ? colors.primary : colors.mutedForeground + "40" },
+            ]} />
+            <View style={[
+              styles.cardIconWrap,
+              { backgroundColor: deviceState.inletActive ? colors.primary + "22" : colors.muted },
+            ]}>
+              <Feather
+                name={deviceState.inletActive ? "droplet" : "droplet"}
+                size={20}
+                color={deviceState.inletActive ? colors.primary : colors.mutedForeground}
+              />
+            </View>
+            <View style={styles.cardBody}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+                {deviceState.inletActive ? t("supplyOn") : t("supplyOff")}
+              </Text>
+            </View>
+            <View style={[
+              styles.motorStatusBadge,
+              { backgroundColor: deviceState.inletActive ? colors.primary : colors.muted },
+            ]}>
+              <Text style={[
+                styles.motorStatusBadgeText,
+                { color: deviceState.inletActive ? "#FFF" : colors.mutedForeground },
+              ]}>
+                {deviceState.inletActive ? "ON" : "OFF"}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* ── REPORT PROBLEM ────────────────────────────────────────────────── */}
         <TouchableOpacity
           style={styles.reportBtn}

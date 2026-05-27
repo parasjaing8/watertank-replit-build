@@ -35,6 +35,7 @@ export interface DeviceState {
   lastSyncAt: number | null;
   firmwareVersion: string | null;
   fillTarget: number | null;
+  inletActive: boolean;
 }
 
 export interface DailyStats {
@@ -65,6 +66,8 @@ export const PUMP_STATE_LABELS: Record<number, string> = {
   1: "Water Arrived",
   2: "Motor Starting",
   3: "Pumping",
+  4: "Tank Full",
+  5: "Manual",
 };
 
 export const DEFAULT_DEVICE_STATE: DeviceState = {
@@ -76,6 +79,7 @@ export const DEFAULT_DEVICE_STATE: DeviceState = {
   lastSyncAt: null,
   firmwareVersion: null,
   fillTarget: null,
+  inletActive: false,
 };
 
 export const HIDDEN_EVENT_TYPES: EventType[] = [EventType.BLE_SYNCED];

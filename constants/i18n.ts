@@ -188,6 +188,10 @@ export interface Translations {
   fwDone: string;
   fwRetry: string;
   fwTimeout60: string;
+  // Municipal supply status
+  municipalSupply: string;
+  supplyOn: string;
+  supplyOff: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -360,6 +364,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     fwDone: 'Done',
     fwRetry: 'Try Again',
     fwTimeout60: 'Device did not reconnect after 60 seconds. Check device power and retry.',
+    municipalSupply: 'Municipal Supply',
+    supplyOn: 'Water Available',
+    supplyOff: 'No Water at Inlet',
   },
   hi: {
     appName: 'WaterTank',
@@ -530,6 +537,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     fwDone: 'हो गया',
     fwRetry: 'फिर कोशिश करें',
     fwTimeout60: '60 सेकंड बाद भी डिवाइस नहीं जुड़ा। डिवाइस की पावर जांचें और दोबारा कोशिश करें।',
+    municipalSupply: 'नगरपालिका सप्लाई',
+    supplyOn: 'पानी उपलब्ध है',
+    supplyOff: 'इनलेट पर पानी नहीं',
   },
   mr: {
     appName: 'WaterTank',
@@ -700,6 +710,9 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     fwDone: 'झाले',
     fwRetry: 'पुन्हा प्रयत्न करा',
     fwTimeout60: '60 सेकंदांनंतरही डिव्हाइस जोडले नाही. डिव्हाइसची पॉवर तपासा आणि पुन्हा प्रयत्न करा.',
+    municipalSupply: 'नगरपालिका पुरवठा',
+    supplyOn: 'पाणी उपलब्ध आहे',
+    supplyOff: 'इनलेटवर पाणी नाही',
   },
   kn: {
     appName: 'WaterTank',
@@ -870,5 +883,8 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     fwDone: 'ಮುಗಿಯಿತು',
     fwRetry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
     fwTimeout60: '60 ಸೆಕೆಂಡ್ ನಂತರವೂ ಸಾಧನ ಸಂಪರ್ಕಗೊಳ್ಳಲಿಲ್ಲ. ಸಾಧನದ ಪವರ್ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+    municipalSupply: 'ನಗರ ಪಾಲಿಕೆ ಪೂರೈಕೆ',
+    supplyOn: 'ನೀರು ಲಭ್ಯವಿದೆ',
+    supplyOff: 'ಇನ್‌ಲೆಟ್‌ನಲ್ಲಿ ನೀರಿಲ್ಲ',
   },
 };

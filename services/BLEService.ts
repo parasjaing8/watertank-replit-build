@@ -333,7 +333,7 @@ export class BLEService implements IDeviceService {
             const c = char as { value?: string };
             if (!c?.value) return;
             const json = Buffer.from(c.value, "base64").toString("utf8");
-            const parsed = JSON.parse(json) as { state: number; motor: boolean; manual: boolean; tank: number };
+            const parsed = JSON.parse(json) as { state: number; motor: boolean; manual: boolean; tank: number; inlet?: boolean };
             const manual = !!parsed.manual;
             this.emit({
               ...this.state,
@@ -342,6 +342,7 @@ export class BLEService implements IDeviceService {
               motorOn: parsed.state === 3 || manual,
               manual,
               tank: Math.max(0, Math.min(100, parsed.tank)),
+              inletActive: !!parsed.inlet,
             });
           } catch {}
         },

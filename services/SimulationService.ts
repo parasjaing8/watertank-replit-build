@@ -49,6 +49,9 @@ export class SimulationService implements IDeviceService {
       manual: false,
       pumpState: 0,
       lastSyncAt: null,
+      firmwareVersion: null,
+      fillTarget: null,
+      inletActive: false,
     };
     this.schedule(1000, () => this.stepConnect());
   }
@@ -99,7 +102,7 @@ export class SimulationService implements IDeviceService {
   }
 
   private stepSupplyDetected(): void {
-    this.emit({ pumpState: 1 });
+    this.emit({ pumpState: 1, inletActive: true });
     this.logEvent({
       epoch: Math.floor(Date.now() / 1000),
       type: EventType.WATER_ARRIVED,
@@ -141,7 +144,7 @@ export class SimulationService implements IDeviceService {
       this.emit({ tank: 95.1 });
       const duration = Math.floor((Date.now() - this.motorStartTime) / 1000);
       this.schedule(400, () => {
-        this.emit({ pumpState: 0, motorOn: false });
+        this.emit({ pumpState: 0, motorOn: false, inletActive: false });
         this.logEvent({
           epoch: Math.floor(Date.now() / 1000),
           type: EventType.MOTOR_OFF,

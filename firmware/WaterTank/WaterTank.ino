@@ -1,21 +1,7 @@
-// WaterTank BLE firmware — NimBLE-Arduino 2.x
-// Implements the 5-characteristic GATT protocol from constants/ble.ts.
-// WiFi OTA stays active via wfHandleOTA() in loop() (dev builds only).
-// BLE OTA via NimBLEOta (h2zero) — supports remote firmware update over BLE.
-//
-// Research-hardened (2026-05-26):
-//  - srv->advertiseOnDisconnect(true) guards against NimBLE 2.x bug #886/#915
-//  - OTA back-off: slow BLE notify to 10s when WiFi OTA is actively running
-//  - Connection stall watchdog: re-advertises if bleConnected but no notify in 12s
-//  - Non-blocking log stream (millis-based, no blocking delay())
-//  - WiFi watchdog with reconnect loop in main loop()
-//  - Tank simulation cycle for sensor-free testing
-//
-// BLE OTA (2026-05-26):
-//  - NimBLEOta adds GATT service 0x8018 with RECV_FW (0x8020) + COMMAND (0x8022)
-//  - Resume on reconnect is built-in (NimBLEOta::Reconnected reason)
-//  - esp_ota_mark_app_valid_cancel_rollback() called after first successful notify
-//  - C_FWVER characteristic (READ) exposes FW_VERSION string for app version checks
+// WaterTank BLE firmware — NimBLE-Arduino 2.x, v1.2.0
+// Municipality motor controller: starts on inlet water detection, stops on tank full or supply cut.
+// SW_MANUAL wired in parallel with relay coil — zero electronics in manual path.
+// GPIO_AUX (optocoupler) is ground truth for motor state; USE_SENSOR 0 = simulation.
 
 #include <NimBLEDevice.h>
 #include <Preferences.h>
@@ -23,78 +9,227 @@
 #include <WFStorm.h>
 #include "NimBLEOta.h"
 
+#define USE_SENSOR 0   // 0=simulation, 1=real hardware
+
 #define LED_PIN    2
 #define SSID       "Neo6G"
 #define PASS       "Passw01d"
-#define FW_VERSION "1.1.0"
+#define FW_VERSION "1.2.0"
 
-#define SVC_UUID   "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define C_STATE    "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-#define C_TANK     "beb5483f-36e1-4688-b7f5-ea07361b26a8"
-#define C_LOGCTRL  "beb54840-36e1-4688-b7f5-ea07361b26a8"
-#define C_LOGDATA  "beb54841-36e1-4688-b7f5-ea07361b26a8"
-#define C_TIMESYNC "beb54842-36e1-4688-b7f5-ea07361b26a8"
+// GPIO (active when USE_SENSOR 1)
+#define GPIO_RELAY  4     // OUTPUT: contactor coil
+#define GPIO_AUX    34    // INPUT_PULLDOWN: optocoupler (HIGH=contactor closed)
+#define GPIO_INLET  13    // INPUT_PULLUP: float switch (LOW=water present)
+#define GPIO_TRIG   5     // JSN-SR04T trigger
+#define GPIO_ECHO   18    // JSN-SR04T echo
+
+#define SVC_UUID       "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define C_STATE        "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define C_TANK         "beb5483f-36e1-4688-b7f5-ea07361b26a8"
+#define C_LOGCTRL      "beb54840-36e1-4688-b7f5-ea07361b26a8"
+#define C_LOGDATA      "beb54841-36e1-4688-b7f5-ea07361b26a8"
+#define C_TIMESYNC     "beb54842-36e1-4688-b7f5-ea07361b26a8"
 #define C_FWVER        "beb54843-36e1-4688-b7f5-ea07361b26a8"
 #define C_RESET_REASON "beb54844-36e1-4688-b7f5-ea07361b26a8"
 #define C_FILL_TARGET  "beb54845-36e1-4688-b7f5-ea07361b26a8"
 
-// ── Tunable params ────────────────────────────────────────────────────────────
-#define NOTIFY_INTERVAL_MS    2000    // normal BLE state cadence
-#define NOTIFY_OTA_INTERVAL   10000   // slow cadence during active WiFi OTA
-#define STALL_TIMEOUT_MS      12000   // force re-advertise if no notify sent while "connected"
-#define WIFI_CHECK_MS         30000   // WiFi watchdog interval
-#define LOG_FRAME_MS          50      // inter-log-frame gap (non-blocking)
-#define DRAIN_STEP_PCT        0.3f    // % drained per tick  (90→20 in ~3.7 min)
-#define FILL_STEP_PCT         0.8f    // % filled per tick   (20→90 in ~1.4 min)
+#define NOTIFY_INTERVAL_MS    2000
+#define NOTIFY_OTA_INTERVAL   10000
+#define STALL_TIMEOUT_MS      12000
+#define WIFI_CHECK_MS         30000
+#define LOG_FRAME_MS          50
+#define TICK_INTERVAL_MS      1000    // automation state machine tick
+#define DRAIN_STEP_PCT        0.3f
+#define FILL_STEP_PCT         0.8f
 #define LOW_TANK_PCT          20.0f
 #define FULL_TANK_PCT_DEFAULT 90.0f
 
+// ── Event ring buffer ─────────────────────────────────────────────────────────
+
+#define EVENT_BUF_SIZE 64
+
+struct LogEvent { uint32_t id, epoch, durationSec; uint8_t type, stopReason; float tankPct; };
+
+static LogEvent eventBuf[EVENT_BUF_SIZE];
+static uint8_t  eventHead   = 0;
+static uint8_t  eventCount  = 0;
+static uint32_t nextEventId = 1;
+
 // ── State ─────────────────────────────────────────────────────────────────────
+
 static NimBLECharacteristic *charState, *charTank, *charLogData;
 static NimBLEServer          *bleServer = nullptr;
 static NimBLEOta              bleOta;
 static Preferences            prefs;
 static float                  fullTankPct = FULL_TANK_PCT_DEFAULT;
 
-static volatile bool bleConnected    = false;
-static bool          doSendLogs     = false;
-static bool          pushStateNow   = false;
-static unsigned long pushScheduled  = 0;
-static uint32_t      syncedEpoch   = 0;
-static unsigned long lastNotify    = 0;
-static unsigned long lastActivity  = 0;
+static volatile bool bleConnected   = false;
+static bool          doSendLogs    = false;
+static unsigned long pushScheduled = 0;
+static uint32_t      syncedEpoch  = 0;
+static unsigned long lastNotify   = 0;
 static unsigned long lastWifiCheck = 0;
-static bool          otaActive     = false;
-static bool          fwValidated   = false;  // true after esp_ota_mark_app_valid called
+static unsigned long lastTick     = 0;
+static bool          otaActive    = false;
+static bool          fwValidated  = false;
 
-// Simulated sensor values
-static float tankPct    = 72.0f;
-static int   pumpState  = 0;
-static bool  motorOn    = false;
-static bool  manualMode = false;
+// Automation state
+static float    tankPct         = 72.0f;
+static int      pumpState       = 0;    // 0=idle,3=running,4=tank_full,5=manual
+static bool     motorOn         = false;
+static bool     manualMode      = false;
+static bool     relayOn         = false;
+static bool     inletActive     = false;
+static uint32_t motorStartEpoch = 0;
+
+// Simulation-only state (compiled out when USE_SENSOR 1)
+#if USE_SENSOR == 0
+static bool simInletActive = false;
+#endif
 
 // Non-blocking log stream
-static bool          logStreaming  = false;
-static int           logFrameIdx  = 0;
+static bool          logStreaming = false;
+static int           logFrameIdx = 0;
 static unsigned long logFrameNext = 0;
+
+// ── Relay + sensor abstraction ────────────────────────────────────────────────
+
+void setRelay(bool on) {
+  relayOn = on;
+#if USE_SENSOR == 1
+  digitalWrite(GPIO_RELAY, on ? HIGH : LOW);
+#endif
+}
+
+bool getAux() {
+#if USE_SENSOR == 1
+  return digitalRead(GPIO_AUX) == HIGH;
+#else
+  return relayOn;  // sim: contactor mirrors relay
+#endif
+}
+
+bool getInlet() {
+#if USE_SENSOR == 1
+  return digitalRead(GPIO_INLET) == LOW;  // active LOW
+#else
+  if (tankPct >= fullTankPct) simInletActive = false;
+  if (tankPct <= LOW_TANK_PCT) simInletActive = true;
+  return simInletActive;
+#endif
+}
+
+float getTankLevel() {
+#if USE_SENSOR == 1
+  return tankPct;  // TODO: JSN-SR04T (F-SENSOR milestone)
+#else
+  if (relayOn) tankPct = constrain(tankPct + FILL_STEP_PCT, 0.0f, 100.0f);
+  else         tankPct = constrain(tankPct - DRAIN_STEP_PCT, 0.0f, 100.0f);
+  return tankPct;
+#endif
+}
+
+// ── Event logging ─────────────────────────────────────────────────────────────
+
+void pushEvent(uint8_t type, float tank, uint32_t dur, uint8_t stop) {
+  LogEvent& e  = eventBuf[eventHead];
+  e.id         = nextEventId++;
+  e.epoch      = syncedEpoch > 0 ? syncedEpoch : (millis() / 1000);
+  e.type       = type;
+  e.tankPct    = tank;
+  e.durationSec = dur;
+  e.stopReason = stop;
+  eventHead = (eventHead + 1) % EVENT_BUF_SIZE;
+  if (eventCount < EVENT_BUF_SIZE) eventCount++;
+}
+
+// ── Automation state machine ──────────────────────────────────────────────────
+
+void tickAutomation() {
+  tankPct     = getTankLevel();
+  bool aux    = getAux();
+  bool inlet  = getInlet();
+  inletActive = inlet;
+
+  // Manual override: aux (actual contactor) is ground truth, not relayOn
+  if (aux && !relayOn) {
+    // Contactor closed but we didn't command it → user used SW_MANUAL
+    if (!manualMode) {
+      manualMode = true;
+      pumpState  = 5;
+      motorOn    = true;
+      pushEvent(4, tankPct, 0, 0);  // MANUAL_ON
+      Serial.println("AUTO: MANUAL_ON");
+    }
+    return;
+  }
+  if (!aux && relayOn) {
+    // Contactor opened while relay commanded ON → user opened SW_MANUAL mid-run
+    manualMode = false;
+    setRelay(false);
+    motorOn    = false;
+    pumpState  = 0;
+    pushEvent(5, tankPct, 0, 0);  // MANUAL_OFF
+    Serial.println("AUTO: MANUAL_OFF");
+  }
+  if (manualMode && !aux) {
+    // SW_MANUAL was released — exit manual mode
+    manualMode = false;
+    pumpState  = 0;
+    motorOn    = false;
+  }
+  if (manualMode) return;
+
+  // Normal automation
+  if (!aux) {
+    motorOn = false;
+    if (inlet && tankPct < fullTankPct) {
+      setRelay(true);
+      pumpState       = 3;
+      motorOn         = true;
+      motorStartEpoch = syncedEpoch > 0 ? syncedEpoch : (millis() / 1000);
+      pushEvent(1, tankPct, 0, 0);  // MOTOR_ON
+      Serial.printf("AUTO: MOTOR_ON inlet=1 tank=%.1f%%\n", tankPct);
+    } else if (!inlet && pumpState == 3) {
+      pumpState = 0;
+    }
+  } else {
+    // Motor is running — check stop conditions (whichever first)
+    bool    shouldStop = false;
+    uint8_t stopReason = 0;
+    if (!inlet) {
+      shouldStop = true; stopReason = 2;  // SUPPLY_CUT
+    } else if (tankPct >= fullTankPct) {
+      shouldStop = true; stopReason = 1;  // TANK_FULL
+    }
+    if (shouldStop) {
+      uint32_t now = syncedEpoch > 0 ? syncedEpoch : (millis() / 1000);
+      uint32_t dur = motorStartEpoch > 0 && now > motorStartEpoch ? now - motorStartEpoch : 0;
+      setRelay(false);
+      motorOn   = false;
+      pumpState = (stopReason == 1) ? 4 : 0;
+      pushEvent(2, tankPct, dur, stopReason);  // MOTOR_OFF
+      Serial.printf("AUTO: MOTOR_OFF stop=%d tank=%.1f%%\n", stopReason, tankPct);
+    }
+  }
+}
 
 // ── BLE callbacks ─────────────────────────────────────────────────────────────
 
 class ConnCB : public NimBLEServerCallbacks {
   void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
-    bleConnected   = true;
-    pushScheduled  = millis() + 800;  // push 800ms post-connect — covers service discovery + CCCD write
-    lastActivity   = millis();
+    bleConnected  = true;
+    pushScheduled = millis() + 800;
+    lastNotify    = millis();
     Serial.printf("BLE: connected — peer=%s\n", info.getAddress().toString().c_str());
   }
   void onDisconnect(NimBLEServer*, NimBLEConnInfo& info, int reason) override {
     bleConnected  = false;
-    logStreaming   = false;
-    logFrameIdx    = 0;
-    lastNotify     = 0;   // reset so watchdog doesn't fire on next connection
-    pushScheduled  = 0;   // cancel any pending initial push
+    logStreaming  = false;
+    logFrameIdx   = 0;
+    lastNotify    = 0;
+    pushScheduled = 0;
     Serial.printf("BLE: disconnected (reason=0x%02X)\n", reason);
-    // advertiseOnDisconnect(true) also handles this, but belt-and-suspenders:
     NimBLEDevice::startAdvertising();
   }
 };
@@ -127,12 +262,29 @@ class LogCtrlCB : public NimBLECharacteristicCallbacks {
   }
 };
 
+class FillTargetCB : public NimBLECharacteristicCallbacks {
+  void onRead(NimBLECharacteristic* c, NimBLEConnInfo&) override {
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d", (int)fullTankPct);
+    c->setValue(buf);
+  }
+  void onWrite(NimBLECharacteristic* c, NimBLEConnInfo&) override {
+    NimBLEAttValue v = c->getValue();
+    if (v.size() == 0) return;
+    int pct = atoi((const char*)v.data());
+    pct = constrain(pct, 1, 98);
+    fullTankPct = (float)pct;
+    prefs.putFloat("fill_pct", fullTankPct);
+    Serial.printf("FillTarget: set to %d%%\n", pct);
+  }
+};
+
 // ── BLE OTA callbacks ─────────────────────────────────────────────────────────
 
 class OtaCB : public NimBLEOtaCallbacks {
   void onStart(NimBLEOta*, uint32_t size, NimBLEOta::Reason reason) override {
     Serial.printf("BLE-OTA: start size=%u reason=%d\n", size, reason);
-    otaActive = true;  // slow down BLE state notifies during transfer
+    otaActive = true;
   }
   void onProgress(NimBLEOta*, uint32_t current, uint32_t total) override {
     Serial.printf("BLE-OTA: %u/%u (%.0f%%)\n", current, total, 100.f * current / total);
@@ -169,73 +321,38 @@ void loopLogStream() {
   if (millis() < logFrameNext) return;
   logFrameNext = millis() + LOG_FRAME_MS;
 
-  uint32_t t = syncedEpoch > 0 ? syncedEpoch : (millis()/1000);
-  char buf[144];
-
-  switch (logFrameIdx) {
-    case 0:
-      snprintf(buf, sizeof(buf),
-        "{\"id\":1,\"t\":%u,\"type\":1,\"tank\":68,\"dur\":120,\"stop\":1}",
-        t > 600 ? t-600 : 0);
-      charLogData->setValue((uint8_t*)buf, strlen(buf));
-      charLogData->notify();
-      Serial.printf("Log[0]: %s\n", buf);
-      break;
-    case 1:
-      snprintf(buf, sizeof(buf),
-        "{\"id\":2,\"t\":%u,\"type\":2,\"tank\":72,\"dur\":180,\"stop\":1}",
-        t > 200 ? t-200 : 0);
-      charLogData->setValue((uint8_t*)buf, strlen(buf));
-      charLogData->notify();
-      Serial.printf("Log[1]: %s\n", buf);
-      break;
-    case 2:
-      charLogData->setValue("DONE");
-      charLogData->notify();
-      logStreaming = false;
-      Serial.println("Log: DONE");
-      break;
-    default:
-      logStreaming = false;
-      break;
-  }
-  logFrameIdx++;
-}
-
-// ── Simulation ────────────────────────────────────────────────────────────────
-
-void updateSimulation() {
-  if (motorOn) {
-    tankPct += FILL_STEP_PCT;
-    if (tankPct >= fullTankPct) {
-      tankPct   = fullTankPct;
-      motorOn   = false;
-      pumpState = 0;
-      Serial.printf("Sim: FULL %.0f%% — motor OFF\n", tankPct);
-    }
+  if (logFrameIdx < (int)eventCount) {
+    // Iterate ring buffer from oldest to newest
+    uint8_t start = (eventHead + EVENT_BUF_SIZE - eventCount) % EVENT_BUF_SIZE;
+    uint8_t idx   = (start + (uint8_t)logFrameIdx) % EVENT_BUF_SIZE;
+    const LogEvent& e = eventBuf[idx];
+    char buf[144];
+    snprintf(buf, sizeof(buf),
+      "{\"id\":%u,\"t\":%u,\"type\":%d,\"tank\":%.0f,\"dur\":%u,\"stop\":%d}",
+      e.id, e.epoch, e.type, e.tankPct, e.durationSec, e.stopReason);
+    charLogData->setValue((uint8_t*)buf, strlen(buf));
+    charLogData->notify();
+    logFrameIdx++;
   } else {
-    tankPct -= DRAIN_STEP_PCT;
-    if (tankPct <= LOW_TANK_PCT) {
-      tankPct   = LOW_TANK_PCT;
-      motorOn   = true;
-      pumpState = 3;
-      Serial.printf("Sim: LOW %.0f%% — motor ON\n", tankPct);
-    }
+    charLogData->setValue("DONE");
+    charLogData->notify();
+    logStreaming = false;
+    Serial.printf("Log: DONE (%d events)\n", eventCount);
   }
-  tankPct = constrain(tankPct, 0.0f, 100.0f);
 }
 
-// ── Notify helpers ────────────────────────────────────────────────────────────
+// ── Notify helper ─────────────────────────────────────────────────────────────
 
 void pushState() {
   if (!bleConnected || !charState || !charTank) return;
-  char buf[96];
+  char buf[128];
   snprintf(buf, sizeof(buf),
-    "{\"state\":%d,\"motor\":%s,\"manual\":%s,\"tank\":%.1f}",
+    "{\"state\":%d,\"motor\":%s,\"manual\":%s,\"tank\":%.1f,\"inlet\":%s}",
     pumpState,
-    motorOn    ? "true" : "false",
-    manualMode ? "true" : "false",
-    tankPct);
+    motorOn     ? "true" : "false",
+    manualMode  ? "true" : "false",
+    tankPct,
+    inletActive ? "true" : "false");
   charState->setValue((uint8_t*)buf, strlen(buf));
   charState->notify();
 
@@ -246,8 +363,6 @@ void pushState() {
   lastNotify = millis();
   digitalWrite(LED_PIN, !digitalRead(LED_PIN));
 
-  // Rollback validation: mark firmware valid after first successful notify.
-  // If firmware crashes before this call, bootloader auto-reverts to previous OTA slot.
   if (!fwValidated) {
     esp_ota_mark_app_valid_cancel_rollback();
     fwValidated = true;
@@ -275,23 +390,6 @@ void checkWifi() {
   }
 }
 
-class FillTargetCB : public NimBLECharacteristicCallbacks {
-  void onRead(NimBLECharacteristic* c, NimBLEConnInfo&) override {
-    char buf[8];
-    snprintf(buf, sizeof(buf), "%d", (int)fullTankPct);
-    c->setValue(buf);
-  }
-  void onWrite(NimBLECharacteristic* c, NimBLEConnInfo&) override {
-    NimBLEAttValue v = c->getValue();
-    if (v.size() == 0) return;
-    int pct = atoi((const char*)v.data());
-    pct = constrain(pct, 1, 98);
-    fullTankPct = (float)pct;
-    prefs.putFloat("fill_pct", fullTankPct);
-    Serial.printf("FillTarget: set to %d%%\n", pct);
-  }
-};
-
 // ── setup ─────────────────────────────────────────────────────────────────────
 
 void setup() {
@@ -304,12 +402,19 @@ void setup() {
     digitalWrite(LED_PIN, LOW);  delay(100);
   }
 
-  // Load user-configurable fill target from NVS (persists across reboots)
+#if USE_SENSOR == 1
+  pinMode(GPIO_RELAY, OUTPUT);  digitalWrite(GPIO_RELAY, LOW);
+  pinMode(GPIO_AUX,   INPUT_PULLDOWN);
+  pinMode(GPIO_INLET, INPUT_PULLUP);
+  pinMode(GPIO_TRIG,  OUTPUT);  digitalWrite(GPIO_TRIG, LOW);
+  pinMode(GPIO_ECHO,  INPUT);
+  Serial.println("Sensor: GPIO init done");
+#endif
+
   prefs.begin("watertank", false);
   fullTankPct = constrain(prefs.getFloat("fill_pct", FULL_TANK_PCT_DEFAULT), 1.0f, 98.0f);
   Serial.printf("FillTarget: loaded %.0f%% from NVS\n", fullTankPct);
 
-  // WiFi — STA preferred for coexistence; AP fallback keeps OTA alive
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASS);
   int tries = 0;
@@ -325,16 +430,13 @@ void setup() {
     wfConfigOTA("StormBoard", "esp32ota", WF_AP);
   }
 
-  // BLE — NimBLE stack
   NimBLEDevice::init("WaterTank");
   NimBLEDevice::setMTU(512);
 
   bleServer = NimBLEDevice::createServer();
   bleServer->setCallbacks(new ConnCB());
-  // Guards against NimBLE 2.x bug #886/#915 where onDisconnect stops firing
-  // after repeated unclean disconnects — this makes advertising restart automatic
-  // at the stack level independent of the callback.
-  bleServer->advertiseOnDisconnect(true);
+  // Guards against NimBLE 2.x bug #886/#915 (onDisconnect stops firing after unclean disconnects)
+  bleServer->advertiseOnDisconnect(true);  // guards NimBLE 2.x bug #886/#915
 
   NimBLEService* svc = bleServer->createService(SVC_UUID);
 
@@ -351,16 +453,13 @@ void setup() {
     C_TIMESYNC, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
   timeSync->setCallbacks(new TimeSyncCB());
 
-  // C_FWVER: app reads this on connect to check if update is needed
   NimBLECharacteristic* fwVer = svc->createCharacteristic(C_FWVER, NIMBLE_PROPERTY::READ);
   fwVer->setValue(FW_VERSION);
 
-  // C_RESET_REASON: app reads last reset cause for crash diagnostics (zero SRAM cost — register read)
   NimBLECharacteristic* rstReason = svc->createCharacteristic(C_RESET_REASON, NIMBLE_PROPERTY::READ);
   uint8_t rstCode = (uint8_t)esp_reset_reason();
   rstReason->setValue(&rstCode, 1);
 
-  // C_FILL_TARGET: user-configurable motor stop level (1-98%), stored in NVS
   NimBLECharacteristic* fillTarget = svc->createCharacteristic(
     C_FILL_TARGET, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
   fillTarget->setCallbacks(new FillTargetCB());
@@ -370,12 +469,9 @@ void setup() {
 
   svc->start();
 
-  // BLE OTA service (separate GATT service, UUID 0x8018)
   bleOta.start(new OtaCB());
-  // Abort any stuck OTA after 5 minutes — prevents hung transfer blocking BLE
   bleOta.startAbortTimer(300);
 
-  // 128-bit UUID + name > 31B adv limit → split across adv + scan response
   NimBLEAdvertisementData scanRsp;
   scanRsp.setName("WaterTank");
 
@@ -385,38 +481,37 @@ void setup() {
   adv->setScanResponseData(scanRsp);
   adv->start();
 
-  Serial.printf("BLE: advertising v%s. Sim: tank=%.0f%% motor=%s\n",
-                FW_VERSION, tankPct, motorOn ? "ON" : "OFF");
+  Serial.printf("BLE: advertising v%s. tank=%.0f%% inlet=%s\n",
+                FW_VERSION, tankPct, inletActive ? "ON" : "OFF");
 }
 
 // ── loop ──────────────────────────────────────────────────────────────────────
 
 void loop() {
-  // OTA — call first, every iteration
   wfHandleOTA();
 
   unsigned long now = millis();
 
-  // Initial state push — 400ms after connect so client has time to write CCCD
+  // Automation tick every 1s (independent of BLE notify rate)
+  if (now - lastTick >= TICK_INTERVAL_MS) {
+    lastTick = now;
+    tickAutomation();
+  }
+
   if (pushScheduled > 0 && now >= pushScheduled && bleConnected) {
     pushScheduled = 0;
-    updateSimulation();
     pushState();
     lastNotify = now;
   }
 
-  // Non-blocking log stream
   loopLogStream();
 
-  // WiFi watchdog
   if (now - lastWifiCheck >= WIFI_CHECK_MS) {
     lastWifiCheck = now;
     checkWifi();
   }
 
-  // Connection stall watchdog: NimBLE 2.x bug — bleConnected may be stuck true
-  // if onDisconnect never fires after an unclean disconnect. If we haven't
-  // successfully notified in STALL_TIMEOUT_MS, force re-advertise.
+  // Stall watchdog: bleConnected may be stuck true if onDisconnect never fires (NimBLE 2.x bug)
   if (bleConnected && lastNotify > 0 && (now - lastNotify) > STALL_TIMEOUT_MS) {
     Serial.println("Watchdog: stall detected — forcing re-advertise");
     bleConnected = false;
@@ -424,16 +519,13 @@ void loop() {
     NimBLEDevice::stopAdvertising();
     delay(100);
     NimBLEDevice::startAdvertising();
-    lastNotify = now;  // reset so watchdog doesn't immediately re-fire
+    lastNotify = now;
   }
 
-  // Periodic BLE state notify
-  // Use longer interval during OTA to give WiFi more uncontested radio time.
   unsigned long interval = otaActive ? NOTIFY_OTA_INTERVAL : NOTIFY_INTERVAL_MS;
   if (bleConnected && (now - lastNotify) >= interval) {
-    updateSimulation();
     pushState();
-    Serial.printf("Tick: pumpState=%d motor=%s tank=%.1f%%\n",
-                  pumpState, motorOn?"ON":"OFF", tankPct);
+    Serial.printf("Tick: state=%d motor=%s inlet=%s tank=%.1f%%\n",
+                  pumpState, motorOn?"ON":"OFF", inletActive?"ON":"OFF", tankPct);
   }
 }
