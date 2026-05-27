@@ -1,5 +1,20 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v37: BOOT short-press reconnect + LED stuck-on fix
+
+### Problems
+1. App not auto-connecting after clearing app data: board was claimed + not advertising (30s post-claim visibility window long expired). App had no stored MAC (cleared AsyncStorage), so `tryDirectConnect()` failed and scan found nothing — deadlock.
+2. Both LEDs on continuously: `checkWifi()` toggles LED during WiFi reconnect loop but does not reset it LOW after. If LED was HIGH going in (from last `pushState()` toggle), 40 even toggles leave it HIGH. Board out of WiFi range → `checkWifi()` fires every 30s → LED stays stuck ON.
+
+### Fixes
+- **Firmware**: BOOT short-press detection on button release (0.5s ≤ hold < 10s) → opens a 60s advertising window without factory reset. Board starts advertising, app can scan and find it, user enters password to re-pair and get a new session token.
+- **Firmware**: `checkWifi()` now calls `digitalWrite(LED_PIN, LOW)` after reconnect loop exits, regardless of result. LED is now deterministic after WiFi reconnect.
+- **App**: Added `pressBootHint` translation (all 4 languages), shown after 60s disconnect: "Still not connecting? Short-press the button on your device to open a reconnect window."
+- Commit: e7ce224, pushed to master. Firmware flashed OTA. APK installed via adb.
+
+### Recovery procedure (for future reference)
+If app can't connect to a claimed board: short-press BOOT button (< 1s) → board advertises for 60s → open app → app scans and finds board → enter password → reconnected.
+
 ## 2026-05-28 — v36: Remove dynamic active borders on motor/inlet tiles
 
 - Motor running tile and water available (inlet) tile had `borderColor: colors.success + "CC"` / `borderWidth: 2` when active — looked heavy and gray-thick against the card background
