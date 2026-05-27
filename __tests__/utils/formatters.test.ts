@@ -6,7 +6,6 @@ import {
   formatRelativeTime,
   formatDuration,
   formatDayLabel,
-  getTankColor,
   getDayBounds,
   addDays,
   isToday,
@@ -151,41 +150,6 @@ describe('formatHeaderDate', () => {
   it('returns long date string', () => {
     const result = formatHeaderDate(new Date('2026-01-15'), 'en');
     expect(result.length).toBeGreaterThan(10);
-  });
-});
-
-describe('getTankColor', () => {
-  const theme = {
-    tankEmpty: '#ccc',
-    tankLow: '#f00',
-    tankMid: '#ff0',
-    tankHigh: '#0f0',
-    tankFull: '#00f',
-  };
-
-  it('returns tankFull for >= 95', () => {
-    expect(getTankColor(95, theme)).toBe('#00f');
-    expect(getTankColor(100, theme)).toBe('#00f');
-  });
-
-  it('returns tankHigh for 60-94', () => {
-    expect(getTankColor(60, theme)).toBe('#0f0');
-    expect(getTankColor(94, theme)).toBe('#0f0');
-  });
-
-  it('returns tankMid for 30-59', () => {
-    expect(getTankColor(30, theme)).toBe('#ff0');
-    expect(getTankColor(59, theme)).toBe('#ff0');
-  });
-
-  it('returns tankLow for 10-29', () => {
-    expect(getTankColor(10, theme)).toBe('#f00');
-    expect(getTankColor(29, theme)).toBe('#f00');
-  });
-
-  it('returns tankEmpty for < 10', () => {
-    expect(getTankColor(5, theme)).toBe('#ccc');
-    expect(getTankColor(0, theme)).toBe('#ccc');
   });
 });
 

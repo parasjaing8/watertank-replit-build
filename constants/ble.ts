@@ -1,5 +1,3 @@
-export const BLE_DEVICE_NAME = "WaterTank";
-
 export function isTankDevice(name?: string | null): boolean {
   return typeof name === "string" && name.toUpperCase().includes("WATERTANK");
 }

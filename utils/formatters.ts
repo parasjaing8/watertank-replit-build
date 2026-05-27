@@ -96,17 +96,6 @@ export function formatTankPct(pct: number): string {
   return `${Math.round(pct)}%`;
 }
 
-export function getTankColor(
-  pct: number,
-  theme: { tankEmpty: string; tankLow: string; tankMid: string; tankHigh: string; tankFull: string },
-): string {
-  if (pct >= 95) return theme.tankFull;
-  if (pct >= 60) return theme.tankHigh;
-  if (pct >= 30) return theme.tankMid;
-  if (pct >= 10) return theme.tankLow;
-  return theme.tankEmpty;
-}
-
 export function getDayBounds(date: Date): { start: number; end: number } {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);

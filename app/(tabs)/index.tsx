@@ -365,7 +365,7 @@ export default function DashboardScreen() {
                 styles.motorStatusBadgeText,
                 { color: motorOn ? "#FFF" : colors.mutedForeground },
               ]}>
-                {motorOn ? "ON" : "OFF"}
+                {motorOn ? t("on") : t("off")}
               </Text>
             </View>
           </View>
@@ -413,7 +413,7 @@ export default function DashboardScreen() {
                 styles.motorStatusBadgeText,
                 { color: deviceState.inletActive ? "#FFF" : colors.mutedForeground },
               ]}>
-                {deviceState.inletActive ? "ON" : "OFF"}
+                {deviceState.inletActive ? t("on") : t("off")}
               </Text>
             </View>
           </View>

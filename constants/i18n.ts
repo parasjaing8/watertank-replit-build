@@ -217,6 +217,14 @@ export interface Translations {
   removeThisDevice: string;
   removeDeviceConfirmTitle: string;
   removeDeviceConfirmMsg: string;
+  // motor / inlet status
+  on: string;
+  off: string;
+  // error fallback
+  errorTitle: string;
+  errorMessage: string;
+  errorTryAgain: string;
+  errorDetails: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -414,6 +422,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'Remove All Paired Devices',
     removeDeviceConfirmTitle: 'Remove paired devices?',
     removeDeviceConfirmMsg: 'This phone will need to enter the password again to reconnect.',
+    on: 'ON',
+    off: 'OFF',
+    errorTitle: 'Something went wrong',
+    errorMessage: 'Please reload the app to continue.',
+    errorTryAgain: 'Try Again',
+    errorDetails: 'Error Details',
   },
   hi: {
     appName: 'WaterTank',
@@ -609,6 +623,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'सभी जुड़े डिवाइस हटाएँ',
     removeDeviceConfirmTitle: 'जुड़े डिवाइस हटाएँ?',
     removeDeviceConfirmMsg: 'इस फोन को दोबारा जोड़ने के लिए पासवर्ड डालना होगा।',
+    on: 'चालू',
+    off: 'बंद',
+    errorTitle: 'कुछ गलत हो गया',
+    errorMessage: 'कृपया ऐप को पुनः लोड करें।',
+    errorTryAgain: 'पुनः प्रयास करें',
+    errorDetails: 'त्रुटि विवरण',
   },
   mr: {
     appName: 'WaterTank',
@@ -804,6 +824,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'सर्व जोडलेले डिव्हाइस काढा',
     removeDeviceConfirmTitle: 'जोडलेले डिव्हाइस काढायचे?',
     removeDeviceConfirmMsg: 'या फोनला पुन्हा जोडण्यासाठी पासवर्ड टाकावा लागेल.',
+    on: 'सुरू',
+    off: 'बंद',
+    errorTitle: 'काहीतरी चूक झाली',
+    errorMessage: 'कृपया अ‍ॅप पुन्हा लोड करा.',
+    errorTryAgain: 'पुन्हा प्रयत्न करा',
+    errorDetails: 'त्रुटी तपशील',
   },
   kn: {
     appName: 'WaterTank',
@@ -999,5 +1025,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'ಎಲ್ಲಾ ಜೋಡಿಸಿದ ಸಾಧನಗಳನ್ನು ತೆಗೆಯಿರಿ',
     removeDeviceConfirmTitle: 'ಜೋಡಿಸಿದ ಸಾಧನಗಳನ್ನು ತೆಗೆಯಬೇಕೇ?',
     removeDeviceConfirmMsg: 'ಈ ಫೋನ್ ಮತ್ತೆ ಸಂಪರ್ಕಿಸಲು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಬೇಕಾಗುತ್ತದೆ.',
+    on: 'ಆನ್',
+    off: 'ಆಫ್',
+    errorTitle: 'ಏನೋ ತಪ್ಪಾಗಿದೆ',
+    errorMessage: 'ದಯವಿಟ್ಟು ಆ್ಯಪ್ ಅನ್ನು ಮರುಲೋಡ್ ಮಾಡಿ.',
+    errorTryAgain: 'ಮರುಪ್ರಯತ್ನಿಸಿ',
+    errorDetails: 'ದೋಷ ವಿವರಗಳು',
   },
 };

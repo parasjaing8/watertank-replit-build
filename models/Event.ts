@@ -64,15 +64,6 @@ export const STOP_REASON_LABELS: Record<StopReason, string> = {
   [StopReason.ALREADY_FULL]: 'Already full',
 };
 
-export const PUMP_STATE_LABELS: Record<number, string> = {
-  0: "Idle",
-  1: "Water Arrived",
-  2: "Motor Starting",
-  3: "Pumping",
-  4: "Tank Full",
-  5: "Manual",
-};
-
 export const DEFAULT_DEVICE_STATE: DeviceState = {
   connected: false,
   tank: 0,

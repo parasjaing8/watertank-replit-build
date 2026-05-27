@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -21,6 +22,7 @@ export type ErrorFallbackProps = {
 
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const colors = useColors();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -70,11 +72,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.foreground }]}>
-          Something went wrong
+          {t("errorTitle")}
         </Text>
 
         <Text style={[styles.message, { color: colors.mutedForeground }]}>
-          Please reload the app to continue.
+          {t("errorMessage")}
         </Text>
 
         <Pressable
@@ -94,7 +96,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
               { color: colors.primaryForeground },
             ]}
           >
-            Try Again
+            {t("errorTryAgain")}
           </Text>
         </Pressable>
       </View>
@@ -120,7 +122,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                 ]}
               >
                 <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                  Error Details
+                  {t("errorDetails")}
                 </Text>
                 <Pressable
                   onPress={() => setIsModalVisible(false)}

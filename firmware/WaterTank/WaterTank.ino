@@ -15,6 +15,7 @@
 
 #define USE_SENSOR 0   // 0=simulation, 1=real hardware
 #define USE_WIFI   0   // 0=BLE-only (production), 1=WiFi OTA (development)
+#define BOARD_TYPE 1   // 0=ESP32-WROVER (WittyFox), 1=ESP32-C3 Mini
 
 #if USE_WIFI == 1
 #include <WiFi.h>
@@ -22,16 +23,27 @@
 #include "wifi_credentials.h"
 #endif
 
-#define LED_PIN    2
-#define GPIO_BOOT  0   // BOOT button — hold 10s for factory reset
 #define FW_VERSION "1.4.0"
 
-// GPIO (active when USE_SENSOR 1)
-#define GPIO_RELAY  4
-#define GPIO_AUX    34
-#define GPIO_INLET  13
-#define GPIO_TRIG   5
-#define GPIO_ECHO   18
+// GPIO mapping — differs between ESP32-WROVER and ESP32-C3
+// ESP32-C3 note: GPIO 11-17 = flash (internal), GPIO 18-19 = USB, GPIO 34+ absent
+#if BOARD_TYPE == 0  // ESP32-WROVER (Witty Fox Storm Board)
+  #define LED_PIN    2
+  #define GPIO_BOOT  0
+  #define GPIO_RELAY  4
+  #define GPIO_AUX    34
+  #define GPIO_INLET  13
+  #define GPIO_TRIG   5
+  #define GPIO_ECHO   18
+#else  // ESP32-C3 Mini
+  #define LED_PIN    8
+  #define GPIO_BOOT  9
+  #define GPIO_RELAY  4
+  #define GPIO_AUX    3
+  #define GPIO_INLET  10
+  #define GPIO_TRIG   5
+  #define GPIO_ECHO   6
+#endif
 
 // Tank geometry for JSN-SR04T ultrasonic sensor (edit to match your tank)
 #define TANK_HEIGHT_CM      120.0f  // total tank height in cm
@@ -82,6 +94,13 @@ static uint8_t   eventHead  = 0;
 static uint8_t   eventCount = 0;
 static uint32_t  nextEventId = 1;
 
+// ── State ─────────────────────────────────────────────────────────────────────
+
+static NimBLECharacteristic *charState, *charTank, *charLogData, *charAuth, *charSession;
+static NimBLEServer          *bleServer  = nullptr;
+static NimBLEOta              bleOta;
+static Preferences            prefs;
+
 // ── NVS event persistence ──────────────────────────────────────────────────────
 
 static void nvsLoadEvents() {
@@ -128,13 +147,6 @@ static void nvsClearEvents() {
   eventCount  = 0;
   nextEventId = 1;
 }
-
-// ── State ─────────────────────────────────────────────────────────────────────
-
-static NimBLECharacteristic *charState, *charTank, *charLogData, *charAuth, *charSession;
-static NimBLEServer          *bleServer  = nullptr;
-static NimBLEOta              bleOta;
-static Preferences            prefs;
 static float                  fullTankPct = FULL_TANK_PCT_DEFAULT;
 
 static volatile bool bleConnected  = false;
@@ -148,6 +160,8 @@ static unsigned long lastWifiCheck = 0;
 static unsigned long lastTick      = 0;
 static bool          otaActive     = false;
 static bool          fwValidated   = false;
+static bool          pendingRestart = false;
+static unsigned long restartAt      = 0;
 
 // Automation state
 static float    tankPct         = 72.0f;
@@ -176,6 +190,8 @@ static unsigned long logFrameNext = 0;
 static bool          claimed       = false;
 static char          deviceName[32]= "WaterTank";
 static uint8_t       passwordHash[32] = {};
+static uint8_t       pwSalt[16]       = {};   // per-device salt
+static bool          pwSalted        = false; // true if stored hash includes salt
 static uint8_t       sessions[SESSION_MAX][SESSION_LEN] = {};
 static uint8_t       sessionCount  = 0;
 static bool          bleVisible    = true;   // true=advertising; false=silent
@@ -203,6 +219,18 @@ static void sha256(const uint8_t* data, size_t len, uint8_t out[32]) {
   mbedtls_md_free(&ctx);
 }
 
+// SHA256(salt || password) — per-device salt prevents rainbow table attacks
+static void saltedHash(const uint8_t* password, size_t pwLen, uint8_t out[32]) {
+  mbedtls_md_context_t ctx;
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0);
+  mbedtls_md_starts(&ctx);
+  mbedtls_md_update(&ctx, pwSalt, sizeof(pwSalt));
+  mbedtls_md_update(&ctx, password, pwLen);
+  mbedtls_md_finish(&ctx, out);
+  mbedtls_md_free(&ctx);
+}
+
 // ── NVS auth load ─────────────────────────────────────────────────────────────
 
 static void nvsLoadAuth() {
@@ -212,11 +240,23 @@ static void nvsLoadAuth() {
   strncpy(deviceName, n.c_str(), sizeof(deviceName) - 1);
   deviceName[sizeof(deviceName) - 1] = 0;
 
+  // Load or generate per-device salt (v1.4.1+)
+  size_t saltLen = prefs.getBytes("pw_salt", pwSalt, sizeof(pwSalt));
+  if (saltLen != sizeof(pwSalt)) {
+    esp_fill_random(pwSalt, sizeof(pwSalt));
+    prefs.putBytes("pw_salt", pwSalt, sizeof(pwSalt));
+    pwSalted = false;  // existing hash was unsalted
+  } else {
+    pwSalted = prefs.getBool("pw_salted", false);
+  }
+
   size_t got = prefs.getBytes("pw_hash", passwordHash, 32);
   if (got < 32) {
-    // No hash stored — write factory default SHA256("1234")
-    sha256((const uint8_t*)"1234", 4, passwordHash);
+    // No hash stored — write factory default salted SHA256("1234")
+    saltedHash((const uint8_t*)"1234", 4, passwordHash);
     prefs.putBytes("pw_hash", passwordHash, 32);
+    prefs.putBool("pw_salted", true);
+    pwSalted = true;
   }
 
   sessionCount = prefs.getUChar("sess_count", 0);
@@ -272,8 +312,17 @@ class AuthCB : public NimBLECharacteristicCallbacks {
       ok = sessionFind(v.data());
     } else if (v.size() > 0) {
       uint8_t h[32];
-      sha256(v.data(), v.size(), h);
+      if (pwSalted) saltedHash(v.data(), v.size(), h);
+      else          sha256(v.data(), v.size(), h);
       ok = (memcmp(h, passwordHash, 32) == 0);
+      // Migrate: re-hash with salt on successful auth
+      if (ok && !pwSalted) {
+        saltedHash(v.data(), v.size(), passwordHash);
+        prefs.putBytes("pw_hash", passwordHash, 32);
+        prefs.putBool("pw_salted", true);
+        pwSalted = true;
+        Serial.println("Auth: password hash migrated to salted");
+      }
     }
     if (ok) {
       uint8_t token[SESSION_LEN];
@@ -313,9 +362,11 @@ class SetupCB : public NimBLECharacteristicCallbacks {
     prefs.putString("dev_name", deviceName);
     // Hash and save new password; clear all sessions (F1.12)
     uint8_t h[32];
-    sha256((const uint8_t*)(sep + 1), pwLen, h);
+    saltedHash((const uint8_t*)(sep + 1), pwLen, h);
     memcpy(passwordHash, h, 32);
     prefs.putBytes("pw_hash", passwordHash, 32);
+    prefs.putBool("pw_salted", true);
+    pwSalted = true;
     sessionsClearAll();
     // Issue a fresh token so this connection stays authenticated
     uint8_t token[SESSION_LEN];
@@ -396,6 +447,12 @@ class TimeSyncCB : public NimBLECharacteristicCallbacks {
       syncedEpoch = (uint32_t)d[0] | ((uint32_t)d[1]<<8)
                   | ((uint32_t)d[2]<<16) | ((uint32_t)d[3]<<24);
       Serial.printf("TimeSync: epoch=%u\n", syncedEpoch);
+      // App sends time-sync after confirming firmware version — safe to validate here.
+      if (!fwValidated) {
+        esp_ota_mark_app_valid_cancel_rollback();
+        fwValidated = true;
+        Serial.printf("OTA: firmware v%s validated (app time-synced)\n", FW_VERSION);
+      }
     }
   }
 };
@@ -441,7 +498,9 @@ class OtaCB : public NimBLEOtaCallbacks {
     Serial.printf("BLE-OTA: stopped reason=%d\n", reason); otaActive = false;
   }
   void onComplete(NimBLEOta*) override {
-    Serial.println("BLE-OTA: complete — rebooting in 2s"); delay(2000); esp_restart();
+    Serial.println("BLE-OTA: complete — scheduling restart in 2s");
+    pendingRestart = true;
+    restartAt = millis() + 2000;
   }
   void onError(NimBLEOta*, esp_err_t err, NimBLEOta::Reason reason) override {
     Serial.printf("BLE-OTA: error 0x%x reason=%d\n", err, reason); otaActive = false;
@@ -624,11 +683,6 @@ void pushState() {
   charTank->notify();
   lastNotify = millis();
   digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-  if (!fwValidated) {
-    esp_ota_mark_app_valid_cancel_rollback();
-    fwValidated = true;
-    Serial.printf("OTA: firmware v%s validated\n", FW_VERSION);
-  }
 }
 
 #if USE_WIFI == 1
@@ -797,6 +851,10 @@ void setup() {
 // ── loop ──────────────────────────────────────────────────────────────────────
 
 void loop() {
+  if (pendingRestart && millis() >= restartAt) {
+    Serial.println("OTA: pending restart — rebooting");
+    esp_restart();
+  }
 #if USE_WIFI == 1
   wfHandleOTA();
 #endif
