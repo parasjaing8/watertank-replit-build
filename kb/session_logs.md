@@ -1,5 +1,31 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v35: BLE scan fully working (root cause: stale GATT registrations)
+
+### Root cause identified and fixed
+- 232k timer loop (from v32 exponential bug) created 5 stale GATT scanner registrations in Android's BT system
+- Android's per-app BLE scanner limit is 5; new registration was silently rejected on every app start
+- Stale registrations persisted through pm clear, app uninstall, and BT restart — only a phone reboot cleared them
+- After reboot: com.watertank.app scanner registered clean, board found, PairingSheet appeared
+
+### Diagnostic path
+1. bt dump showed 5 active scanner registrations (app_if 4,6,7,8,9) in "Registered App > Scanner" section
+2. com.vivo.connbase.SuperPowerSave was initially suspected (it manages BT on this vivo phone) — not the cause
+3. Stale registrations confirmed as root cause: no new scans appeared in bt dump even after pm clear/reinstall
+4. Phone reboot → stale registrations cleared → first scan found board → PairingSheet showed
+
+### Fixes in `services/BLEService.ts` (v34+v35)
+1. null scan filter: reverted from `[BLE_SERVICE_UUID]` to `null` filter, identify board by `dev.serviceUUIDs` or `dev.name`. vivo BT hardware filter may not support our 128-bit UUID filter correctly.
+2. `cleanup()`: now calls `mgr.destroy()` to unregister GATT client from Android BT stack immediately on stop. Prevents registration leak across app restarts.
+3. `resetBleManager()`: nulls the singleton after destroy so next `start()` creates a fresh BleManager with clean registration.
+4. `getBleManager()`: BleManager constructor wrapped in try-catch (silent fail → return null instead of throw).
+
+### Key learnings for future
+- React Native BLE: always call BleManager.destroy() when stopping. Without it, registrations leak into the BT system and persist across app lifecycle.
+- Android BLE scanner limit: 5 per app. Leaking registrations accumulate and eventually block all new scans silently.
+- bt dump diagnosis: `adb shell dumpsys bluetooth_manager | grep -A30 "Registered App"` shows live registrations. Look for duplicate app entries in Scanner section.
+- vivo SuperPowerSave (`com.bbk.SuperPowerSave`) cycles BT power — add to doze whitelist via `cmd deviceidle whitelist +<package>` to prevent scan interruptions.
+
 ## 2026-05-28 — v33: Fix exponential BLE reconnect timer bug
 
 ### Root cause (discovered from BLE log — 232,139 concurrent timers)
