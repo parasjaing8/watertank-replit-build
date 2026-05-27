@@ -521,6 +521,7 @@ void checkWifi() {
   while (WiFi.status() != WL_CONNECTED && millis()-t0 < 8000) {
     delay(200); digitalWrite(LED_PIN, !digitalRead(LED_PIN));
   }
+  digitalWrite(LED_PIN, LOW);  // reset: reconnect loop may leave LED in any state
   if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("WiFi: back — IP=%s\n", WiFi.localIP().toString().c_str());
     wfConfigOTA(SSID, PASS, WF_STATION);
@@ -672,6 +673,17 @@ void loop() {
       esp_restart();
     }
   } else {
+    if (btnHoldStart > 0) {
+      unsigned long holdMs = now - btnHoldStart;
+      // Short press (0.5s–10s): open a 60s visibility window so the app can reconnect
+      // without a full factory reset (e.g. after the user cleared app data).
+      if (holdMs >= 500 && holdMs < FACTORY_RESET_MS) {
+        bleVisible    = true;
+        visibilityEnd = now + 60000UL;
+        if (!bleConnected) NimBLEDevice::startAdvertising();
+        Serial.printf("Visibility: BOOT short-press (%lums) -> 60s window\n", holdMs);
+      }
+    }
     btnHoldStart = 0;
   }
 

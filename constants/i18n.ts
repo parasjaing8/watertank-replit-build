@@ -91,6 +91,7 @@ export interface Translations {
   tankFullCelebration: string;
   deviceConnecting: string;
   checkDevicePower: string;
+  pressBootHint: string;
   // help
   helpTitle: string;
   helpHowItWorks: string;
@@ -304,6 +305,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankFullCelebration: 'Tank is full!',
     deviceConnecting: "Make sure your WaterTank device is powered on. We'll connect automatically.",
     checkDevicePower: 'Make sure your device has power and is within range.',
+    pressBootHint: 'Still not connecting? Short-press the button on your device to open a reconnect window.',
     helpTitle: 'Help & FAQ',
     helpHowItWorks: 'How it works',
     helpMotorQuestion: 'When does the motor start?',
@@ -498,6 +500,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankFullCelebration: 'टंकी भर गई!',
     deviceConnecting: 'ध्यान दें कि आपका WaterTank डिवाइस चालू है। हम अपने आप जुड़ जाएँगे।',
     checkDevicePower: 'देखें कि डिवाइस चालू है और पास में है।',
+    pressBootHint: 'अभी भी नहीं जुड़ा? डिवाइस का बटन एक बार दबाएँ।',
     helpTitle: 'मदद और सवाल-जवाब',
     helpHowItWorks: 'यह कैसे काम करता है',
     helpMotorQuestion: 'मोटर कब शुरू होती है?',
@@ -692,6 +695,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankFullCelebration: 'टाकी भरली!',
     deviceConnecting: 'तुमचे WaterTank डिव्हाइस चालू असल्याची खात्री करा। आम्ही आपोआप जोडू।',
     checkDevicePower: 'डिव्हाइस चालू आहे आणि जवळ आहे का ते पाहा।',
+    pressBootHint: 'अजूनही जोडले नाही? डिव्हाइसवरील बटण एकदा दाबा।',
     helpTitle: 'मदत आणि प्रश्न',
     helpHowItWorks: 'हे कसे काम करते',
     helpMotorQuestion: 'मोटर कधी सुरू होते?',
@@ -886,6 +890,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     tankFullCelebration: 'ಟ್ಯಾಂಕ್ ತುಂಬಿದೆ!',
     deviceConnecting: 'ನಿಮ್ಮ WaterTank ಸಾಧನವು ಆನ್ ಆಗಿದೆಯೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ। ನಾವು ತಾನಾಗಿಯೇ ಸಂಪರ್ಕಿಸುತ್ತೇವೆ।',
     checkDevicePower: 'ಸಾಧನವು ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ।',
+    pressBootHint: 'ಇನ್ನೂ ಸಂಪರ್ಕ ಆಗಲಿಲ್ಲವೇ? ಸಾಧನದ ಬಟನ್ ಒಮ್ಮೆ ಒತ್ತಿ।',
     helpTitle: 'ಸಹಾಯ ಮತ್ತು ಪ್ರಶ್ನೆಗಳು',
     helpHowItWorks: 'ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ',
     helpMotorQuestion: 'ಮೋಟಾರ್ ಯಾವಾಗ ಪ್ರಾರಂಭವಾಗುತ್ತದೆ?',

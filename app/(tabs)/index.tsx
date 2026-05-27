@@ -282,6 +282,11 @@ export default function DashboardScreen() {
                   {t("checkDevicePower")}
                 </Text>
               )}
+              {disconnectedSec > 60 && (
+                <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
+                  {t("pressBootHint")}
+                </Text>
+              )}
               <TouchableOpacity
                 onPress={runSimulation}
                 style={[styles.demoBtn, { backgroundColor: colors.primary }]}
