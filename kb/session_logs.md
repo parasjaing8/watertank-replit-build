@@ -8,6 +8,41 @@
 - Audit file: auditDeepseek.md — covers firmware, app reliability, security, code health, UX, operations, testing
 - Commit: 743c9e6, pushed to master
 
+## 2026-05-28 — v39: Fix 4 production blockers from auditDeepseek.md
+
+- Branch: `deepseek` (based on master), commit f2772ce
+- All 4 BLOCKERs resolved:
+
+### BLOCKER 1.2: Wi-Fi credentials gate
+- Added `#define USE_WIFI 0` default (production = BLE-only)
+- Gated `#include <WiFi.h>`, `<WFStorm.h>`, `wifi_credentials.h`, `checkWifi()`, WiFi setup block, `wfHandleOTA()` call, `lastWifiCheck`
+- New: `wifi_credentials.h` (gitignored, dev-only), `wifi_credentials.example.h` (committed template)
+- `.gitignore`: added `wifi_credentials.h`
+
+### BLOCKER 1.3: Persistent event log via NVS
+- Added `nvsLoadEvents()`, `nvsWriteEvent(idx)`, `nvsClearEvents()` helpers
+- `pushEvent()` now persists head/count/nextId + event blob to NVS on each push
+- `LogCtrlCB::onWrite` cmd 0x02 (ACK) clears NVS events
+- `nvsLoadEvents()` called in `setup()` to restore events after power cycle
+- NVS keys: `evt_head`, `evt_cnt`, `evt_nextid`, `evt_0`..`evt_63` (blob)
+
+### BLOCKER 1.1: JSN-SR04T ultrasonic sensor driver
+- Added tank geometry defines: `TANK_HEIGHT_CM=120`, `SENSOR_OFFSET_CM=3`, etc.
+- Rewrote `getTankLevel()` USE_SENSOR=1 path: pulseIn → distance → median filter (5 samples) → EMA smooth (alpha=0.3) → tankPct
+- Median filter via qsort for glitch rejection, 30ms pulseIn timeout
+
+### BLOCKER 7.1: Automated app tests
+- `jest.config.js` (jest-expo preset, @/ path mapper), `jest.setup.js` (AsyncStorage mock)
+- Added `test`, `test:watch`, `test:coverage` scripts to package.json
+- 4 test suites, 52 tests, all passing:
+  - `__tests__/utils/formatters.test.ts` — formatTime, formatDate, formatTankPct, formatRelativeTime, formatDuration, formatDayLabel, getTankColor, getDayBounds, addDays, isToday
+  - `__tests__/models/Event.test.ts` — enum values, DEFAULT_DEVICE_STATE, label maps, HIDDEN_EVENT_TYPES
+  - `__tests__/constants/thresholds.test.ts` — value bounds, consistency
+  - `__tests__/services/AuthService.test.ts` — CRUD with mocked AsyncStorage
+
+- Firmware bumped to v1.4.0 with changelog comment
+- Commit: f2772ce, pushed to origin/deepseek
+
 ## 2026-05-28 — v37: BOOT short-press reconnect + LED stuck-on fix
 
 ### Problems

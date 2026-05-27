@@ -1,8 +1,12 @@
 # WaterTank — Project Status
 _Last updated: 2026-05-28_
 
-## Deepseek Audit (v38)
-`auditDeepseek.md` — 44 findings (4 BLOCKER, 9 HIGH, 20 MEDIUM, 7 LOW). Covers firmware production-readiness, app reliability, security, code health, UX, operations, and testing. Primary gap: no real sensor integration (USE_SENSOR=0 only), Wi-Fi creds in source, event log volatile, zero automated app tests.
+## Deepseek Audit (v38-v39)
+`auditDeepseek.md` — 44 findings (~~4 BLOCKER~~, 9 HIGH, 20 MEDIUM, 7 LOW). All 4 BLOCKERs resolved on `deepseek` branch (f2772ce, v39):
+- BLOCKER 1.2: WiFi gated behind `USE_WIFI` flag (0=BLE-only prod), creds in gitignored file
+- BLOCKER 1.3: Event ring buffer persisted to NVS, survives power cycles
+- BLOCKER 1.1: JSN-SR04T sensor driver (median filter + EMA, USE_SENSOR=1)
+- BLOCKER 7.1: Jest test infra — 52 tests across 4 suites, all green
 
 ## App Version
 `1.0.0` (package.json) | Latest APK: `watertank-v37.apk` (v37, built 2026-05-28, master branch, BOOT reconnect + LED fix)
@@ -70,7 +74,7 @@ All 44 findings resolved as of 2026-05-24.
 - P4 skipped (50-item BLE log already bounded; FlatList not needed)
 
 ## Firmware + BLE Protocol Status (2026-05-28)
-- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.3.0 with auth characteristics + 30s post-claim visibility window
+- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.4.0 (deepseek branch) with auth + NVS event persistence + JSN-SR04T sensor driver + WiFi gate
 - OTA board IP: 192.168.0.126:3232
 - BLE test suite: `scripts/ble_test.py` — 41/41 passing; `scripts/auth_test.py` — 24/24 passing
 - Board: Witty Fox Storm Board (ESP32), no USB-UART; OTA only via `scripts/espota.py` or `wfHandleOTA()`
@@ -80,7 +84,7 @@ All 44 findings resolved as of 2026-05-24.
 
 ### Open firmware issues
 - F5: BlePairingSheet orphaned connection (architectural, low priority — only affects onboarding re-pair edge case)
-- Sensor integration: `USE_SENSOR=0` stub for JSN-SR04T not yet added (simulation only)
+- Sensor integration: JSN-SR04T driver implemented (BLOCKER 1.1, `deepseek` branch), pending bench test with real hardware
 
 ## Future Plans (post-v1)
 
