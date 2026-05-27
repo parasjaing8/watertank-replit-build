@@ -104,6 +104,7 @@ Tasks:
 - [ ] F1.9 — Add BLE channel encryption: `NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_ENC)` + `BLE_HS_IO_NO_INPUT_OUTPUT`
 - [ ] F1.10 — Update `advertiseOnDisconnect` logic: after claiming, only re-advertise if `ble_visible=true`
 - [ ] F1.11 — Hardware factory reset: detect 10s button hold in `loop()`, clear NVS namespace, restart
+- [ ] F1.12 — Password change (via C_SETUP on claimed device): clear all existing `sessions[]` before saving new password hash — forces all paired devices to re-auth
 
 ---
 
@@ -208,10 +209,17 @@ _(sequential from last used: `beb54845` = C_FILL_TARGET)_
 
 ---
 
-## Open Questions
-- Q1: Should session tokens expire (e.g., 90 days)? Or permanent until revoked?
-- Q2: Should second-user (mother) have same permissions as owner, or read-only by default?
-- Q3: Factory default password "1234" hardcoded in firmware, or printed on device label (per-unit)?
+## Decisions
+
+**Q1 — Session token expiry: No time-based expiry. Permanent until:**
+1. Password change → all tokens invalidated (everyone must re-auth). Covers stolen phone.
+2. Settings → "Remove all paired devices" → clears token list, keeps current password.
+3. Hardware factory reset → full NVS wipe.
+Rationale: home appliance UX — users don't expect periodic re-auth. Threat model (stolen phone) is covered by password change.
+
+**Q2 — Multi-user permissions: Full access for all paired users.** No admin/guest distinction. Keeps app simple.
+
+**Q3 — Default password: Hardcoded "1234" in firmware for all boards.** Not per-unit.
 
 ---
 
