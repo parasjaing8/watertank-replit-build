@@ -1,5 +1,17 @@
 # WaterTank — Session Logs
 
+## 2026-05-27 — BLE reconnect fix (v30), freeze fix (v29), hardware architecture (v27)
+
+### v30 — BLE adapter state check (this session)
+- **Root cause**: `mgr.startDeviceScan()` called immediately on resume without checking BLE adapter state; Android BLE adapter in Resetting/Unknown state briefly after background → scan started on not-ready adapter, silently got no callbacks
+- **Fix**: `startScan()` now calls `mgr.state()` (Promise) before scanning; if not `PoweredOn`, logs "BLE adapter not ready" and retries in 1s until ready. Falls through to scan on any state() error.
+- **Fix**: AppState resume delay bumped 300ms → 500ms in DeviceContext for extra margin
+- Built APK v30; released at GitHub Releases v30
+
+### v29 — App freeze on resume + battery fix
+- AppState BLE lifecycle: stop BLE scan when backgrounded, restart with delay on foreground
+- WhatsApp deep link fix: `whatsapp://send` scheme instead of `canOpenURL` + `wa.me`
+
 ## 2026-05-27 — Implement new hardware architecture (firmware v1.2.0 + app), build APK v27
 
 ### What was done

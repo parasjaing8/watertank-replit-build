@@ -2,7 +2,9 @@
 _Last updated: 2026-05-27_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v27.apk` (v27, built 2026-05-27, master branch, new hardware architecture)
+`1.0.0` (package.json) | Latest APK: `watertank-v30.apk` (v30, built 2026-05-27, master branch, BLE reconnect fix)
+- v30: BLE reconnect fix — adapter state check before startDeviceScan; no more stuck "looking for device" on resume
+- v29: App freeze fix — BLE stop/start on AppState change; WhatsApp deep link fix
 - v27: New hardware architecture — firmware v1.2.0, automation state machine, inlet status on dashboard
 - v24: Toast→inline banner (no motor card overlap), motor border opacity fix, spacer capped; refactor index.tsx 675→359 lines
 - v23: Dashboard layout — tank/% spacing, motor status section label, spacer for vertical distribution
