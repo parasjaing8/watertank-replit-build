@@ -1,5 +1,13 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v36: Remove dynamic active borders on motor/inlet tiles
+
+- Motor running tile and water available (inlet) tile had `borderColor: colors.success + "CC"` / `borderWidth: 2` when active — looked heavy and gray-thick against the card background
+- Background tint (`colors.success + "1A"`) + ON pill label already communicate active state; colored thick border was redundant and visual noise
+- Fix: both tiles now use static `borderColor: colors.border` / `borderWidth: 1` always
+- Changed in `app/(tabs)/index.tsx` (motor card and inlet card style objects)
+- Commit: fb08bf0, pushed to master
+
 ## 2026-05-28 — v35: BLE scan fully working (root cause: stale GATT registrations)
 
 ### Root cause identified and fixed

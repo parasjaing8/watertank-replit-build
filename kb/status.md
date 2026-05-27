@@ -1,9 +1,10 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-27_
+_Last updated: 2026-05-28_
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v35.apk` (v35, built 2026-05-28, master branch, BLE scan fully working)
+`1.0.0` (package.json) | Latest APK: `watertank-v36.apk` (v36, built 2026-05-28, master branch, pairing flow smoke-tested end-to-end)
 - Phase 3 complete (pairing UI) — no new APK yet, needs firmware v1.3.0 on board first
+- v36: remove dynamic active borders on motor/inlet tiles — static borderColor/borderWidth always
 - v35: BLE scan null filter + destroy on cleanup. Root cause resolved: 232k timer loop caused 5 stale GATT scanner registrations, saturating Android's 5-per-app limit. destroy() on stop prevents recurrence.
 - v34: BLE scan reverted to null filter + serviceUUIDs/name identification (UUID hardware filter was incompatible with vivo BT stack).
 - v33: BLE exponential timer fix — scan error callback now clears scanTimer before scheduleReconnect; adds reconnectTimer field for clean cancellation. Fixes 232k+ concurrent timer bug.
