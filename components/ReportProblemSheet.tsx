@@ -65,20 +65,24 @@ export function ReportProblemSheet({ visible, onClose }: Props) {
       log || "(no logs yet)",
     ].join("\n");
 
-    const url = `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}?text=${encodeURIComponent(body)}`;
+    const encoded = encodeURIComponent(body);
+    // whatsapp:// deep link — works on both Android and iOS without manifest query declarations
+    const deepLink = `whatsapp://send?phone=${SUPPORT_WHATSAPP_NUMBER}&text=${encoded}`;
+    const webLink  = `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}?text=${encoded}`;
 
     try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (!canOpen) {
-        Alert.alert("WhatsApp not found", "Please install WhatsApp and try again.");
-        setSending(false);
-        return;
-      }
-      await Linking.openURL(url);
+      await Linking.openURL(deepLink);
       setSelected(null);
       onClose();
     } catch {
-      Alert.alert("Error", "Could not open WhatsApp.");
+      // Deep link failed (WhatsApp not installed) — open web fallback
+      try {
+        await Linking.openURL(webLink);
+        setSelected(null);
+        onClose();
+      } catch {
+        Alert.alert("Error", "Could not open WhatsApp. Please install WhatsApp and try again.");
+      }
     }
     setSending(false);
   }, [selected, deviceState.firmwareVersion, t, onClose]);
