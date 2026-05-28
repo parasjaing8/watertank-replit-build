@@ -433,8 +433,14 @@ class ConnCB : public NimBLEServerCallbacks {
     lastNotify    = 0;
     pushScheduled = 0;
     Serial.printf("BLE: disconnected (reason=0x%02X)\n", reason);
-    // advertiseOnDisconnect(true) will restart advertising automatically;
-    // loop() suppresses it immediately if claimed and not visible.
+    // Open visibility window so the phone can re-find us via scan.
+    // Without this, loop() immediately suppresses advertising when claimed
+    // and not visible, leaving the board radio-silent after every disconnect.
+    if (claimed) {
+      bleVisible    = true;
+      visibilityEnd = millis() + 60000UL;
+      Serial.println("Visibility: disconnect -> 60s window");
+    }
   }
 };
 
@@ -946,9 +952,14 @@ void loop() {
     bleConnected = false;
     connAuthed   = false;
     logStreaming  = false;
+    // Open visibility window so phone can re-find us after a stall
+    if (claimed) {
+      bleVisible    = true;
+      visibilityEnd = millis() + 60000UL;
+    }
     NimBLEDevice::stopAdvertising();
     delay(100);
-    if (!claimed || bleVisible) NimBLEDevice::startAdvertising();
+    NimBLEDevice::startAdvertising();
     lastNotify = now;
   }
 
