@@ -1,5 +1,12 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v44 (continued): border fix + WittyFox OTA flash
+
+- Branch: `deepseek`, commit 3a117db
+- **Border fix**: Removed `borderWidth: 1` / `borderColor: colors.border` + `shadowOpacity/elevation` from motor and inlet status tiles. Active state now uses only subtle background tint + accent bar + ON pill — no outer glow.
+- **WittyFox OTA flash**: Compiled firmware (BOARD_TYPE 0, USE_WIFI 0) for WittyFox via `arduino-cli compile --fqbn esp32:esp32:esp32`. Flashed via `espota.py -i 192.168.0.126`. Board is now BLE-only (no WiFi) — next update needs USB/PL2303.
+- **Lesson**: After OTA flash with USE_WIFI=0, board won't reconnect to WiFi. Power-cycle needed after OTA. Board may need BOOT short-press to start advertising if claimed state persists.
+
 ## 2026-05-28 — v44: BLE device scanner + keyboard fix + password uniformity
 
 - Branch: `deepseek`, commit ddaeaf2

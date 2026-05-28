@@ -16,7 +16,8 @@ _Last updated: 2026-05-28 (v44)_
 - Audit complete. Project is production-grade.
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v37.apk` (v37, built 2026-05-28, master branch, BOOT reconnect + LED fix)
+`1.0.0` (package.json) | Latest APK: v44 on `deepseek` branch (device scanner + keyboard fix + border cleanup)
+- v44: Device scan sheet, keyboard-aware scroll views, password dot uniformity, motor/inlet border removal
 - Phase 3 complete (pairing UI) — no new APK yet, needs firmware v1.3.0 on board first
 - v37: BOOT short-press → 60s visibility window (reconnect without factory reset); checkWifi() LED stuck-on fix; pressBootHint at 60s disconnect
 - v36: remove dynamic active borders on motor/inlet tiles — static borderColor/borderWidth always
@@ -81,13 +82,10 @@ All 44 findings resolved as of 2026-05-24.
 - P4 skipped (50-item BLE log already bounded; FlatList not needed)
 
 ## Firmware + BLE Protocol Status (2026-05-28)
-- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.4.0 (deepseek branch) with auth + NVS event persistence + JSN-SR04T sensor driver + WiFi gate
-- OTA board IP: 192.168.0.126:3232
-- BLE test suite: `scripts/ble_test.py` — 41/41 passing; `scripts/auth_test.py` — 24/24 passing
-- Board: Witty Fox Storm Board (ESP32), no USB-UART; OTA only via `scripts/espota.py` or `wfHandleOTA()`
-- Run auth tests: `python3 scripts/auth_test.py --reset-board --skip-reset` (OTA resets NVS, skip manual BOOT reset)
-- Flash cmd: `python3 ~/Library/Arduino15/.../espota.py -i 192.168.0.126 -p 3232 -f firmware.bin`
-- Compile cmd: `arduino-cli compile --fqbn esp32:esp32:esp32wrover firmware/WaterTank/`
+- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.4.0 (deepseek branch)
+- WittyFox: flashed v1.4.0 via OTA (2026-05-28), USE_WIFI=0 (BLE-only, no WiFi). Next flash needs USB/PL2303.
+- C3 Mini: not yet flashed with v1.4.0
+- OTA board IP: 192.168.0.126:3232 (only reachable when USE_WIFI=1)
 
 ### Open firmware issues
 - F5: BlePairingSheet orphaned connection (architectural, low priority — only affects onboarding re-pair edge case)
