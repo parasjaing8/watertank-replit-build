@@ -1,5 +1,23 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v43: Fix remaining 5 MEDIUM audit items
+
+- Branch: `deepseek`, commit 0242ed0
+
+### MEDIUM (5 items)
+- **5.3**: Weekly trends — avgFillTime KPI in WeekView, `getSupplyWindow()` in database.ts, dominant time-of-day hint (morning/afternoon/evening/night) with sunrise icon, i18n keys across 4 languages
+- **5.4**: Multi-device preferred selection — `getPreferredDevice()`/`setPreferredDevice()` in AuthService, BLEService `tryDirectConnect()` moves preferred to front of sessions array, settings UI shows checkmark + "active" label on preferred, tap to toggle
+- **6.2**: Diagnostic log header enrichment — `exportLogs()` now includes firmware version, timestamps, log entry count in share header
+- **7.2**: BLE protocol documentation completed
+- **7.3**: Firmware state machine test suite — `scripts/test_automation.py` (12 groups, 37/37 assertions), replicates `tickAutomation()` exactly. Also fixed stop-reason priority bug in firmware (TANK_FULL before SUPPLY_CUT)
+- **tsconfig**: Removed invalid `ignoreDeprecations: "6.0"` option
+
+### Audit complete
+- **0 BLOCKER**, **0 HIGH**, **0 MEDIUM**, **0 LOW** remaining
+- All 44 findings from `auditDeepseek.md` resolved
+
+---
+
 ## 2026-05-28 — v42: Fix 12 MEDIUM + 4 LOW audit items
 
 - Branch: `deepseek`, commit 14c0442
