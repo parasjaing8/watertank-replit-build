@@ -108,6 +108,11 @@ export interface Translations {
   weeklyTitle: string;
   weeklyRuns: string;
   weeklyRuntime: string;
+  avgFillTime: string;
+  supplyWindow_morning: string;
+  supplyWindow_afternoon: string;
+  supplyWindow_evening: string;
+  supplyWindow_night: string;
   weeklyNoData: string;
   // tank size
   litres: string;
@@ -329,6 +334,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'This Week',
     weeklyRuns: 'Motor runs',
     weeklyRuntime: 'Total runtime',
+    avgFillTime: 'Avg fill time',
+    supplyWindow_morning: 'Supply usually arrives in the morning (5 AM – noon)',
+    supplyWindow_afternoon: 'Supply usually arrives in the afternoon (noon – 5 PM)',
+    supplyWindow_evening: 'Supply usually arrives in the evening (5 PM – 9 PM)',
+    supplyWindow_night: 'Supply usually arrives at night (9 PM – 5 AM)',
     weeklyNoData: 'No motor runs this week',
     litres: 'L',
     tankSizeLabel: 'Tank size',
@@ -531,6 +541,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'इस हफ़्ते',
     weeklyRuns: 'मोटर कितनी बार चली',
     weeklyRuntime: 'कुल समय',
+    avgFillTime: 'औसत भरने का समय',
+    supplyWindow_morning: 'पानी आमतौर पर सुबह आता है (5 AM – दोपहर)',
+    supplyWindow_afternoon: 'पानी आमतौर पर दोपहर में आता है (दोपहर – 5 PM)',
+    supplyWindow_evening: 'पानी आमतौर पर शाम को आता है (5 PM – 9 PM)',
+    supplyWindow_night: 'पानी आमतौर पर रात को आता है (9 PM – 5 AM)',
     weeklyNoData: 'इस हफ़्ते मोटर नहीं चली',
     litres: 'ली',
     tankSizeLabel: 'टंकी का आकार',
@@ -733,6 +748,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'या आठवड्यात',
     weeklyRuns: 'मोटर किती वेळा चालली',
     weeklyRuntime: 'एकूण वेळ',
+    avgFillTime: 'सरासरी भरण्याचा वेळ',
+    supplyWindow_morning: 'पाणी सहसा सकाळी येते (5 AM – दुपारी)',
+    supplyWindow_afternoon: 'पाणी सहसा दुपारी येते (दुपारी – 5 PM)',
+    supplyWindow_evening: 'पाणी सहसा संध्याकाळी येते (5 PM – 9 PM)',
+    supplyWindow_night: 'पाणी सहसा रात्री येते (9 PM – 5 AM)',
     weeklyNoData: 'या आठवड्यात मोटर चालली नाही',
     litres: 'ली',
     tankSizeLabel: 'टाकीचा आकार',
@@ -935,6 +955,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'ಈ ವಾರ',
     weeklyRuns: 'ಮೋಟಾರ್ ಎಷ್ಟು ಬಾರಿ ಚಾಲನೆಯಾಯಿತು',
     weeklyRuntime: 'ಒಟ್ಟು ಸಮಯ',
+    avgFillTime: 'ಸರಾಸರಿ ತುಂಬುವ ಸಮಯ',
+    supplyWindow_morning: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ಬೆಳಿಗ್ಗೆ ಬರುತ್ತದೆ (5 AM – ಮಧ್ಯಾಹ್ನ)',
+    supplyWindow_afternoon: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ಮಧ್ಯಾಹ್ನ ಬರುತ್ತದೆ (ಮಧ್ಯಾಹ್ನ – 5 PM)',
+    supplyWindow_evening: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ಸಂಜೆ ಬರುತ್ತದೆ (5 PM – 9 PM)',
+    supplyWindow_night: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ರಾತ್ರಿ ಬರುತ್ತದೆ (9 PM – 5 AM)',
     weeklyNoData: 'ಈ ವಾರ ಮೋಟಾರ್ ಚಾಲನೆಯಾಗಲಿಲ್ಲ',
     litres: 'ಲೀ',
     tankSizeLabel: 'ಟ್ಯಾಂಕ್ ಗಾತ್ರ',

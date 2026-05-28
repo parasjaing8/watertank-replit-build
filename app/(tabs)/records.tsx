@@ -18,6 +18,7 @@ import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { DailyStats, EventType, WaterEvent } from "@/models/Event";
+import { getSupplyWindow } from "@/storage/database";
 import {
   addDays,
   formatDuration,
@@ -52,6 +53,19 @@ function WeekView({ getStats, colors, t, lang }: WeekViewProps) {
   const weekStats = stats.filter((s) => s.day >= sevenDaysAgoStr);
   const totalRuns = weekStats.reduce((sum, s) => sum + s.runs, 0);
   const totalSec = weekStats.reduce((sum, s) => sum + s.totalSec, 0);
+  const avgFillSec = totalRuns > 0 ? Math.round(totalSec / totalRuns) : 0;
+  const supplyWindow = getSupplyWindow(30);
+
+  // Determine dominant supply window label
+  const dominantWindow = (() => {
+    const { morning, afternoon, evening, night, total } = supplyWindow;
+    if (total === 0) return null;
+    const max = Math.max(morning, afternoon, evening, night);
+    if (max === morning) return "morning";
+    if (max === afternoon) return "afternoon";
+    if (max === evening) return "evening";
+    return "night";
+  })();
 
   if (totalRuns === 0) {
     return (
@@ -96,7 +110,25 @@ function WeekView({ getStats, colors, t, lang }: WeekViewProps) {
               {t("weeklyRuntime")}
             </Text>
           </View>
+          <View style={styles.weekKpi}>
+            <Text style={[styles.weekKpiValue, { color: colors.primary }]}>
+              {formatDuration(avgFillSec)}
+            </Text>
+            <Text
+              style={[styles.weekKpiLabel, { color: colors.mutedForeground }]}
+            >
+              {t("avgFillTime")}
+            </Text>
+          </View>
         </View>
+        {dominantWindow && (
+          <View style={[styles.supplyHint, { backgroundColor: colors.primary + "12" }]}>
+            <Feather name="sunrise" size={14} color={colors.primary} />
+            <Text style={[styles.supplyHintText, { color: colors.foreground }]}>
+              {t(`supplyWindow_${dominantWindow}` as keyof Translations)}
+            </Text>
+          </View>
+        )}
       </View>
       {weekStats.map((s) => (
         <View
@@ -382,4 +414,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   weekEmptyText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  supplyHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  supplyHintText: { fontSize: 13, fontFamily: "Inter_500Medium" },
 });

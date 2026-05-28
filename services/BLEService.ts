@@ -279,6 +279,17 @@ export class BLEService implements IDeviceService {
   private async tryDirectConnect(): Promise<boolean> {
     const sessions = await AuthService.listSessions();
     if (sessions.length === 0) return false;
+
+    // If user has selected a preferred device, try it first.
+    const preferred = await AuthService.getPreferredDevice();
+    if (preferred) {
+      const idx = sessions.findIndex((s) => s.deviceMac === preferred);
+      if (idx > 0) {
+        const [p] = sessions.splice(idx, 1);
+        sessions.unshift(p);
+      }
+    }
+
     const mgr = getBleManager() as {
       connectToDevice(id: string, opts: { timeout: number }): Promise<ConnectedDevice>;
     } | null;

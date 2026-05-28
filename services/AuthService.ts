@@ -58,3 +58,19 @@ export async function listSessions(): Promise<StoredDevice[]> {
   const all = await loadAll();
   return Object.entries(all).map(([deviceMac, v]) => ({ deviceMac, ...v }));
 }
+
+export async function getPreferredDevice(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem("@watertank_preferred_device");
+  } catch {
+    return null;
+  }
+}
+
+export async function setPreferredDevice(mac: string | null): Promise<void> {
+  if (mac) {
+    await AsyncStorage.setItem("@watertank_preferred_device", mac);
+  } else {
+    await AsyncStorage.removeItem("@watertank_preferred_device");
+  }
+}

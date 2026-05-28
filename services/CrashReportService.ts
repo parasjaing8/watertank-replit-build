@@ -125,14 +125,23 @@ export function getLogStats(): { count: number; sizeKb: number } {
   return { count: _buffer.length, sizeKb: Math.round(approxBytes / 1024) };
 }
 
-export async function exportLogs(): Promise<void> {
+export async function exportLogs(fwVersion?: string | null): Promise<void> {
+  const header = [
+    "=== WaterTank Diagnostics ===",
+    `Exported: ${new Date().toISOString()}`,
+    `Firmware: ${fwVersion ? "v" + fwVersion : "unknown"}`,
+    `Log entries: ${_buffer.length}`,
+    "",
+    "--- Logs ---",
+  ].join("\n");
+
   const lines = _buffer.map((e) => {
     const d = new Date(e.ts).toISOString();
     const ctx = e.ctx ? " " + JSON.stringify(e.ctx) : "";
     return `${d} [${e.level.toUpperCase()}][${e.tag}] ${e.msg}${ctx}`;
   });
   await Share.share({
-    message: lines.join("\n") || "(no diagnostic logs recorded)",
+    message: header + "\n" + (lines.join("\n") || "(no diagnostic logs recorded)"),
     title: "WaterTank Diagnostics",
   });
 }

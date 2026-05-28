@@ -639,8 +639,8 @@ void tickAutomation() {
     } else if (!inlet && pumpState==3) { pumpState=0; }
   } else {
     bool shouldStop=false; uint8_t stopReason=0;
-    if (!inlet)              { shouldStop=true; stopReason=2; }
-    else if (tankPct>=fullTankPct) { shouldStop=true; stopReason=1; }
+    if (tankPct >= fullTankPct)    { shouldStop=true; stopReason=1; }
+    else if (!inlet)               { shouldStop=true; stopReason=2; }
     if (shouldStop) {
       uint32_t now=syncedEpoch>0?syncedEpoch:(millis()/1000);
       uint32_t dur=motorStartEpoch>0&&now>motorStartEpoch?now-motorStartEpoch:0;

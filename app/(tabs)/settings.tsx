@@ -130,6 +130,7 @@ export default function SettingsScreen() {
 
   const [showBleLog, setShowBleLog] = useState(false);
   const [pairedSessions, setPairedSessions] = useState<StoredDevice[]>([]);
+  const [preferredMac, setPrefMac] = useState<string | null>(null);
   const [pairingWindowEnd, setPairingWindowEnd] = useState<number | null>(null);
   const [pairingWindowSec, setPairingWindowSec] = useState(0);
   const [versionTaps, setVersionTaps] = useState(0);
@@ -141,6 +142,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     AuthService.listSessions().then(setPairedSessions);
+    AuthService.getPreferredDevice().then(setPrefMac);
   }, []);
 
   useEffect(() => {
@@ -174,8 +176,8 @@ export default function SettingsScreen() {
   }, [setFillTarget]);
 
   const handleExportLogs = useCallback(async () => {
-    await exportLogs();
-  }, []);
+    await exportLogs(deviceState.firmwareVersion);
+  }, [deviceState.firmwareVersion]);
 
   const handleClearDiagLogs = useCallback(async () => {
     await clearLogs();
@@ -628,14 +630,30 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             )}
-            {pairedSessions.length > 0 && pairedSessions.map((s) => (
-              <View key={s.deviceMac} style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-                <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.deviceName}</Text>
-                <Text style={[styles.rowValue, { color: colors.mutedForeground, fontSize: 12 }]}>
-                  {s.deviceMac.slice(-5).toUpperCase()}
-                </Text>
-              </View>
-            ))}
+            {pairedSessions.length > 0 && pairedSessions.map((s) => {
+              const isPreferred = preferredMac === s.deviceMac;
+              return (
+                <TouchableOpacity
+                  key={s.deviceMac}
+                  style={[styles.row, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
+                  onPress={async () => {
+                    const next = isPreferred ? null : s.deviceMac;
+                    await AuthService.setPreferredDevice(next);
+                    setPrefMac(next);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.deviceName}</Text>
+                    <Text style={[styles.rowValue, { color: colors.mutedForeground, fontSize: 12 }]}>
+                      {s.deviceMac.slice(-5).toUpperCase()}
+                      {isPreferred && " · active"}
+                    </Text>
+                  </View>
+                  {isPreferred && <Feather name="check-circle" size={18} color={colors.primary} />}
+                </TouchableOpacity>
+              );
+            })}
             <ActionRow
               label={t("allowNewPairing")}
               icon="bluetooth"
