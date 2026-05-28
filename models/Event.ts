@@ -81,4 +81,4 @@ export const HIDDEN_EVENT_TYPES: EventType[] = [EventType.BLE_SYNCED];
 
 // App-generated event IDs use a high-bit prefix to avoid collisions with
 // board-generated IDs (which start at 1 and increment monotonically).
-export const APP_EVENT_ID_PREFIX = 0x40000000;
+export const APP_EVENT_ID_PREFIX = 0x80000000;

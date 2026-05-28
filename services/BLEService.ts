@@ -405,20 +405,16 @@ export class BLEService implements IDeviceService {
 
     // If user has selected a preferred device, try it first.
     const preferred = await AuthService.getPreferredDevice();
-    if (preferred) {
-      const idx = sessions.findIndex((s) => s.deviceMac === preferred);
-      if (idx > 0) {
-        const [p] = sessions.splice(idx, 1);
-        sessions.unshift(p);
-      }
-    }
+    const ordered = preferred
+      ? sessions.filter(s => s.deviceMac === preferred).concat(sessions.filter(s => s.deviceMac !== preferred))
+      : sessions;
 
     const mgr = getBleManager() as {
       connectToDevice(id: string, opts: { timeout: number }): Promise<ConnectedDevice>;
     } | null;
     if (!mgr) return false;
 
-    for (const session of sessions) {
+    for (const session of ordered) {
       if (!this.running) return false;
       this.log(`Direct connect: ${session.deviceName} (${session.deviceMac})...`);
       this.emit({ ...this.state, connected: false });
@@ -591,7 +587,9 @@ export class BLEService implements IDeviceService {
         this.state = { ...this.state, firmwareVersion: version };
         connectedFwVersion = version;
         this.log(`Firmware: ${version}`);
-        AsyncStorage.setItem(`@watertank_fw_version_${connected.id}`, version).catch(() => {});
+        AsyncStorage.setItem(`@watertank_fw_version_${connected.id}`, version).catch((e) => {
+          logBleError("fw version persist failed", { error: String(e) });
+        });
       }
     } catch {}
 

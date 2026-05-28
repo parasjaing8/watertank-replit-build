@@ -7,7 +7,7 @@ type Listener = (state: DeviceState) => void;
 type EventListener = (event: WaterEvent) => void;
 
 let eventIdCounter = 1;
-function nextId(): number { return APP_EVENT_ID_PREFIX | (eventIdCounter++ & 0x0FFFFFFF); }
+function nextId(): number { return APP_EVENT_ID_PREFIX | (eventIdCounter++ & 0x7FFFFFFF); }
 
 /**
  * SimulationService — one-shot demo cycle.

@@ -52,6 +52,7 @@ export async function clearSession(deviceMac: string): Promise<void> {
 
 export async function clearAllSessions(): Promise<void> {
   await AsyncStorage.removeItem(AUTH_KEY);
+  await AsyncStorage.removeItem("@watertank_preferred_device");
 }
 
 export async function listSessions(): Promise<StoredDevice[]> {
