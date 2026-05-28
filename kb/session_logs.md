@@ -1,5 +1,11 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v45 APK built
+
+- `watertank-v45.apk` (101MB) at project root — local only, not pushed (GitHub 100MB limit)
+- Build: `cd android && ./gradlew assembleRelease` — BUILD SUCCESSFUL in 17s, no clean needed (no image asset changes)
+- Note: APK grew past 100MB; previous APKs (v17/v18 ~97MB) were just under. Use ADB sideload or direct transfer for installs going forward.
+
 ## 2026-05-28 — deepseek merged to master
 
 - Opus audit (opusp1.md): 28 findings across CRITICAL/HIGH/MEDIUM/LOW — all resolved before merge
