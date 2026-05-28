@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,6 +10,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 interface Props {
   visible: boolean;
@@ -48,8 +47,13 @@ export function PairingSheet({ visible, isFirstTimeSetup, onSetupRequired, onSub
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={() => {}}>
-      <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}>
+        <KeyboardAwareScrollViewCompat
+          showsVerticalScrollIndicator={false}
+          bottomOffset={10}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
+        >
           <View style={{
             backgroundColor: colors.card,
             borderTopLeftRadius: 20,
@@ -159,7 +163,7 @@ export function PairingSheet({ visible, isFirstTimeSetup, onSetupRequired, onSub
               </Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardAwareScrollViewCompat>
       </View>
     </Modal>
   );

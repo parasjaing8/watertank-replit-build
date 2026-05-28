@@ -152,6 +152,13 @@ export interface Translations {
   scanning: string;
   noDeviceFound: string;
   retry: string;
+  // device scanner
+  scanForDevices: string;
+  scanTitle: string;
+  scanSearching: string;
+  scanNoDevices: string;
+  scanNoDevicesHint: string;
+  scanAgain: string;
   // Setup guide
   setupGuide: string;
   setupPage1: string;
@@ -370,6 +377,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'Scanning…',
     noDeviceFound: 'No WATERTANK devices found. Make sure your device is powered on and nearby.',
     retry: 'Retry',
+    scanForDevices: 'Scan for devices',
+    scanTitle: 'Available Devices',
+    scanSearching: 'Searching for WaterTank devices…',
+    scanNoDevices: 'No devices found',
+    scanNoDevicesHint: 'Make sure your device is powered on and nearby.',
+    scanAgain: 'Scan Again',
     setupGuide: 'Hardware Setup Guide',
     setupPage1: "What's in the Box",
     setupPage2: 'System Overview',
@@ -577,6 +590,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'स्कैन हो रहा है…',
     noDeviceFound: 'कोई WATERTANK डिवाइस नहीं मिला। सुनिश्चित करें कि डिवाइस चालू है और पास में है।',
     retry: 'फिर से कोशिश करें',
+    scanForDevices: 'डिवाइस खोजें',
+    scanTitle: 'उपलब्ध डिवाइस',
+    scanSearching: 'WaterTank डिवाइस खोज रहे हैं…',
+    scanNoDevices: 'कोई डिवाइस नहीं मिला',
+    scanNoDevicesHint: 'सुनिश्चित करें कि आपका डिवाइस चालू है और पास में है।',
+    scanAgain: 'फिर से खोजें',
     setupGuide: 'हार्डवेयर सेटअप गाइड',
     setupPage1: 'बॉक्स में क्या है',
     setupPage2: 'सिस्टम का अवलोकन',
@@ -784,6 +803,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'स्कॅन होत आहे…',
     noDeviceFound: 'कोणतेही WATERTANK डिव्हाइस सापडले नाही. डिव्हाइस चालू आहे आणि जवळ आहे याची खात्री करा.',
     retry: 'पुन्हा प्रयत्न करा',
+    scanForDevices: 'डिव्हाइस शोधा',
+    scanTitle: 'उपलब्ध डिव्हाइस',
+    scanSearching: 'WaterTank डिव्हाइस शोधत आहे…',
+    scanNoDevices: 'कोणतेही डिव्हाइस सापडले नाही',
+    scanNoDevicesHint: 'डिव्हाइस चालू आहे आणि जवळ आहे याची खात्री करा.',
+    scanAgain: 'पुन्हा शोधा',
     setupGuide: 'हार्डवेअर सेटअप मार्गदर्शक',
     setupPage1: 'बॉक्समध्ये काय आहे',
     setupPage2: 'सिस्टम आढावा',
@@ -991,6 +1016,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ…',
     noDeviceFound: 'WATERTANK ಸಾಧನ ಸಿಗಲಿಲ್ಲ. ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿ.',
     retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    scanForDevices: 'ಸಾಧನ ಹುಡುಕಿ',
+    scanTitle: 'ಲಭ್ಯ ಸಾಧನಗಳು',
+    scanSearching: 'WaterTank ಸಾಧನ ಹುಡುಕುತ್ತಿದೆ…',
+    scanNoDevices: 'ಯಾವುದೇ ಸಾಧನ ಕಂಡುಬಂದಿಲ್ಲ',
+    scanNoDevicesHint: 'ನಿಮ್ಮ ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.',
+    scanAgain: 'ಮತ್ತೆ ಹುಡುಕಿ',
     setupGuide: 'ಹಾರ್ಡ್‌ವೇರ್ ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ',
     setupPage1: 'ಪೆಟ್ಟಿಗೆಯಲ್ಲಿ ಏನಿದೆ',
     setupPage2: 'ಸಿಸ್ಟಮ್ ಅವಲೋಕನ',

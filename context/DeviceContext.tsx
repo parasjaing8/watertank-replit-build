@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { DATA_RETENTION_DEFAULT_DAYS, TANK_LOW_PCT } from "@/constants/thresholds";
 import { DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
-import { BLEService, bleModuleAvailable, registerBleService } from "@/services/BLEService";
+import { BLEService, bleModuleAvailable, registerBleService, DiscoveredDevice } from "@/services/BLEService";
 import { checkFirmwareUpdate, FirmwareManifest } from "@/services/FirmwareUpdateService";
 import * as NotificationService from "@/services/NotificationService";
 import { useLanguage } from "@/context/LanguageContext";
@@ -75,6 +75,11 @@ interface DeviceContextValue {
   refreshData: () => void;
   firmwareUpdateAvailable: boolean;
   firmwareManifest: FirmwareManifest | null;
+  discoveredDevices: DiscoveredDevice[];
+  isScanning: boolean;
+  discoverDevices: () => Promise<void>;
+  connectToDevice: (deviceId: string) => Promise<void>;
+  stopDiscovery: () => void;
 }
 
 const DeviceContext = createContext<DeviceContextValue | null>(null);
@@ -90,6 +95,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [firmwareUpdateAvailable, setFirmwareUpdateAvailable] = useState(false);
   const [firmwareManifest, setFirmwareManifest] = useState<FirmwareManifest | null>(null);
+  const [discoveredDevices, setDiscoveredDevices] = useState<DiscoveredDevice[]>([]);
+  const [isScanning, setIsScanning] = useState(false);
   const serviceRef = useRef<IDeviceService | null>(null);
   const { t } = useLanguage();
   const tRef = useRef(t);
@@ -350,6 +357,29 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     await serviceRef.current?.setVisibility?.(on);
   }, []);
 
+  const discoverDevices = useCallback(async (): Promise<void> => {
+    if (!serviceRef.current?.discoverDevices) return;
+    setIsScanning(true);
+    setDiscoveredDevices([]);
+    try {
+      const devices = await serviceRef.current.discoverDevices(10000);
+      setDiscoveredDevices(devices);
+    } catch {
+      setDiscoveredDevices([]);
+    } finally {
+      setIsScanning(false);
+    }
+  }, []);
+
+  const connectToDevice = useCallback(async (deviceId: string): Promise<void> => {
+    await serviceRef.current?.connectToDevice?.(deviceId);
+  }, []);
+
+  const stopDiscovery = useCallback((): void => {
+    serviceRef.current?.stopDiscovery?.();
+    setIsScanning(false);
+  }, []);
+
   const getEventsForDate = useCallback(
     (date: Date): WaterEvent[] => {
       const { start, end } = getDayBounds(date);
@@ -397,6 +427,11 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         refreshData,
         firmwareUpdateAvailable,
         firmwareManifest,
+        discoveredDevices,
+        isScanning,
+        discoverDevices,
+        connectToDevice,
+        stopDiscovery,
       }}
     >
       {children}

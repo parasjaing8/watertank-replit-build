@@ -1,4 +1,5 @@
 import { DeviceState, WaterEvent } from "@/models/Event";
+import { DiscoveredDevice } from "./BLEService";
 
 export interface IDeviceService {
   start(): void;
@@ -13,4 +14,7 @@ export interface IDeviceService {
   submitPassword?(password: string): Promise<'ok' | 'fail' | 'setup_required'>;
   submitSetup?(name: string, password: string): Promise<void>;
   setVisibility?(on: boolean): Promise<void>;
+  discoverDevices?(timeoutMs?: number): Promise<DiscoveredDevice[]>;
+  stopDiscovery?(): void;
+  connectToDevice?(deviceId: string): Promise<void>;
 }

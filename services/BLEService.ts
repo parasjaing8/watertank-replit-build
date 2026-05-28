@@ -57,6 +57,13 @@ type ConnectedDevice = {
   monitorCharacteristicForService(svc: string, char: string, cb: (err: unknown, char: unknown) => void): { remove(): void };
 };
 
+export type DiscoveredDevice = {
+  id: string;
+  name?: string;
+  localName?: string;
+  rssi?: number;
+};
+
 let BleManagerClass: unknown = null;
 let bleModuleAvailable = false;
 
@@ -107,6 +114,8 @@ export class BLEService implements IDeviceService {
   private logStreamTimer: ReturnType<typeof setTimeout> | null = null;
   private logStreamInProgress = false;
   private subscriptions: Array<{ remove(): void }> = [];
+  private discoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  private discoveryResolver: ((devices: DiscoveredDevice[]) => void) | null = null;
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -157,6 +166,114 @@ export class BLEService implements IDeviceService {
 
   triggerSync(): void {
     if (this.device && this.running && !this.logStreamInProgress) this.requestLogStream().catch(() => {});
+  }
+
+  // ── Manual device discovery (user-initiated scan) ──────────────────────────
+
+  // Scan for nearby WaterTank devices without auto-connecting.
+  // Returns the list when the timeout expires or stopDiscovery() is called.
+  async discoverDevices(timeoutMs: number = 10000): Promise<DiscoveredDevice[]> {
+    this.stopDiscovery();
+    const mgr = getBleManager() as {
+      startDeviceScan(uuids: string[] | null, opts: null, cb: (err: unknown, device: unknown) => void): void;
+      stopDeviceScan(): void;
+      state(): Promise<string>;
+    } | null;
+    if (!mgr) return [];
+
+    // Cancel any auto-connect scan in progress
+    if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+    try { mgr.stopDeviceScan(); } catch {}
+
+    const seen = new Set<string>();
+    const devices: DiscoveredDevice[] = [];
+
+    return new Promise((resolve) => {
+      this.discoveryResolver = resolve;
+
+      const doDiscovery = () => {
+        this.discoveryTimer = setTimeout(() => {
+          try { mgr.stopDeviceScan(); } catch {}
+          this.discoveryTimer = null;
+          if (this.discoveryResolver) {
+            this.discoveryResolver(devices);
+            this.discoveryResolver = null;
+          }
+        }, timeoutMs);
+
+        try {
+          mgr.startDeviceScan(null, null, (err, device) => {
+            if (err) {
+              this.log(`Discovery scan error: ${String(err)}`);
+              return;
+            }
+            const dev = device as {
+              name?: string; localName?: string; id: string; rssi?: number;
+              serviceUUIDs?: string[];
+            } | null;
+            if (!dev?.id || seen.has(dev.id)) return;
+            const hasServiceUUID = dev.serviceUUIDs?.some(
+              (u) => u.toLowerCase() === BLE_SERVICE_UUID.toLowerCase(),
+            );
+            const hasName = (dev.name ?? dev.localName ?? "").toLowerCase().includes("watertank");
+            if (!hasServiceUUID && !hasName) return;
+            seen.add(dev.id);
+            devices.push({
+              id: dev.id,
+              name: dev.name,
+              localName: dev.localName,
+              rssi: dev.rssi,
+            });
+            this.log(`Discovered: ${dev.name ?? dev.localName ?? "WaterTank"} (${dev.id}) RSSI=${dev.rssi ?? "?"}`);
+          });
+        } catch (e) {
+          this.log(`startDeviceScan threw: ${String(e)}`);
+          if (this.discoveryResolver) {
+            this.discoveryResolver(devices);
+            this.discoveryResolver = null;
+          }
+        }
+      };
+
+      mgr.state().then((s) => {
+        if (s !== "PoweredOn") {
+          this.log(`BLE not ready (${s})`);
+          resolve([]);
+          return;
+        }
+        doDiscovery();
+      }).catch(() => doDiscovery());
+    });
+  }
+
+  stopDiscovery(): void {
+    if (this.discoveryTimer) { clearTimeout(this.discoveryTimer); this.discoveryTimer = null; }
+    if (this.discoveryResolver) {
+      this.discoveryResolver([]);
+      this.discoveryResolver = null;
+    }
+    const mgr = getBleManager() as { stopDeviceScan(): void } | null;
+    try { mgr?.stopDeviceScan(); } catch {}
+  }
+
+  // Connect to a specific device chosen by the user (from discoverDevices results).
+  async connectToDevice(deviceId: string): Promise<void> {
+    const mgr = getBleManager() as {
+      connectToDevice(id: string, opts: { timeout: number }): Promise<ConnectedDevice>;
+    } | null;
+    if (!mgr) throw new Error("BLE not available");
+    // Cancel any pending reconnect/scan
+    if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    try {
+      const connected = await mgr.connectToDevice(deviceId, { timeout: 10000 });
+      await this.setupConnectedDevice(connected);
+    } catch (e) {
+      this.log(`Manual connect failed (${deviceId}): ${String(e)}`);
+      logBleError("manual connect failed", { deviceId, error: String(e) });
+      this.scheduleReconnect();
+      throw e;
+    }
   }
 
   // ── Auth public API ───────────────────────────────────────────────────────
@@ -239,6 +356,8 @@ export class BLEService implements IDeviceService {
     if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     if (this.logStreamTimer) { clearTimeout(this.logStreamTimer); this.logStreamTimer = null; }
+    if (this.discoveryTimer) { clearTimeout(this.discoveryTimer); this.discoveryTimer = null; }
+    if (this.discoveryResolver) { this.discoveryResolver([]); this.discoveryResolver = null; }
     this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
     this.subscriptions = [];
     const mgr = getBleManager() as {

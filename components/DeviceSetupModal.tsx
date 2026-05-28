@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,6 +9,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 interface Props {
   visible: boolean;
@@ -57,129 +55,127 @@ export function DeviceSetupModal({ visible, onSubmit }: Props) {
       backgroundColor: colors.background,
       zIndex: 100,
     }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          contentContainerStyle={{ padding: 24, paddingTop: 64, paddingBottom: 40 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={{
-            width: 56, height: 56, borderRadius: 28,
-            backgroundColor: colors.primary + "18",
-            alignItems: "center", justifyContent: "center",
-            marginBottom: 20,
-          }}>
-            <Feather name="shield" size={28} color={colors.primary} />
-          </View>
+      <KeyboardAwareScrollViewCompat
+        contentContainerStyle={{ padding: 24, paddingTop: 64, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        bottomOffset={20}
+      >
+        <View style={{
+          width: 56, height: 56, borderRadius: 28,
+          backgroundColor: colors.primary + "18",
+          alignItems: "center", justifyContent: "center",
+          marginBottom: 20,
+        }}>
+          <Feather name="shield" size={28} color={colors.primary} />
+        </View>
 
-          <Text style={{ fontSize: 22, fontFamily: "Inter_600SemiBold", color: colors.foreground, marginBottom: 8 }}>
-            {t("setupTitle")}
-          </Text>
-          <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground, lineHeight: 20, marginBottom: 32 }}>
-            {t("setupSubtitle")}
-          </Text>
+        <Text style={{ fontSize: 22, fontFamily: "Inter_600SemiBold", color: colors.foreground, marginBottom: 8 }}>
+          {t("setupTitle")}
+        </Text>
+        <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground, lineHeight: 20, marginBottom: 32 }}>
+          {t("setupSubtitle")}
+        </Text>
 
-          {/* Device name */}
-          <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 0.8, marginBottom: 6 }}>
-            {t("setupDeviceName").toUpperCase()}
-          </Text>
+        {/* Device name */}
+        <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 0.8, marginBottom: 6 }}>
+          {t("setupDeviceName").toUpperCase()}
+        </Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder={t("setupDeviceNamePlaceholder")}
+          placeholderTextColor={colors.mutedForeground}
+          style={{
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 10,
+            paddingHorizontal: 14,
+            paddingVertical: 13,
+            fontSize: 16,
+            fontFamily: "Inter_400Regular",
+            color: colors.foreground,
+            marginBottom: 24,
+          }}
+        />
+
+        {/* New password */}
+        <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 0.8, marginBottom: 6 }}>
+          {t("setupNewPassword").toUpperCase()}
+        </Text>
+        <View style={{
+          flexDirection: "row", alignItems: "center",
+          backgroundColor: colors.card,
+          borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+          marginBottom: 16,
+        }}>
           <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder={t("setupDeviceNamePlaceholder")}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPw}
+            placeholder="••••"
             placeholderTextColor={colors.mutedForeground}
-            style={{
-              backgroundColor: colors.card,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 10,
-              paddingHorizontal: 14,
-              paddingVertical: 13,
-              fontSize: 16,
-              fontFamily: "Inter_400Regular",
-              color: colors.foreground,
-              marginBottom: 24,
-            }}
+            style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, fontFamily: "Inter_400Regular", color: colors.foreground }}
           />
-
-          {/* New password */}
-          <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 0.8, marginBottom: 6 }}>
-            {t("setupNewPassword").toUpperCase()}
-          </Text>
-          <View style={{
-            flexDirection: "row", alignItems: "center",
-            backgroundColor: colors.card,
-            borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-            marginBottom: 16,
-          }}>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPw}
-              placeholder="••••••"
-              placeholderTextColor={colors.mutedForeground}
-              style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, fontFamily: "Inter_400Regular", color: colors.foreground }}
-            />
-            <TouchableOpacity onPress={() => setShowPw((v) => !v)} style={{ paddingHorizontal: 14 }}>
-              <Feather name={showPw ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Confirm password */}
-          <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 0.8, marginBottom: 6 }}>
-            {t("setupConfirmPassword").toUpperCase()}
-          </Text>
-          <View style={{
-            flexDirection: "row", alignItems: "center",
-            backgroundColor: colors.card,
-            borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-            marginBottom: 28,
-          }}>
-            <TextInput
-              value={confirm}
-              onChangeText={setConfirm}
-              secureTextEntry={!showConfirm}
-              placeholder="••••••"
-              placeholderTextColor={colors.mutedForeground}
-              style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, fontFamily: "Inter_400Regular", color: colors.foreground }}
-              onSubmitEditing={handleSave}
-              returnKeyType="done"
-            />
-            <TouchableOpacity onPress={() => setShowConfirm((v) => !v)} style={{ paddingHorizontal: 14 }}>
-              <Feather name={showConfirm ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-
-          {error && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <Feather name="alert-circle" size={14} color={colors.destructive} />
-              <Text style={{ fontSize: 13, color: colors.destructive, fontFamily: "Inter_400Regular", flex: 1 }}>
-                {error}
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={loading}
-            activeOpacity={0.8}
-            style={{
-              backgroundColor: loading ? colors.muted : colors.primary,
-              borderRadius: 10,
-              paddingVertical: 15,
-              alignItems: "center",
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 8,
-            }}
-          >
-            {loading && <ActivityIndicator size="small" color="#FFF" />}
-            <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: loading ? colors.mutedForeground : "#FFF" }}>
-              {loading ? t("setupSaving") : t("setupSave")}
-            </Text>
+          <TouchableOpacity onPress={() => setShowPw((v) => !v)} style={{ paddingHorizontal: 14 }}>
+            <Feather name={showPw ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+
+        {/* Confirm password */}
+        <Text style={{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 0.8, marginBottom: 6 }}>
+          {t("setupConfirmPassword").toUpperCase()}
+        </Text>
+        <View style={{
+          flexDirection: "row", alignItems: "center",
+          backgroundColor: colors.card,
+          borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+          marginBottom: 28,
+        }}>
+          <TextInput
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry={!showConfirm}
+            placeholder="••••"
+            placeholderTextColor={colors.mutedForeground}
+            style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, fontFamily: "Inter_400Regular", color: colors.foreground }}
+            onSubmitEditing={handleSave}
+            returnKeyType="done"
+          />
+          <TouchableOpacity onPress={() => setShowConfirm((v) => !v)} style={{ paddingHorizontal: 14 }}>
+            <Feather name={showConfirm ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
+          </TouchableOpacity>
+        </View>
+
+        {error && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <Feather name="alert-circle" size={14} color={colors.destructive} />
+            <Text style={{ fontSize: 13, color: colors.destructive, fontFamily: "Inter_400Regular", flex: 1 }}>
+              {error}
+            </Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={loading}
+          activeOpacity={0.8}
+          style={{
+            backgroundColor: loading ? colors.muted : colors.primary,
+            borderRadius: 10,
+            paddingVertical: 15,
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          {loading && <ActivityIndicator size="small" color="#FFF" />}
+          <Text style={{ fontSize: 16, fontFamily: "Inter_600SemiBold", color: loading ? colors.mutedForeground : "#FFF" }}>
+            {loading ? t("setupSaving") : t("setupSave")}
+          </Text>
+        </TouchableOpacity>
+      </KeyboardAwareScrollViewCompat>
     </View>
   );
 }
