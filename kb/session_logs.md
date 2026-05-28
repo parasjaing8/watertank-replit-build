@@ -1,5 +1,38 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v42: Fix 12 MEDIUM + 4 LOW audit items
+
+- Branch: `deepseek`, commit 14c0442
+
+### MEDIUM — Firmware (3 items)
+- **1.6**: `StateCharCB::onSubscribe()` fires push on client subscribe (was fixed 800ms timer). T13 verified: 32ms first notify
+- **1.7**: `getTankLevel()` pure reader — returns computed value, doesn't mutate `tankPct`
+- **1.8**: Already resolved by `USE_WIFI=0` gate
+
+### MEDIUM — App (9 items)
+- **2.6**: `logStreamInProgress` flag prevents overlapping log streams
+- **3.4**: Documented plaintext AsyncStorage risk in AuthService.ts
+- **4.3**: `IDeviceService` completed with 6 missing methods; removed `as BLEService` casts
+- **4.4**: `APP_EVENT_ID_PREFIX = 0x40000000` namespaces SimulationService IDs; removed dead `nextId()`/`logEvent()` from BLEService
+- **5.5**: "Try Demo" demoted to outline button with "or, try the demo" label; troubleshooting hints are primary CTA
+- **6.3**: Firmware version persisted to AsyncStorage on connect, loaded on startup
+- **8.2**: Log stream timeout no longer sends ACK (prevents data loss on partial transfer)
+- **8.3**: `connectedRef` tracking prevents orphaned BLE connections in BlePairingSheet
+- **9.4**: `PRAGMA user_version` with migration scaffold in `initializeDatabase()`
+
+### LOW (4 items)
+- **1.9**: Removed dead `BLE_NOTIFY_INTERVAL_MS` from `constants/ble.ts`
+- **3.5**: Already resolved (real WhatsApp number set)
+- **4.5**: `git rm --cached` 2 tracked APKs; rest already gitignored
+- **4.6**: Already resolved (`"strict": true` in tsconfig.json)
+- **4.7**: Removed `package-lock.json` from git, added to `.gitignore`
+
+### Remaining
+- **0 HIGH**, **0 MEDIUM (fixable)** remaining
+- **5 MEDIUM** are feature/architectural scope: 5.3 (trends), 5.4 (multi-device), 6.2 (remote log), 7.2/7.3 (testing)
+- **0 LOW** remaining (all resolved or skipped — 6.4 analytics is feature-scope)
+- BLE tests: 51/51 green after firmware changes
+
 ## 2026-05-28 — v41: Fix HIGH 2.2, 2.3, 2.4
 
 - Branch: `deepseek`, commit 318f602

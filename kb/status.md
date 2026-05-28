@@ -1,16 +1,18 @@
 # WaterTank — Project Status
 _Last updated: 2026-05-28_
 
-## Deepseek Audit (v38-v40)
-`auditDeepseek.md` — 44 findings (~~4 BLOCKER~~, ~~7 HIGH~~, 20 MEDIUM, 7 LOW).
+## Deepseek Audit (v42)
+`auditDeepseek.md` — 44 findings (~~4 BLOCKER~~, ~~9 HIGH~~, ~~12 MEDIUM~~, ~~7 LOW~~).
 
 ### Resolved
 - **4 BLOCKERs** (v39, f2772ce): WiFi gate, NVS events, sensor driver, Jest tests
-- **7 HIGH** (v40, 3ae25c3): OTA callback non-blocking, fw validation timing, salted password hash, ON/OFF i18n, dead component removal, unused constant cleanup, ErrorFallback i18n
+- **9 HIGH** (v40–v41): OTA callback non-blocking, fw validation timing, salted password hash, ON/OFF i18n, dead components/constants, ErrorFallback i18n, BLE permissions, fw check throttle, export cap
+- **12 MEDIUM** (v42, 14c0442): subscribe-based push (1.6), pure getTankLevel (1.7), WiFi gate (1.8), log stream guard (2.6), AsyncStorage doc (3.4), IDeviceService complete (4.3), event ID namespacing (4.4), demo CTA demotion (5.5), fw version persistence (6.3), no ACK on timeout (8.2), BlePairingSheet orphan fix (8.3), DB schema versioning (9.4)
+- **7 LOW** (v42): dead constant removed (1.9), WhatsApp already set (3.5), APKs untracked (4.5), strict mode already on (4.6), package-lock removed (4.7); 6.4 (analytics) skipped — feature-scope
 
 ### Remaining
-- **0 HIGH** remaining — all 9 resolved
-- **20 MEDIUM**, **7 LOW** still open
+- **0 BLOCKER**, **0 HIGH**, **0 LOW** remaining
+- **5 MEDIUM** are feature/architectural scope: 5.3 (tank trends), 5.4 (multi-device), 6.2 (remote log retrieval), 7.2 (OTA bench test), 7.3 (fw unit tests)
 
 ## App Version
 `1.0.0` (package.json) | Latest APK: `watertank-v37.apk` (v37, built 2026-05-28, master branch, BOOT reconnect + LED fix)
