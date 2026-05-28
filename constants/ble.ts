@@ -30,5 +30,3 @@ export const BLE_RECONNECT_DELAYS = [5000, 10000, 20000, 30000];
 export const BLE_SCAN_TIMEOUT = 15000;
 export const BLE_LOG_STREAM_TIMEOUT = 30000;
 export const BLE_MTU_SIZE = 512;
-// Firmware notifies every 2s; kept as a constant for reference / future dynamic cadence
-export const BLE_NOTIFY_INTERVAL_MS = 2000;

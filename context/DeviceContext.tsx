@@ -335,24 +335,19 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setFillTarget = useCallback(async (pct: number) => {
-    const svc = serviceRef.current as BLEService | null;
-    if (svc?.writeFillTarget) await svc.writeFillTarget(pct);
+    await serviceRef.current?.writeFillTarget?.(pct);
   }, []);
 
   const submitPassword = useCallback(async (password: string): Promise<'ok' | 'fail' | 'setup_required'> => {
-    const svc = serviceRef.current as BLEService | null;
-    if (svc?.submitPassword) return svc.submitPassword(password);
-    return 'fail';
+    return (await serviceRef.current?.submitPassword?.(password)) ?? 'fail';
   }, []);
 
   const submitSetup = useCallback(async (name: string, password: string): Promise<void> => {
-    const svc = serviceRef.current as BLEService | null;
-    if (svc?.submitSetup) await svc.submitSetup(name, password);
+    await serviceRef.current?.submitSetup?.(name, password);
   }, []);
 
   const setVisibility = useCallback(async (on: boolean): Promise<void> => {
-    const svc = serviceRef.current as BLEService | null;
-    if (svc?.setVisibility) await svc.setVisibility(on);
+    await serviceRef.current?.setVisibility?.(on);
   }, []);
 
   const getEventsForDate = useCallback(

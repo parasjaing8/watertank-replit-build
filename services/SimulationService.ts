@@ -1,4 +1,4 @@
-import { DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
+import { APP_EVENT_ID_PREFIX, DEFAULT_DEVICE_STATE, DeviceState, EventType, StopReason, WaterEvent } from "@/models/Event";
 import { insertEvent, insertSyncLog } from "@/storage/database";
 
 import { IDeviceService } from "./IDeviceService";
@@ -6,10 +6,8 @@ import { IDeviceService } from "./IDeviceService";
 type Listener = (state: DeviceState) => void;
 type EventListener = (event: WaterEvent) => void;
 
-// Use a timestamp-based start so IDs don't collide with existing DB rows
-// after an app restart or hot-reload.
-let eventIdCounter = Date.now();
-function nextId(): number { return eventIdCounter++; }
+let eventIdCounter = 1;
+function nextId(): number { return APP_EVENT_ID_PREFIX | (eventIdCounter++ & 0x0FFFFFFF); }
 
 /**
  * SimulationService — one-shot demo cycle.

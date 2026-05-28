@@ -422,7 +422,6 @@ class ClaimedCB : public NimBLECharacteristicCallbacks {
 class ConnCB : public NimBLEServerCallbacks {
   void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
     bleConnected  = true;
-    pushScheduled = millis() + 800;
     lastNotify    = millis();
     Serial.printf("BLE: connected — peer=%s\n", info.getAddress().toString().c_str());
   }
@@ -436,6 +435,17 @@ class ConnCB : public NimBLEServerCallbacks {
     Serial.printf("BLE: disconnected (reason=0x%02X)\n", reason);
     // advertiseOnDisconnect(true) will restart advertising automatically;
     // loop() suppresses it immediately if claimed and not visible.
+  }
+};
+
+// Fire initial state push when client subscribes to C_STATE — more reliable
+// than a fixed timer since CCCD write confirms the client is ready to receive.
+class StateCharCB : public NimBLECharacteristicCallbacks {
+  void onSubscribe(NimBLECharacteristic* c, NimBLEConnInfo& connInfo, uint16_t subValue) override {
+    if (subValue == 0) return;  // unsubscribe — ignore
+    if (bleConnected) {
+      pushScheduled = millis() + 50;  // tiny debounce, fire on next loop tick
+    }
   }
 };
 
@@ -570,12 +580,12 @@ float getTankLevel() {
   float newPct = 100.0f * (1.0f - (effectiveDist - TANK_FULL_DIST_CM) / range);
 
   // Exponential moving average (alpha=0.3) for smooth readings
-  tankPct = tankPct * 0.7f + newPct * 0.3f;
-  return tankPct;
+  return tankPct * 0.7f + newPct * 0.3f;
 #else
-  if (relayOn) tankPct = constrain(tankPct + FILL_STEP_PCT, 0.0f, 100.0f);
-  else         tankPct = constrain(tankPct - DRAIN_STEP_PCT, 0.0f, 100.0f);
-  return tankPct;
+  float next = tankPct;
+  if (relayOn) next = constrain(tankPct + FILL_STEP_PCT, 0.0f, 100.0f);
+  else         next = constrain(tankPct - DRAIN_STEP_PCT, 0.0f, 100.0f);
+  return next;
 #endif
 }
 
@@ -770,6 +780,7 @@ void setup() {
 
   // Existing characteristics
   charState = svc->createCharacteristic(C_STATE, NIMBLE_PROPERTY::NOTIFY);
+  charState->setCallbacks(new StateCharCB());
   charTank  = svc->createCharacteristic(C_TANK,  NIMBLE_PROPERTY::NOTIFY);
 
   NimBLECharacteristic* logCtrl = svc->createCharacteristic(

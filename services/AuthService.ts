@@ -1,3 +1,11 @@
+/**
+ * AuthService — manages paired-device session tokens.
+ *
+ * SECURITY NOTE: Session tokens are stored as hex-encoded strings in AsyncStorage,
+ * which is unencrypted on Android by default. A compromised device could expose all
+ * paired board tokens. For a motor controller, this is an acceptable risk (physical
+ * access to the board is the higher-value target), but worth noting for audit.
+ */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
 

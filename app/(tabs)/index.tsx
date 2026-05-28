@@ -287,12 +287,15 @@ export default function DashboardScreen() {
                   {t("pressBootHint")}
                 </Text>
               )}
+              <Text style={[styles.hintText, { color: colors.mutedForeground, marginTop: 10 }]}>
+                {t("orTryDemo")}
+              </Text>
               <TouchableOpacity
                 onPress={runSimulation}
-                style={[styles.demoBtn, { backgroundColor: colors.primary }]}
+                style={[styles.demoBtn, { borderColor: colors.primary, borderWidth: 1.5 }]}
                 activeOpacity={0.82}
               >
-                <Text style={styles.demoBtnText}>{t("tryDemo")}</Text>
+                <Text style={[styles.demoBtnText, { color: colors.primary }]}>{t("tryDemo")}</Text>
               </TouchableOpacity>
             </View>
           </View>

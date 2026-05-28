@@ -20,29 +20,41 @@ function getDb(): import("expo-sqlite").SQLiteDatabase | null {
   return db;
 }
 
+const CURRENT_SCHEMA_VERSION = 1;
+
 export function initializeDatabase(): void {
   const database = getDb();
   if (!database) return;
-  database.execSync(`
-    CREATE TABLE IF NOT EXISTS events (
-      id           INTEGER NOT NULL,
-      epoch        INTEGER NOT NULL,
-      type         INTEGER NOT NULL,
-      tank_pct     REAL    NOT NULL DEFAULT 0,
-      flow_lpm     REAL    NOT NULL DEFAULT 0,
-      stop_reason  INTEGER NOT NULL DEFAULT 0,
-      duration_sec INTEGER NOT NULL DEFAULT 0,
-      synced       INTEGER NOT NULL DEFAULT 0,
-      PRIMARY KEY (id, epoch)
-    );
-    CREATE INDEX IF NOT EXISTS idx_events_epoch ON events(epoch);
-    CREATE INDEX IF NOT EXISTS idx_events_type  ON events(type);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_events_id ON events(id);
-    CREATE TABLE IF NOT EXISTS sync_log (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      synced_at INTEGER NOT NULL
-    );
-  `);
+
+  const version = database.getFirstSync<{ user_version: number }>(
+    "PRAGMA user_version",
+  )?.user_version ?? 0;
+
+  if (version < 1) {
+    database.execSync(`
+      CREATE TABLE IF NOT EXISTS events (
+        id           INTEGER NOT NULL,
+        epoch        INTEGER NOT NULL,
+        type         INTEGER NOT NULL,
+        tank_pct     REAL    NOT NULL DEFAULT 0,
+        flow_lpm     REAL    NOT NULL DEFAULT 0,
+        stop_reason  INTEGER NOT NULL DEFAULT 0,
+        duration_sec INTEGER NOT NULL DEFAULT 0,
+        synced       INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (id, epoch)
+      );
+      CREATE INDEX IF NOT EXISTS idx_events_epoch ON events(epoch);
+      CREATE INDEX IF NOT EXISTS idx_events_type  ON events(type);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_events_id ON events(id);
+      CREATE TABLE IF NOT EXISTS sync_log (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        synced_at INTEGER NOT NULL
+      );
+    `);
+    database.execSync(`PRAGMA user_version = ${CURRENT_SCHEMA_VERSION}`);
+  }
+  // Future migrations:
+  // if (version < 2) { ... }
 }
 
 // Write operations use the async API so they don't block the JS thread.
