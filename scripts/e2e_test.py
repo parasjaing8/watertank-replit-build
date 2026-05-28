@@ -679,7 +679,7 @@ def main() -> None:
         import importlib.util, asyncio
         spec = importlib.util.spec_from_file_location("auth_test",
             str(Path(__file__).parent / "auth_test.py"))
-        mod = importlib.util.load_from_spec(spec)
+        mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         ok = asyncio.run(mod.reset_board_via_ota())
         if not ok:

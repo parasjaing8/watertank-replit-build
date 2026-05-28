@@ -110,6 +110,8 @@ static void nvsLoadEvents() {
   eventHead  = eventHead  < EVENT_BUF_SIZE ? eventHead  : 0;
   eventCount = eventCount <= EVENT_BUF_SIZE ? eventCount : 0;
 
+  uint8_t origHead  = eventHead;
+  uint8_t origCount = eventCount;
   for (uint8_t i = 0; i < eventCount; i++) {
     uint8_t idx = (eventHead + EVENT_BUF_SIZE - eventCount + i) % EVENT_BUF_SIZE;
     char key[8];
@@ -118,7 +120,7 @@ static void nvsLoadEvents() {
     if (got != sizeof(LogEvent)) {
       // Corrupt entry — truncate buffer at this point
       eventCount = i;
-      eventHead  = (eventHead + EVENT_BUF_SIZE - eventCount) % EVENT_BUF_SIZE;
+      eventHead  = (origHead + EVENT_BUF_SIZE - origCount + i) % EVENT_BUF_SIZE;
       prefs.putUChar("evt_cnt", eventCount);
       prefs.putUChar("evt_head", eventHead);
       Serial.printf("NVS events: truncated at %d (corrupt entry %u)\n", eventCount, idx);
@@ -263,9 +265,7 @@ static void nvsLoadAuth() {
   if (sessionCount > SESSION_MAX) sessionCount = 0;
   prefs.getBytes("sessions", sessions, sizeof(sessions));
 
-  // DIAGNOSTIC: force advertising regardless of claimed state.
-  // Revert to `bleVisible = !claimed` after confirming advertising works.
-  bleVisible = true;
+  bleVisible = !claimed;
 }
 
 // ── Session management ────────────────────────────────────────────────────────
@@ -479,7 +479,7 @@ class LogCtrlCB : public NimBLECharacteristicCallbacks {
     if (v.size() > 0) {
       uint8_t cmd = v.data()[0];
       if (cmd == 0x01) { doSendLogs = true; logFrameIdx = 0; Serial.println("LogCtrl: START"); }
-      else if (cmd == 0x02) { nvsClearEvents(); Serial.println("LogCtrl: ACK — events cleared"); }
+      else if (cmd == 0x02) { Serial.println("LogCtrl: ACK"); }
     }
   }
 };
@@ -775,8 +775,6 @@ void setup() {
 
   NimBLEDevice::init(deviceName);
   NimBLEDevice::setMTU(512);
-  // DIAGNOSTIC: clear bonds so whitelist doesn't hide service UUID from unresolved scanners
-  NimBLEDevice::deleteAllBonds();
 
   bleServer = NimBLEDevice::createServer();
   bleServer->setCallbacks(new ConnCB());
@@ -868,9 +866,12 @@ void setup() {
 // ── loop ──────────────────────────────────────────────────────────────────────
 
 void loop() {
-  if (pendingRestart && millis() >= restartAt) {
-    Serial.println("OTA: pending restart — rebooting");
-    esp_restart();
+  if (pendingRestart) {
+    if (millis() >= restartAt) {
+      Serial.println("OTA: pending restart — rebooting");
+      esp_restart();
+    }
+    return;
   }
 #if USE_WIFI == 1
   wfHandleOTA();

@@ -126,10 +126,6 @@ export class BLEService implements IDeviceService {
     }
     this.running = true;
     this.reconnectAttempt = 0;
-    // Load persisted firmware version so it's visible even when disconnected.
-    AsyncStorage.getItem("@watertank_fw_version").then((v) => {
-      if (v && this.running) this.emit({ ...this.state, firmwareVersion: v });
-    }).catch(() => {});
     // Try direct connect to a previously paired device first (works even when
     // advertising is off after claiming). Falls back to scan if none known.
     this.tryDirectConnect().then((ok) => {
@@ -260,11 +256,19 @@ export class BLEService implements IDeviceService {
   async connectToDevice(deviceId: string): Promise<void> {
     const mgr = getBleManager() as {
       connectToDevice(id: string, opts: { timeout: number }): Promise<ConnectedDevice>;
+      cancelDeviceConnection(id: string): Promise<void>;
     } | null;
     if (!mgr) throw new Error("BLE not available");
     // Cancel any pending reconnect/scan
     if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    // Disconnect existing connection before connecting to a different device
+    if (this.device) {
+      this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
+      this.subscriptions = [];
+      try { await mgr.cancelDeviceConnection(this.device.id); } catch {}
+      this.device = null;
+    }
     try {
       const connected = await mgr.connectToDevice(deviceId, { timeout: 10000 });
       await this.setupConnectedDevice(connected);
@@ -587,7 +591,7 @@ export class BLEService implements IDeviceService {
         this.state = { ...this.state, firmwareVersion: version };
         connectedFwVersion = version;
         this.log(`Firmware: ${version}`);
-        AsyncStorage.setItem("@watertank_fw_version", version).catch(() => {});
+        AsyncStorage.setItem(`@watertank_fw_version_${connected.id}`, version).catch(() => {});
       }
     } catch {}
 

@@ -54,7 +54,7 @@
     "@babel/core": "^7.25.2",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo/vector-icons": "^15.1.1",
-    "@react-native/jest-preset": "^0.85.3",
+    "@react-native/jest-preset": "~0.81.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.17",
