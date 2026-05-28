@@ -27,13 +27,18 @@ FAIL = "\033[31mFAIL\033[0m"
 INFO = "\033[34mINFO\033[0m"
 SKIP = "\033[90mSKIP\033[0m"
 
-results: list[tuple[str, bool, str]] = []
+results: list[tuple[str, bool | None, str]] = []
 
 
 def record(name: str, ok: bool, detail: str = "") -> None:
     results.append((name, ok, detail))
     status = PASS if ok else FAIL
     print(f"  [{status}] {name}" + (f" — {detail}" if detail else ""))
+
+
+def record_skip(name: str, detail: str = "") -> None:
+    results.append((name, None, detail))
+    print(f"  [{SKIP}] {name}" + (f" — {detail}" if detail else ""))
 
 
 def info(msg: str) -> None:
@@ -521,7 +526,7 @@ def test_e2e_06_records_screen() -> bool:
             record("E2E_06 week view toggles", week_found is not None,
                    f"found='{week_found}'" if week_found else "no week content")
         else:
-            record("E2E_06 week view toggles", True, "SKIPPED: This Week tab not visible")
+            record_skip("E2E_06 week view toggles", "This Week tab not visible")
 
     return ok
 
@@ -566,7 +571,7 @@ def test_e2e_08_settings_interact() -> bool:
         time.sleep(0.8)
         record("E2E_08 toggle dark mode", True)
     else:
-        record("E2E_08 toggle dark mode", True, "SKIPPED: dark button not found")
+        record_skip("E2E_08 toggle dark mode", "dark button not found")
 
     # Switch language to Hindi
     root = dump_ui()
@@ -584,7 +589,7 @@ def test_e2e_08_settings_interact() -> bool:
         record("E2E_08 switch to Hindi", len(hi_texts) > 0,
                f"found {len(hi_texts)} non-ASCII texts" if hi_texts else "no Hindi text found")
     else:
-        record("E2E_08 switch to Hindi", True, "SKIPPED: Hindi button not found")
+        record_skip("E2E_08 switch to Hindi", "Hindi button not found")
 
     # Switch back to English
     root = dump_ui()
@@ -594,7 +599,7 @@ def test_e2e_08_settings_interact() -> bool:
         time.sleep(0.8)
         record("E2E_08 switch back to English", True)
     else:
-        record("E2E_08 switch back to English", True, "SKIPPED: English button not found")
+        record_skip("E2E_08 switch back to English", "English button not found")
 
     return True
 
@@ -618,8 +623,7 @@ def test_e2e_09_preferred_device() -> bool:
             break
 
     if not has_device:
-        record("E2E_09 preferred device", True,
-               "SKIPPED: no paired devices to verify (pairing flow may have failed)")
+        record_skip("E2E_09 preferred device", "no paired devices to verify (pairing flow may have failed)")
         return True
 
     # If device is visible, check for "active" label or check circle
@@ -647,7 +651,7 @@ def test_e2e_10_navigation_flow() -> bool:
     # Back to Dashboard
     ok = navigate_to_tab("Dashboard")
     if not ok:
-        record("E2E_10 navigate to Dashboard", True, "SKIPPED: tab label unknown")
+        record_skip("E2E_10 navigate to Dashboard", "tab label unknown")
     else:
         record("E2E_10 navigate to Dashboard", True)
 
@@ -734,16 +738,19 @@ def main() -> None:
 
 
 def _print_summary() -> None:
-    total  = len(results)
-    passed = sum(1 for _, ok, _ in results if ok)
-    failed = total - passed
+    total   = len(results)
+    passed  = sum(1 for _, ok, _ in results if ok is True)
+    skipped = sum(1 for _, ok, _ in results if ok is None)
+    failed  = total - passed - skipped
     print("\n" + "=" * 68)
-    print(f"  Results: {passed}/{total} passed", end="")
+    print(f"  Results: {passed}/{total - skipped} passed", end="")
+    if skipped:
+        print(f"  ({skipped} skipped)", end="")
     if failed:
         print(f"  ({failed} FAILED)")
         print("\n  Failed:")
         for name, ok, detail in results:
-            if not ok:
+            if ok is False:
                 print(f"    ✗ {name}" + (f": {detail}" if detail else ""))
     else:
         print("  — all green")
