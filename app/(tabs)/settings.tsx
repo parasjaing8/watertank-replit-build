@@ -619,7 +619,7 @@ export default function SettingsScreen() {
       )}
 
       {/* Paired devices */}
-      {deviceState.connected && (
+      {pairedSessions.length > 0 && (
         <>
           <SectionHeader title={t("pairedDevices").toUpperCase()} colors={colors} />
           <View style={[styles.section, { borderColor: colors.border }]}>
@@ -630,7 +630,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             )}
-            {pairedSessions.length > 0 && pairedSessions.map((s) => {
+            {pairedSessions.map((s) => {
               const isPreferred = preferredMac === s.deviceMac;
               return (
                 <TouchableOpacity
@@ -654,17 +654,19 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               );
             })}
-            <ActionRow
-              label={t("allowNewPairing")}
-              icon="bluetooth"
-              onPress={async () => {
-                await setVisibility(true);
-                const end = Date.now() + 5 * 60 * 1000;
-                setPairingWindowEnd(end);
-                setPairingWindowSec(300);
-              }}
-              colors={colors}
-            />
+            {deviceState.connected && (
+              <ActionRow
+                label={t("allowNewPairing")}
+                icon="bluetooth"
+                onPress={async () => {
+                  await setVisibility(true);
+                  const end = Date.now() + 5 * 60 * 1000;
+                  setPairingWindowEnd(end);
+                  setPairingWindowSec(300);
+                }}
+                colors={colors}
+              />
+            )}
             <ActionRow
               label={t("removeThisDevice")}
               icon="trash-2"
