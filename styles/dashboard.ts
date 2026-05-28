@@ -184,14 +184,13 @@ export const styles = StyleSheet.create({
 
   // ── Disconnected card
   demoBtn: {
-    marginTop: 10,
+    marginTop: 4,
     paddingHorizontal: 22,
     paddingVertical: 10,
     borderRadius: 22,
     alignSelf: "flex-start",
   },
   demoBtnText: {
-    color: "#FFF",
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
   },

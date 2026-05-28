@@ -205,7 +205,15 @@ export async function performOtaTransfer(
   onProgress: (sectorsDone: number, totalSectors: number) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const manager = getBleManager();
+  const manager = getBleManager() as {
+    monitorCharacteristicForDevice(
+      deviceId: string, serviceUUID: string, charUUID: string,
+      listener: (err: Error | null, char: { value?: string } | null) => void,
+    ): { remove(): void };
+    writeCharacteristicWithoutResponseForDevice(
+      deviceId: string, serviceUUID: string, charUUID: string, value: string,
+    ): Promise<unknown>;
+  } | null;
   if (!manager) throw new Error("BLE manager not available");
 
   const totalSectors = Math.ceil(firmwareBytes.length / SECTOR_SIZE);
@@ -218,7 +226,7 @@ export async function performOtaTransfer(
         reject(new Error(`Indicate timeout on ${charUUID}`));
       }, timeoutMs);
 
-      const sub = manager.monitorCharacteristicForDevice(
+      const sub = manager!.monitorCharacteristicForDevice(
         deviceId,
         BLE_OTA_SERVICE_UUID,
         charUUID,
@@ -226,7 +234,7 @@ export async function performOtaTransfer(
           clearTimeout(timer);
           sub.remove();
           if (err) { reject(err); return; }
-          const val = (char as { value?: string } | null)?.value;
+          const val = char?.value;
           if (!val) { reject(new Error("Empty indicate")); return; }
           resolve(new Uint8Array(Buffer.from(val, "base64")));
         },
@@ -242,7 +250,7 @@ export async function performOtaTransfer(
   const cmdAck = waitForIndicate(BLE_OTA_CHAR_COMMAND, 10000);
 
   // Send START command (WRITE with response to confirm delivery)
-  await (manager as {
+  await (manager as unknown as {
     writeCharacteristicWithResponseForDevice(d: string, s: string, c: string, v: string): Promise<unknown>
   }).writeCharacteristicWithResponseForDevice(
     deviceId, BLE_OTA_SERVICE_UUID, BLE_OTA_CHAR_COMMAND,

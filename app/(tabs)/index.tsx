@@ -15,6 +15,7 @@ import { WaterTankWidget } from "@/components/WaterTankWidget";
 import { PulsingDot, SearchingDots } from "@/components/StatusIndicators";
 import { ReportProblemSheet } from "@/components/ReportProblemSheet";
 import { PairingSheet } from "@/components/PairingSheet";
+import { DeviceScanSheet } from "@/components/DeviceScanSheet";
 import { DeviceSetupModal } from "@/components/DeviceSetupModal";
 import { useDevice } from "@/context/DeviceContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -46,7 +47,7 @@ function getTankStatusColor(pct: number, motorOn: boolean, c: ColorTokens): stri
 export default function DashboardScreen() {
   const { t } = useLanguage();
   const colors = useColors();
-  const { deviceState, simMode, runSimulation, stopSimulation, settings, triggerSync, submitPassword, submitSetup } = useDevice();
+  const { deviceState, simMode, runSimulation, stopSimulation, settings, triggerSync, submitPassword, submitSetup, discoveredDevices, isScanning, discoverDevices, connectToDevice, stopDiscovery } = useDevice();
   const insets = useSafeAreaInsets();
 
   const [showSetupModal, setShowSetupModal]    = useState(false);
@@ -54,6 +55,7 @@ export default function DashboardScreen() {
   const countdownRef                           = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevPumpStateRef                       = useRef<number>(deviceState.pumpState);
   const [showReport, setShowReport]            = useState(false);
+  const [showScanSheet, setShowScanSheet]      = useState(false);
   const [showFullToast, setShowFullToast]      = useState(false);
   const [disconnectedSec, setDisconnectedSec] = useState(0);
   const [lastKnownTank, setLastKnownTank]     = useState<{ pct: number; at: number } | null>(null);
@@ -288,11 +290,31 @@ export default function DashboardScreen() {
                 </Text>
               )}
               <TouchableOpacity
+                onPress={() => { setShowScanSheet(true); discoverDevices(); }}
+                style={{
+                  backgroundColor: colors.primary,
+                  borderRadius: 10,
+                  paddingVertical: 13,
+                  paddingHorizontal: 20,
+                  flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+                  marginTop: 14,
+                }}
+                activeOpacity={0.8}
+              >
+                <Feather name="bluetooth" size={15} color="#FFF" />
+                <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#FFF" }}>
+                  {t("scanForDevices")}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.hintText, { color: colors.mutedForeground, marginTop: 10 }]}>
+                {t("orTryDemo")}
+              </Text>
+              <TouchableOpacity
                 onPress={runSimulation}
-                style={[styles.demoBtn, { backgroundColor: colors.primary }]}
+                style={[styles.demoBtn, { borderColor: colors.primary, borderWidth: 1.5 }]}
                 activeOpacity={0.82}
               >
-                <Text style={styles.demoBtnText}>{t("tryDemo")}</Text>
+                <Text style={[styles.demoBtnText, { color: colors.primary }]}>{t("tryDemo")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -328,8 +350,9 @@ export default function DashboardScreen() {
             styles.card,
             {
               backgroundColor: motorOn ? colors.success + "1A" : colors.card,
-              borderColor:     colors.border,
-              borderWidth:     1,
+              borderWidth:     0,
+              shadowOpacity:   0,
+              elevation:       0,
             },
           ]}>
             <View style={[
@@ -365,7 +388,7 @@ export default function DashboardScreen() {
                 styles.motorStatusBadgeText,
                 { color: motorOn ? "#FFF" : colors.mutedForeground },
               ]}>
-                {motorOn ? "ON" : "OFF"}
+                {motorOn ? t("on") : t("off")}
               </Text>
             </View>
           </View>
@@ -382,8 +405,9 @@ export default function DashboardScreen() {
             styles.card,
             {
               backgroundColor: deviceState.inletActive ? colors.primary + "1A" : colors.card,
-              borderColor:     colors.border,
-              borderWidth:     1,
+              borderWidth:     0,
+              shadowOpacity:   0,
+              elevation:       0,
             },
           ]}>
             <View style={[
@@ -413,7 +437,7 @@ export default function DashboardScreen() {
                 styles.motorStatusBadgeText,
                 { color: deviceState.inletActive ? "#FFF" : colors.mutedForeground },
               ]}>
-                {deviceState.inletActive ? "ON" : "OFF"}
+                {deviceState.inletActive ? t("on") : t("off")}
               </Text>
             </View>
           </View>
@@ -448,6 +472,15 @@ export default function DashboardScreen() {
           onSubmit={submitSetup}
         />
       )}
+
+      <DeviceScanSheet
+        visible={showScanSheet}
+        onClose={() => { setShowScanSheet(false); stopDiscovery(); }}
+        onSelectDevice={(device) => { setShowScanSheet(false); connectToDevice(device.id); }}
+        devices={discoveredDevices}
+        isScanning={isScanning}
+        onScan={discoverDevices}
+      />
     </View>
   );
 }

@@ -92,6 +92,7 @@ export interface Translations {
   deviceConnecting: string;
   checkDevicePower: string;
   pressBootHint: string;
+  orTryDemo: string;
   // help
   helpTitle: string;
   helpHowItWorks: string;
@@ -107,6 +108,11 @@ export interface Translations {
   weeklyTitle: string;
   weeklyRuns: string;
   weeklyRuntime: string;
+  avgFillTime: string;
+  supplyWindow_morning: string;
+  supplyWindow_afternoon: string;
+  supplyWindow_evening: string;
+  supplyWindow_night: string;
   weeklyNoData: string;
   // tank size
   litres: string;
@@ -146,6 +152,13 @@ export interface Translations {
   scanning: string;
   noDeviceFound: string;
   retry: string;
+  // device scanner
+  scanForDevices: string;
+  scanTitle: string;
+  scanSearching: string;
+  scanNoDevices: string;
+  scanNoDevicesHint: string;
+  scanAgain: string;
   // Setup guide
   setupGuide: string;
   setupPage1: string;
@@ -217,6 +230,14 @@ export interface Translations {
   removeThisDevice: string;
   removeDeviceConfirmTitle: string;
   removeDeviceConfirmMsg: string;
+  // motor / inlet status
+  on: string;
+  off: string;
+  // error fallback
+  errorTitle: string;
+  errorMessage: string;
+  errorTryAgain: string;
+  errorDetails: string;
 }
 
 export const TRANSLATIONS: Record<Lang, Translations> = {
@@ -306,6 +327,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     deviceConnecting: "Make sure your WaterTank device is powered on. We'll connect automatically.",
     checkDevicePower: 'Make sure your device has power and is within range.',
     pressBootHint: 'Still not connecting? Short-press the button on your device to open a reconnect window.',
+    orTryDemo: 'or, try the demo —',
     helpTitle: 'Help & FAQ',
     helpHowItWorks: 'How it works',
     helpMotorQuestion: 'When does the motor start?',
@@ -319,6 +341,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'This Week',
     weeklyRuns: 'Motor runs',
     weeklyRuntime: 'Total runtime',
+    avgFillTime: 'Avg fill time',
+    supplyWindow_morning: 'Supply usually arrives in the morning (5 AM – noon)',
+    supplyWindow_afternoon: 'Supply usually arrives in the afternoon (noon – 5 PM)',
+    supplyWindow_evening: 'Supply usually arrives in the evening (5 PM – 9 PM)',
+    supplyWindow_night: 'Supply usually arrives at night (9 PM – 5 AM)',
     weeklyNoData: 'No motor runs this week',
     litres: 'L',
     tankSizeLabel: 'Tank size',
@@ -350,6 +377,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'Scanning…',
     noDeviceFound: 'No WATERTANK devices found. Make sure your device is powered on and nearby.',
     retry: 'Retry',
+    scanForDevices: 'Scan for devices',
+    scanTitle: 'Available Devices',
+    scanSearching: 'Searching for WaterTank devices…',
+    scanNoDevices: 'No devices found',
+    scanNoDevicesHint: 'Make sure your device is powered on and nearby.',
+    scanAgain: 'Scan Again',
     setupGuide: 'Hardware Setup Guide',
     setupPage1: "What's in the Box",
     setupPage2: 'System Overview',
@@ -414,6 +447,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'Remove All Paired Devices',
     removeDeviceConfirmTitle: 'Remove paired devices?',
     removeDeviceConfirmMsg: 'This phone will need to enter the password again to reconnect.',
+    on: 'ON',
+    off: 'OFF',
+    errorTitle: 'Something went wrong',
+    errorMessage: 'Please reload the app to continue.',
+    errorTryAgain: 'Try Again',
+    errorDetails: 'Error Details',
   },
   hi: {
     appName: 'WaterTank',
@@ -501,6 +540,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     deviceConnecting: 'ध्यान दें कि आपका WaterTank डिवाइस चालू है। हम अपने आप जुड़ जाएँगे।',
     checkDevicePower: 'देखें कि डिवाइस चालू है और पास में है।',
     pressBootHint: 'अभी भी नहीं जुड़ा? डिवाइस का बटन एक बार दबाएँ।',
+    orTryDemo: 'या, डेमो देखें —',
     helpTitle: 'मदद और सवाल-जवाब',
     helpHowItWorks: 'यह कैसे काम करता है',
     helpMotorQuestion: 'मोटर कब शुरू होती है?',
@@ -514,6 +554,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'इस हफ़्ते',
     weeklyRuns: 'मोटर कितनी बार चली',
     weeklyRuntime: 'कुल समय',
+    avgFillTime: 'औसत भरने का समय',
+    supplyWindow_morning: 'पानी आमतौर पर सुबह आता है (5 AM – दोपहर)',
+    supplyWindow_afternoon: 'पानी आमतौर पर दोपहर में आता है (दोपहर – 5 PM)',
+    supplyWindow_evening: 'पानी आमतौर पर शाम को आता है (5 PM – 9 PM)',
+    supplyWindow_night: 'पानी आमतौर पर रात को आता है (9 PM – 5 AM)',
     weeklyNoData: 'इस हफ़्ते मोटर नहीं चली',
     litres: 'ली',
     tankSizeLabel: 'टंकी का आकार',
@@ -545,6 +590,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'स्कैन हो रहा है…',
     noDeviceFound: 'कोई WATERTANK डिवाइस नहीं मिला। सुनिश्चित करें कि डिवाइस चालू है और पास में है।',
     retry: 'फिर से कोशिश करें',
+    scanForDevices: 'डिवाइस खोजें',
+    scanTitle: 'उपलब्ध डिवाइस',
+    scanSearching: 'WaterTank डिवाइस खोज रहे हैं…',
+    scanNoDevices: 'कोई डिवाइस नहीं मिला',
+    scanNoDevicesHint: 'सुनिश्चित करें कि आपका डिवाइस चालू है और पास में है।',
+    scanAgain: 'फिर से खोजें',
     setupGuide: 'हार्डवेयर सेटअप गाइड',
     setupPage1: 'बॉक्स में क्या है',
     setupPage2: 'सिस्टम का अवलोकन',
@@ -609,6 +660,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'सभी जुड़े डिवाइस हटाएँ',
     removeDeviceConfirmTitle: 'जुड़े डिवाइस हटाएँ?',
     removeDeviceConfirmMsg: 'इस फोन को दोबारा जोड़ने के लिए पासवर्ड डालना होगा।',
+    on: 'चालू',
+    off: 'बंद',
+    errorTitle: 'कुछ गलत हो गया',
+    errorMessage: 'कृपया पुनः प्रयास करें।',
+    errorTryAgain: 'पुनः प्रयास करें',
+    errorDetails: 'त्रुटि विवरण',
   },
   mr: {
     appName: 'WaterTank',
@@ -696,6 +753,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     deviceConnecting: 'तुमचे WaterTank डिव्हाइस चालू असल्याची खात्री करा। आम्ही आपोआप जोडू।',
     checkDevicePower: 'डिव्हाइस चालू आहे आणि जवळ आहे का ते पाहा।',
     pressBootHint: 'अजूनही जोडले नाही? डिव्हाइसवरील बटण एकदा दाबा।',
+    orTryDemo: 'किंवा, डेमो पाहा —',
     helpTitle: 'मदत आणि प्रश्न',
     helpHowItWorks: 'हे कसे काम करते',
     helpMotorQuestion: 'मोटर कधी सुरू होते?',
@@ -709,6 +767,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'या आठवड्यात',
     weeklyRuns: 'मोटर किती वेळा चालली',
     weeklyRuntime: 'एकूण वेळ',
+    avgFillTime: 'सरासरी भरण्याचा वेळ',
+    supplyWindow_morning: 'पाणी सहसा सकाळी येते (5 AM – दुपारी)',
+    supplyWindow_afternoon: 'पाणी सहसा दुपारी येते (दुपारी – 5 PM)',
+    supplyWindow_evening: 'पाणी सहसा संध्याकाळी येते (5 PM – 9 PM)',
+    supplyWindow_night: 'पाणी सहसा रात्री येते (9 PM – 5 AM)',
     weeklyNoData: 'या आठवड्यात मोटर चालली नाही',
     litres: 'ली',
     tankSizeLabel: 'टाकीचा आकार',
@@ -740,6 +803,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'स्कॅन होत आहे…',
     noDeviceFound: 'कोणतेही WATERTANK डिव्हाइस सापडले नाही. डिव्हाइस चालू आहे आणि जवळ आहे याची खात्री करा.',
     retry: 'पुन्हा प्रयत्न करा',
+    scanForDevices: 'डिव्हाइस शोधा',
+    scanTitle: 'उपलब्ध डिव्हाइस',
+    scanSearching: 'WaterTank डिव्हाइस शोधत आहे…',
+    scanNoDevices: 'कोणतेही डिव्हाइस सापडले नाही',
+    scanNoDevicesHint: 'डिव्हाइस चालू आहे आणि जवळ आहे याची खात्री करा.',
+    scanAgain: 'पुन्हा शोधा',
     setupGuide: 'हार्डवेअर सेटअप मार्गदर्शक',
     setupPage1: 'बॉक्समध्ये काय आहे',
     setupPage2: 'सिस्टम आढावा',
@@ -804,6 +873,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'सर्व जोडलेले डिव्हाइस काढा',
     removeDeviceConfirmTitle: 'जोडलेले डिव्हाइस काढायचे?',
     removeDeviceConfirmMsg: 'या फोनला पुन्हा जोडण्यासाठी पासवर्ड टाकावा लागेल.',
+    on: 'सुरू',
+    off: 'बंद',
+    errorTitle: 'काहीतरी चूक झाली',
+    errorMessage: 'कृपया पुन्हा प्रयत्न करा.',
+    errorTryAgain: 'पुन्हा प्रयत्न करा',
+    errorDetails: 'त्रुटी तपशील',
   },
   kn: {
     appName: 'WaterTank',
@@ -891,6 +966,7 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     deviceConnecting: 'ನಿಮ್ಮ WaterTank ಸಾಧನವು ಆನ್ ಆಗಿದೆಯೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ। ನಾವು ತಾನಾಗಿಯೇ ಸಂಪರ್ಕಿಸುತ್ತೇವೆ।',
     checkDevicePower: 'ಸಾಧನವು ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ।',
     pressBootHint: 'ಇನ್ನೂ ಸಂಪರ್ಕ ಆಗಲಿಲ್ಲವೇ? ಸಾಧನದ ಬಟನ್ ಒಮ್ಮೆ ಒತ್ತಿ।',
+    orTryDemo: 'ಅಥವಾ, ಡೆಮೊ ಪ್ರಯತ್ನಿಸಿ —',
     helpTitle: 'ಸಹಾಯ ಮತ್ತು ಪ್ರಶ್ನೆಗಳು',
     helpHowItWorks: 'ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ',
     helpMotorQuestion: 'ಮೋಟಾರ್ ಯಾವಾಗ ಪ್ರಾರಂಭವಾಗುತ್ತದೆ?',
@@ -904,6 +980,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     weeklyTitle: 'ಈ ವಾರ',
     weeklyRuns: 'ಮೋಟಾರ್ ಎಷ್ಟು ಬಾರಿ ಚಾಲನೆಯಾಯಿತು',
     weeklyRuntime: 'ಒಟ್ಟು ಸಮಯ',
+    avgFillTime: 'ಸರಾಸರಿ ತುಂಬುವ ಸಮಯ',
+    supplyWindow_morning: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ಬೆಳಿಗ್ಗೆ ಬರುತ್ತದೆ (5 AM – ಮಧ್ಯಾಹ್ನ)',
+    supplyWindow_afternoon: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ಮಧ್ಯಾಹ್ನ ಬರುತ್ತದೆ (ಮಧ್ಯಾಹ್ನ – 5 PM)',
+    supplyWindow_evening: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ಸಂಜೆ ಬರುತ್ತದೆ (5 PM – 9 PM)',
+    supplyWindow_night: 'ನೀರು ಸಾಮಾನ್ಯವಾಗಿ ರಾತ್ರಿ ಬರುತ್ತದೆ (9 PM – 5 AM)',
     weeklyNoData: 'ಈ ವಾರ ಮೋಟಾರ್ ಚಾಲನೆಯಾಗಲಿಲ್ಲ',
     litres: 'ಲೀ',
     tankSizeLabel: 'ಟ್ಯಾಂಕ್ ಗಾತ್ರ',
@@ -935,6 +1016,12 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     scanning: 'ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ…',
     noDeviceFound: 'WATERTANK ಸಾಧನ ಸಿಗಲಿಲ್ಲ. ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿ.',
     retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    scanForDevices: 'ಸಾಧನ ಹುಡುಕಿ',
+    scanTitle: 'ಲಭ್ಯ ಸಾಧನಗಳು',
+    scanSearching: 'WaterTank ಸಾಧನ ಹುಡುಕುತ್ತಿದೆ…',
+    scanNoDevices: 'ಯಾವುದೇ ಸಾಧನ ಕಂಡುಬಂದಿಲ್ಲ',
+    scanNoDevicesHint: 'ನಿಮ್ಮ ಸಾಧನ ಆನ್ ಆಗಿದೆ ಮತ್ತು ಹತ್ತಿರದಲ್ಲಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.',
+    scanAgain: 'ಮತ್ತೆ ಹುಡುಕಿ',
     setupGuide: 'ಹಾರ್ಡ್‌ವೇರ್ ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ',
     setupPage1: 'ಪೆಟ್ಟಿಗೆಯಲ್ಲಿ ಏನಿದೆ',
     setupPage2: 'ಸಿಸ್ಟಮ್ ಅವಲೋಕನ',
@@ -999,5 +1086,11 @@ export const TRANSLATIONS: Record<Lang, Translations> = {
     removeThisDevice: 'ಎಲ್ಲಾ ಜೋಡಿಸಿದ ಸಾಧನಗಳನ್ನು ತೆಗೆಯಿರಿ',
     removeDeviceConfirmTitle: 'ಜೋಡಿಸಿದ ಸಾಧನಗಳನ್ನು ತೆಗೆಯಬೇಕೇ?',
     removeDeviceConfirmMsg: 'ಈ ಫೋನ್ ಮತ್ತೆ ಸಂಪರ್ಕಿಸಲು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಬೇಕಾಗುತ್ತದೆ.',
+    on: 'ಆನ್',
+    off: 'ಆಫ್',
+    errorTitle: 'ಏನೋ ತಪ್ಪಾಗಿದೆ',
+    errorMessage: 'ದಯವಿಟ್ಟು ಮರುಪ್ರಯತ್ನಿಸಿ.',
+    errorTryAgain: 'ಮರುಪ್ರಯತ್ನಿಸಿ',
+    errorDetails: 'ದೋಷ ವಿವರಗಳು',
   },
 };

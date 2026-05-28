@@ -64,15 +64,6 @@ export const STOP_REASON_LABELS: Record<StopReason, string> = {
   [StopReason.ALREADY_FULL]: 'Already full',
 };
 
-export const PUMP_STATE_LABELS: Record<number, string> = {
-  0: "Idle",
-  1: "Water Arrived",
-  2: "Motor Starting",
-  3: "Pumping",
-  4: "Tank Full",
-  5: "Manual",
-};
-
 export const DEFAULT_DEVICE_STATE: DeviceState = {
   connected: false,
   tank: 0,
@@ -87,3 +78,7 @@ export const DEFAULT_DEVICE_STATE: DeviceState = {
 };
 
 export const HIDDEN_EVENT_TYPES: EventType[] = [EventType.BLE_SYNCED];
+
+// App-generated event IDs use a high-bit prefix to avoid collisions with
+// board-generated IDs (which start at 1 and increment monotonically).
+export const APP_EVENT_ID_PREFIX = 0x80000000;

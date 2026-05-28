@@ -47,3 +47,7 @@ yarn-error.*
 
 # Arduino/firmware build artifacts
 firmware/WaterTank/build/
+
+# Wi-Fi credentials (do NOT commit real passwords)
+firmware/WaterTank/wifi_credentials.h
+package-lock.json

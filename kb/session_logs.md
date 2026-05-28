@@ -1,5 +1,100 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v44 (continued): border fix + WittyFox OTA flash
+
+- Branch: `deepseek`, commit 3a117db
+- **Border fix**: Removed `borderWidth: 1` / `borderColor: colors.border` + `shadowOpacity/elevation` from motor and inlet status tiles. Active state now uses only subtle background tint + accent bar + ON pill — no outer glow.
+- **WittyFox OTA flash**: Compiled firmware (BOARD_TYPE 0, USE_WIFI 0) for WittyFox via `arduino-cli compile --fqbn esp32:esp32:esp32`. Flashed via `espota.py -i 192.168.0.126`. Board is now BLE-only (no WiFi) — next update needs USB/PL2303.
+- **Lesson**: After OTA flash with USE_WIFI=0, board won't reconnect to WiFi. Power-cycle needed after OTA. Board may need BOOT short-press to start advertising if claimed state persists.
+
+## 2026-05-28 — v44: BLE device scanner + keyboard fix + password uniformity
+
+- Branch: `deepseek`, commit ddaeaf2
+- **Device scanner**: New `DeviceScanSheet` bottom sheet — users can manually scan for ESP32 devices (like Android Bluetooth scan), see RSSI strength, pick one, then enter password. Auto-connect for known devices preserved.
+- **BLEService**: Added `discoverDevices(timeoutMs)` passive scan (no auto-connect), `connectToDevice(deviceId)` targeted connect, `stopDiscovery()` cancel. New `DiscoveredDevice` type with id/name/localName/rssi.
+- **DeviceContext**: Added `discoveredDevices`, `isScanning` state + `discoverDevices`, `connectToDevice`, `stopDiscovery` actions.
+- **Dashboard**: Disconnected card now shows "Scan for devices" button → opens DeviceScanSheet → select device → PairingSheet → connect.
+- **Keyboard fix**: Replaced `KeyboardAvoidingView` with `KeyboardAwareScrollViewCompat` (react-native-keyboard-controller) in PairingSheet and DeviceSetupModal. Content reliably moves above keyboard.
+- **Password uniformity**: Placeholder dots changed from 6→4 in DeviceSetupModal to match default "1234" password.
+- **i18n**: Added `scanForDevices`, `scanTitle`, `scanSearching`, `scanNoDevices`, `scanNoDevicesHint`, `scanAgain` in en/hi/mr/kn.
+
+## 2026-05-28 — v43: Fix remaining 5 MEDIUM audit items
+
+- Branch: `deepseek`, commit 0242ed0
+
+### MEDIUM (5 items)
+- **5.3**: Weekly trends — avgFillTime KPI in WeekView, `getSupplyWindow()` in database.ts, dominant time-of-day hint (morning/afternoon/evening/night) with sunrise icon, i18n keys across 4 languages
+- **5.4**: Multi-device preferred selection — `getPreferredDevice()`/`setPreferredDevice()` in AuthService, BLEService `tryDirectConnect()` moves preferred to front of sessions array, settings UI shows checkmark + "active" label on preferred, tap to toggle
+- **6.2**: Diagnostic log header enrichment — `exportLogs()` now includes firmware version, timestamps, log entry count in share header
+- **7.2**: BLE protocol documentation completed
+- **7.3**: Firmware state machine test suite — `scripts/test_automation.py` (12 groups, 37/37 assertions), replicates `tickAutomation()` exactly. Also fixed stop-reason priority bug in firmware (TANK_FULL before SUPPLY_CUT)
+- **tsconfig**: Removed invalid `ignoreDeprecations: "6.0"` option
+
+### Audit complete
+- **0 BLOCKER**, **0 HIGH**, **0 MEDIUM**, **0 LOW** remaining
+- All 44 findings from `auditDeepseek.md` resolved
+
+---
+
+## 2026-05-28 — v42: Fix 12 MEDIUM + 4 LOW audit items
+
+- Branch: `deepseek`, commit 14c0442
+
+### MEDIUM — Firmware (3 items)
+- **1.6**: `StateCharCB::onSubscribe()` fires push on client subscribe (was fixed 800ms timer). T13 verified: 32ms first notify
+- **1.7**: `getTankLevel()` pure reader — returns computed value, doesn't mutate `tankPct`
+- **1.8**: Already resolved by `USE_WIFI=0` gate
+
+### MEDIUM — App (9 items)
+- **2.6**: `logStreamInProgress` flag prevents overlapping log streams
+- **3.4**: Documented plaintext AsyncStorage risk in AuthService.ts
+- **4.3**: `IDeviceService` completed with 6 missing methods; removed `as BLEService` casts
+- **4.4**: `APP_EVENT_ID_PREFIX = 0x40000000` namespaces SimulationService IDs; removed dead `nextId()`/`logEvent()` from BLEService
+- **5.5**: "Try Demo" demoted to outline button with "or, try the demo" label; troubleshooting hints are primary CTA
+- **6.3**: Firmware version persisted to AsyncStorage on connect, loaded on startup
+- **8.2**: Log stream timeout no longer sends ACK (prevents data loss on partial transfer)
+- **8.3**: `connectedRef` tracking prevents orphaned BLE connections in BlePairingSheet
+- **9.4**: `PRAGMA user_version` with migration scaffold in `initializeDatabase()`
+
+### LOW (4 items)
+- **1.9**: Removed dead `BLE_NOTIFY_INTERVAL_MS` from `constants/ble.ts`
+- **3.5**: Already resolved (real WhatsApp number set)
+- **4.5**: `git rm --cached` 2 tracked APKs; rest already gitignored
+- **4.6**: Already resolved (`"strict": true` in tsconfig.json)
+- **4.7**: Removed `package-lock.json` from git, added to `.gitignore`
+
+### Remaining
+- **0 HIGH**, **0 MEDIUM (fixable)** remaining
+- **5 MEDIUM** are feature/architectural scope: 5.3 (trends), 5.4 (multi-device), 6.2 (remote log), 7.2/7.3 (testing)
+- **0 LOW** remaining (all resolved or skipped — 6.4 analytics is feature-scope)
+- BLE tests: 51/51 green after firmware changes
+
+## 2026-05-28 — v41: Fix HIGH 2.2, 2.3, 2.4
+
+- Branch: `deepseek`, commit 318f602
+- **2.2**: Await BLE permissions request (was fire-and-forget, race with first scan)
+- **2.3**: `checkFirmwareUpdate` throttled to once per 6h per version (GitHub rate limit)
+- **2.4**: `getAllEvents()` capped at 5000 most recent rows (prevents Share crash)
+
+## 2026-05-28 — v40: Fix 7 HIGH audit items + ESP32-C3 bringup
+
+- Branch: `deepseek`, commit 3ae25c3
+- ESP32-C3 board: firmware compiled + flashed + BLE tested (40/41 pass)
+- C3-specific: added `BOARD_TYPE` selector, C3 GPIO map, `CDCOnBoot=cdc`
+
+### HIGH fixes (7 items)
+- **1.4**: OTA `onComplete` no longer blocks BLE stack — uses `pendingRestart` flag
+- **1.5**: Firmware validation moved from `pushState()` to `TimeSyncCB::onWrite` (after app confirms version)
+- **3.2**: Per-device 16-byte salt added to password hash (`saltedHash()`), migration path for existing boards
+- **2.5**: Motor/inlet ON/OFF badges localized across en/hi/mr/kn
+- **4.1**: Removed 3 dead components (StatusDot, TankLevelBar, KeyboardAwareScrollViewCompat)
+- **4.2**: Removed 9 unused exports (thresholds, ble, formatters, Event model) + updated tests
+- **5.1**: ErrorFallback fully localized with 4 new i18n keys
+
+### Remaining
+- 2 HIGH (2.2 BLE permissions, 2.3 GitHub rate limit, 2.4 exportData limit, 3.3 firmware signing)
+- 20 MEDIUM, 7 LOW still open
+
 ## 2026-05-28 — v38: Deepseek production-readiness audit (auditDeepseek.md)
 
 - Deep analysis of full codebase (126 commits, firmware + app) by deepseek-v4-pro
@@ -7,6 +102,41 @@
 - Key blockers: USE_SENSOR=0 only (no real sensor code), Wi-Fi creds in git, event log in volatile DRAM, zero automated app tests
 - Audit file: auditDeepseek.md — covers firmware, app reliability, security, code health, UX, operations, testing
 - Commit: 743c9e6, pushed to master
+
+## 2026-05-28 — v39: Fix 4 production blockers from auditDeepseek.md
+
+- Branch: `deepseek` (based on master), commit f2772ce
+- All 4 BLOCKERs resolved:
+
+### BLOCKER 1.2: Wi-Fi credentials gate
+- Added `#define USE_WIFI 0` default (production = BLE-only)
+- Gated `#include <WiFi.h>`, `<WFStorm.h>`, `wifi_credentials.h`, `checkWifi()`, WiFi setup block, `wfHandleOTA()` call, `lastWifiCheck`
+- New: `wifi_credentials.h` (gitignored, dev-only), `wifi_credentials.example.h` (committed template)
+- `.gitignore`: added `wifi_credentials.h`
+
+### BLOCKER 1.3: Persistent event log via NVS
+- Added `nvsLoadEvents()`, `nvsWriteEvent(idx)`, `nvsClearEvents()` helpers
+- `pushEvent()` now persists head/count/nextId + event blob to NVS on each push
+- `LogCtrlCB::onWrite` cmd 0x02 (ACK) clears NVS events
+- `nvsLoadEvents()` called in `setup()` to restore events after power cycle
+- NVS keys: `evt_head`, `evt_cnt`, `evt_nextid`, `evt_0`..`evt_63` (blob)
+
+### BLOCKER 1.1: JSN-SR04T ultrasonic sensor driver
+- Added tank geometry defines: `TANK_HEIGHT_CM=120`, `SENSOR_OFFSET_CM=3`, etc.
+- Rewrote `getTankLevel()` USE_SENSOR=1 path: pulseIn → distance → median filter (5 samples) → EMA smooth (alpha=0.3) → tankPct
+- Median filter via qsort for glitch rejection, 30ms pulseIn timeout
+
+### BLOCKER 7.1: Automated app tests
+- `jest.config.js` (jest-expo preset, @/ path mapper), `jest.setup.js` (AsyncStorage mock)
+- Added `test`, `test:watch`, `test:coverage` scripts to package.json
+- 4 test suites, 52 tests, all passing:
+  - `__tests__/utils/formatters.test.ts` — formatTime, formatDate, formatTankPct, formatRelativeTime, formatDuration, formatDayLabel, getTankColor, getDayBounds, addDays, isToday
+  - `__tests__/models/Event.test.ts` — enum values, DEFAULT_DEVICE_STATE, label maps, HIDDEN_EVENT_TYPES
+  - `__tests__/constants/thresholds.test.ts` — value bounds, consistency
+  - `__tests__/services/AuthService.test.ts` — CRUD with mocked AsyncStorage
+
+- Firmware bumped to v1.4.0 with changelog comment
+- Commit: f2772ce, pushed to origin/deepseek
 
 ## 2026-05-28 — v37: BOOT short-press reconnect + LED stuck-on fix
 

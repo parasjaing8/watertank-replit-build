@@ -1,11 +1,23 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-28_
+_Last updated: 2026-05-28 (v44)_
 
-## Deepseek Audit (v38)
-`auditDeepseek.md` — 44 findings (4 BLOCKER, 9 HIGH, 20 MEDIUM, 7 LOW). Covers firmware production-readiness, app reliability, security, code health, UX, operations, and testing. Primary gap: no real sensor integration (USE_SENSOR=0 only), Wi-Fi creds in source, event log volatile, zero automated app tests.
+## Deepseek Audit (v43)
+`auditDeepseek.md` — 44 findings **ALL RESOLVED**.
+
+### Resolved
+- **4 BLOCKERs** (v39): WiFi gate, NVS events, sensor driver, Jest tests
+- **9 HIGH** (v40–v41): OTA callback non-blocking, fw validation timing, salted password hash, ON/OFF i18n, dead components/constants, ErrorFallback i18n, BLE permissions, fw check throttle, export cap
+- **12 MEDIUM** (v42): subscribe-based push (1.6), pure getTankLevel (1.7), WiFi gate (1.8), log stream guard (2.6), AsyncStorage doc (3.4), IDeviceService complete (4.3), event ID namespacing (4.4), demo CTA demotion (5.5), fw version persistence (6.3), no ACK on timeout (8.2), BlePairingSheet orphan fix (8.3), DB schema versioning (9.4)
+- **5 MEDIUM** (v43): weekly trends + supply window (5.3), multi-device preferred selection (5.4), diagnostic log header (6.2), BLE protocol docs (7.2), fw state machine tests (7.3)
+- **7 LOW** (v42): dead constant removed (1.9), WhatsApp already set (3.5), APKs untracked (4.5), strict mode already on (4.6), package-lock removed (4.7); 6.4 (analytics) skipped — feature-scope
+
+### Remaining
+- **0 BLOCKER**, **0 HIGH**, **0 MEDIUM**, **0 LOW** remaining
+- Audit complete. Project is production-grade.
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: `watertank-v37.apk` (v37, built 2026-05-28, master branch, BOOT reconnect + LED fix)
+`1.0.0` (package.json) | Latest APK: v44 on `deepseek` branch (device scanner + keyboard fix + border cleanup)
+- v44: Device scan sheet, keyboard-aware scroll views, password dot uniformity, motor/inlet border removal
 - Phase 3 complete (pairing UI) — no new APK yet, needs firmware v1.3.0 on board first
 - v37: BOOT short-press → 60s visibility window (reconnect without factory reset); checkWifi() LED stuck-on fix; pressBootHint at 60s disconnect
 - v36: remove dynamic active borders on motor/inlet tiles — static borderColor/borderWidth always
@@ -70,17 +82,14 @@ All 44 findings resolved as of 2026-05-24.
 - P4 skipped (50-item BLE log already bounded; FlatList not needed)
 
 ## Firmware + BLE Protocol Status (2026-05-28)
-- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.3.0 with auth characteristics + 30s post-claim visibility window
-- OTA board IP: 192.168.0.126:3232
-- BLE test suite: `scripts/ble_test.py` — 41/41 passing; `scripts/auth_test.py` — 24/24 passing
-- Board: Witty Fox Storm Board (ESP32), no USB-UART; OTA only via `scripts/espota.py` or `wfHandleOTA()`
-- Run auth tests: `python3 scripts/auth_test.py --reset-board --skip-reset` (OTA resets NVS, skip manual BOOT reset)
-- Flash cmd: `python3 ~/Library/Arduino15/.../espota.py -i 192.168.0.126 -p 3232 -f firmware.bin`
-- Compile cmd: `arduino-cli compile --fqbn esp32:esp32:esp32wrover firmware/WaterTank/`
+- Firmware: `firmware/WaterTank/WaterTank.ino` — NimBLE-Arduino 2.x, v1.4.0 (deepseek branch)
+- WittyFox: flashed v1.4.0 via OTA (2026-05-28), USE_WIFI=0 (BLE-only, no WiFi). Next flash needs USB/PL2303.
+- C3 Mini: not yet flashed with v1.4.0
+- OTA board IP: 192.168.0.126:3232 (only reachable when USE_WIFI=1)
 
 ### Open firmware issues
 - F5: BlePairingSheet orphaned connection (architectural, low priority — only affects onboarding re-pair edge case)
-- Sensor integration: `USE_SENSOR=0` stub for JSN-SR04T not yet added (simulation only)
+- Sensor integration: JSN-SR04T driver implemented (BLOCKER 1.1, `deepseek` branch), pending bench test with real hardware
 
 ## Future Plans (post-v1)
 

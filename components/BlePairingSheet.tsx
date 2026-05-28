@@ -35,6 +35,7 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
   const managerRef = useRef<any>(null);
   const mountedRef = useRef(true);
   const connectingRef = useRef<ScannedDevice | null>(null);
+  const connectedRef = useRef<ScannedDevice | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -43,6 +44,12 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
       if (connectingRef.current) {
         try { connectingRef.current.cancelConnection(); } catch {}
         connectingRef.current = null;
+      }
+      // If connection succeeded but onSuccess was never called (unmount race),
+      // disconnect to prevent an orphaned BLE connection.
+      if (connectedRef.current) {
+        try { connectedRef.current.cancelConnection(); } catch {}
+        connectedRef.current = null;
       }
     };
   }, []);
@@ -88,7 +95,11 @@ export function BlePairingSheet({ onClose, onSuccess }: Props) {
       connectingRef.current = device;
       await device.connect();
       connectingRef.current = null;
-      if (mountedRef.current) onSuccess();
+      connectedRef.current = device;
+      if (mountedRef.current) {
+        connectedRef.current = null;
+        onSuccess();
+      }
     } catch (e) {
       connectingRef.current = null;
       if (mountedRef.current) setError(String(e));

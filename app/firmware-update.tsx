@@ -43,11 +43,11 @@ export default function FirmwareUpdateScreen() {
   // Rebooting timeout — if board never reconnects within 60s, surface an error
   useEffect(() => {
     if (otaState !== "rebooting") return;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setErrorMsg(t("fwTimeout60"));
       setOtaState("error");
     }, 60000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [otaState]);
 
   // Confirming timeout — BLEService should read firmwareVersion within a few seconds

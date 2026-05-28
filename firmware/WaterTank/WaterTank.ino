@@ -1,29 +1,57 @@
-// WaterTank BLE firmware — NimBLE-Arduino 2.x, v1.3.0
+// WaterTank BLE firmware — NimBLE-Arduino 2.x, v1.4.0
 // Municipality motor controller + Tapo-style auth (app-level password + session tokens).
 // SW_MANUAL wired in parallel with relay coil — zero electronics in manual path.
 // GPIO_AUX (optocoupler) is ground truth for motor state; USE_SENSOR 0 = simulation.
+//
+// v1.4.0 changes:
+//   - WiFi gated behind USE_WIFI (0=production BLE-only, 1=dev with WiFi OTA)
+//   - Event ring buffer persisted to NVS — survives power cycles
+//   - JSN-SR04T ultrasonic sensor driver for USE_SENSOR=1
 
 #include <NimBLEDevice.h>
 #include <Preferences.h>
-#include <WiFi.h>
-#include <WFStorm.h>
 #include "NimBLEOta.h"
 #include <mbedtls/md.h>
 
 #define USE_SENSOR 0   // 0=simulation, 1=real hardware
+#define USE_WIFI   0   // 0=BLE-only (production), 1=WiFi OTA (development)
+#define BOARD_TYPE 1   // 0=ESP32-WROVER (WittyFox), 1=ESP32-C3 Mini
 
-#define LED_PIN    2
-#define GPIO_BOOT  0   // BOOT button — hold 10s for factory reset
-#define SSID       "Neo6G"
-#define PASS       "Passw01d"
-#define FW_VERSION "1.3.0"
+#if USE_WIFI == 1
+#include <WiFi.h>
+#include <WFStorm.h>
+#include "wifi_credentials.h"
+#endif
 
-// GPIO (active when USE_SENSOR 1)
-#define GPIO_RELAY  4
-#define GPIO_AUX    34
-#define GPIO_INLET  13
-#define GPIO_TRIG   5
-#define GPIO_ECHO   18
+#define FW_VERSION "1.4.0"
+
+// GPIO mapping — differs between ESP32-WROVER and ESP32-C3
+// ESP32-C3 note: GPIO 11-17 = flash (internal), GPIO 18-19 = USB, GPIO 34+ absent
+#if BOARD_TYPE == 0  // ESP32-WROVER (Witty Fox Storm Board)
+  #define LED_PIN    2
+  #define GPIO_BOOT  0
+  #define GPIO_RELAY  4
+  #define GPIO_AUX    34
+  #define GPIO_INLET  13
+  #define GPIO_TRIG   5
+  #define GPIO_ECHO   18
+#else  // ESP32-C3 Mini
+  #define LED_PIN    8
+  #define GPIO_BOOT  9
+  #define GPIO_RELAY  4
+  #define GPIO_AUX    3
+  #define GPIO_INLET  10
+  #define GPIO_TRIG   5
+  #define GPIO_ECHO   6
+#endif
+
+// Tank geometry for JSN-SR04T ultrasonic sensor (edit to match your tank)
+#define TANK_HEIGHT_CM      120.0f  // total tank height in cm
+#define SENSOR_OFFSET_CM    3.0f    // sensor mounting offset from top
+#define TANK_EMPTY_DIST_CM  (TANK_HEIGHT_CM - SENSOR_OFFSET_CM)  // distance when empty
+#define TANK_FULL_DIST_CM   15.0f   // distance when at fullTankPct (sensor to water surface)
+#define SENSOR_SAMPLE_COUNT 5       // median filter samples
+#define SENSOR_TIMEOUT_US   30000UL // 30ms pulseIn timeout (~5m max range)
 
 // Existing characteristics
 #define SVC_UUID       "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
@@ -72,6 +100,55 @@ static NimBLECharacteristic *charState, *charTank, *charLogData, *charAuth, *cha
 static NimBLEServer          *bleServer  = nullptr;
 static NimBLEOta              bleOta;
 static Preferences            prefs;
+
+// ── NVS event persistence ──────────────────────────────────────────────────────
+
+static void nvsLoadEvents() {
+  eventHead  = prefs.getUChar("evt_head", 0);
+  eventCount = prefs.getUChar("evt_cnt",  0);
+  nextEventId = prefs.getUInt("evt_nextid", 1);
+  eventHead  = eventHead  < EVENT_BUF_SIZE ? eventHead  : 0;
+  eventCount = eventCount <= EVENT_BUF_SIZE ? eventCount : 0;
+
+  uint8_t origHead  = eventHead;
+  uint8_t origCount = eventCount;
+  for (uint8_t i = 0; i < eventCount; i++) {
+    uint8_t idx = (eventHead + EVENT_BUF_SIZE - eventCount + i) % EVENT_BUF_SIZE;
+    char key[8];
+    snprintf(key, sizeof(key), "evt_%u", idx);
+    size_t got = prefs.getBytes(key, &eventBuf[idx], sizeof(LogEvent));
+    if (got != sizeof(LogEvent)) {
+      // Corrupt entry — truncate buffer at this point
+      eventCount = i;
+      eventHead  = (origHead + EVENT_BUF_SIZE - origCount + i) % EVENT_BUF_SIZE;
+      prefs.putUChar("evt_cnt", eventCount);
+      prefs.putUChar("evt_head", eventHead);
+      Serial.printf("NVS events: truncated at %d (corrupt entry %u)\n", eventCount, idx);
+      break;
+    }
+  }
+  Serial.printf("NVS events: loaded head=%u count=%u nextId=%u\n", eventHead, eventCount, nextEventId);
+}
+
+static void nvsWriteEvent(uint8_t idx) {
+  char key[8];
+  snprintf(key, sizeof(key), "evt_%u", idx);
+  prefs.putBytes(key, &eventBuf[idx], sizeof(LogEvent));
+}
+
+static void nvsClearEvents() {
+  for (uint8_t i = 0; i < EVENT_BUF_SIZE; i++) {
+    char key[8];
+    snprintf(key, sizeof(key), "evt_%u", i);
+    prefs.remove(key);
+  }
+  prefs.remove("evt_head");
+  prefs.remove("evt_cnt");
+  prefs.remove("evt_nextid");
+  eventHead   = 0;
+  eventCount  = 0;
+  nextEventId = 1;
+}
 static float                  fullTankPct = FULL_TANK_PCT_DEFAULT;
 
 static volatile bool bleConnected  = false;
@@ -79,10 +156,14 @@ static bool          doSendLogs    = false;
 static unsigned long pushScheduled = 0;
 static uint32_t      syncedEpoch   = 0;
 static unsigned long lastNotify    = 0;
+#if USE_WIFI == 1
 static unsigned long lastWifiCheck = 0;
+#endif
 static unsigned long lastTick      = 0;
 static bool          otaActive     = false;
 static bool          fwValidated   = false;
+static bool          pendingRestart = false;
+static unsigned long restartAt      = 0;
 
 // Automation state
 static float    tankPct         = 72.0f;
@@ -97,6 +178,11 @@ static uint32_t motorStartEpoch = 0;
 static bool simInletActive = false;
 #endif
 
+#if USE_SENSOR == 1
+static float   sensorReadings[SENSOR_SAMPLE_COUNT];
+static uint8_t sensorSampleIdx = 0;
+#endif
+
 // Non-blocking log stream
 static bool          logStreaming = false;
 static int           logFrameIdx  = 0;
@@ -106,12 +192,22 @@ static unsigned long logFrameNext = 0;
 static bool          claimed       = false;
 static char          deviceName[32]= "WaterTank";
 static uint8_t       passwordHash[32] = {};
+static uint8_t       pwSalt[16]       = {};   // per-device salt
+static bool          pwSalted        = false; // true if stored hash includes salt
 static uint8_t       sessions[SESSION_MAX][SESSION_LEN] = {};
 static uint8_t       sessionCount  = 0;
 static bool          bleVisible    = true;   // true=advertising; false=silent
 static unsigned long visibilityEnd = 0;      // millis() when 5-min window expires (0=off)
 static bool          connAuthed    = false;  // true after successful auth on current connection
 static unsigned long btnHoldStart  = 0;      // millis() when BOOT button press began
+
+#if USE_SENSOR == 1
+static int cmpFloat(const void* a, const void* b) {
+  float fa = *(const float*)a;
+  float fb = *(const float*)b;
+  return (fa > fb) - (fa < fb);
+}
+#endif
 
 // ── SHA256 (mbedTLS, available on ESP32) ─────────────────────────────────────
 
@@ -125,6 +221,18 @@ static void sha256(const uint8_t* data, size_t len, uint8_t out[32]) {
   mbedtls_md_free(&ctx);
 }
 
+// SHA256(salt || password) — per-device salt prevents rainbow table attacks
+static void saltedHash(const uint8_t* password, size_t pwLen, uint8_t out[32]) {
+  mbedtls_md_context_t ctx;
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0);
+  mbedtls_md_starts(&ctx);
+  mbedtls_md_update(&ctx, pwSalt, sizeof(pwSalt));
+  mbedtls_md_update(&ctx, password, pwLen);
+  mbedtls_md_finish(&ctx, out);
+  mbedtls_md_free(&ctx);
+}
+
 // ── NVS auth load ─────────────────────────────────────────────────────────────
 
 static void nvsLoadAuth() {
@@ -134,18 +242,29 @@ static void nvsLoadAuth() {
   strncpy(deviceName, n.c_str(), sizeof(deviceName) - 1);
   deviceName[sizeof(deviceName) - 1] = 0;
 
+  // Load or generate per-device salt (v1.4.1+)
+  size_t saltLen = prefs.getBytes("pw_salt", pwSalt, sizeof(pwSalt));
+  if (saltLen != sizeof(pwSalt)) {
+    esp_fill_random(pwSalt, sizeof(pwSalt));
+    prefs.putBytes("pw_salt", pwSalt, sizeof(pwSalt));
+    pwSalted = false;  // existing hash was unsalted
+  } else {
+    pwSalted = prefs.getBool("pw_salted", false);
+  }
+
   size_t got = prefs.getBytes("pw_hash", passwordHash, 32);
   if (got < 32) {
-    // No hash stored — write factory default SHA256("1234")
-    sha256((const uint8_t*)"1234", 4, passwordHash);
+    // No hash stored — write factory default salted SHA256("1234")
+    saltedHash((const uint8_t*)"1234", 4, passwordHash);
     prefs.putBytes("pw_hash", passwordHash, 32);
+    prefs.putBool("pw_salted", true);
+    pwSalted = true;
   }
 
   sessionCount = prefs.getUChar("sess_count", 0);
   if (sessionCount > SESSION_MAX) sessionCount = 0;
   prefs.getBytes("sessions", sessions, sizeof(sessions));
 
-  // Unclaimed board advertises openly; claimed board is silent until owner enables
   bleVisible = !claimed;
 }
 
@@ -193,8 +312,17 @@ class AuthCB : public NimBLECharacteristicCallbacks {
       ok = sessionFind(v.data());
     } else if (v.size() > 0) {
       uint8_t h[32];
-      sha256(v.data(), v.size(), h);
+      if (pwSalted) saltedHash(v.data(), v.size(), h);
+      else          sha256(v.data(), v.size(), h);
       ok = (memcmp(h, passwordHash, 32) == 0);
+      // Migrate: re-hash with salt on successful auth
+      if (ok && !pwSalted) {
+        saltedHash(v.data(), v.size(), passwordHash);
+        prefs.putBytes("pw_hash", passwordHash, 32);
+        prefs.putBool("pw_salted", true);
+        pwSalted = true;
+        Serial.println("Auth: password hash migrated to salted");
+      }
     }
     if (ok) {
       uint8_t token[SESSION_LEN];
@@ -234,9 +362,11 @@ class SetupCB : public NimBLECharacteristicCallbacks {
     prefs.putString("dev_name", deviceName);
     // Hash and save new password; clear all sessions (F1.12)
     uint8_t h[32];
-    sha256((const uint8_t*)(sep + 1), pwLen, h);
+    saltedHash((const uint8_t*)(sep + 1), pwLen, h);
     memcpy(passwordHash, h, 32);
     prefs.putBytes("pw_hash", passwordHash, 32);
+    prefs.putBool("pw_salted", true);
+    pwSalted = true;
     sessionsClearAll();
     // Issue a fresh token so this connection stays authenticated
     uint8_t token[SESSION_LEN];
@@ -292,7 +422,6 @@ class ClaimedCB : public NimBLECharacteristicCallbacks {
 class ConnCB : public NimBLEServerCallbacks {
   void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
     bleConnected  = true;
-    pushScheduled = millis() + 800;
     lastNotify    = millis();
     Serial.printf("BLE: connected — peer=%s\n", info.getAddress().toString().c_str());
   }
@@ -304,8 +433,25 @@ class ConnCB : public NimBLEServerCallbacks {
     lastNotify    = 0;
     pushScheduled = 0;
     Serial.printf("BLE: disconnected (reason=0x%02X)\n", reason);
-    // advertiseOnDisconnect(true) will restart advertising automatically;
-    // loop() suppresses it immediately if claimed and not visible.
+    // Open visibility window so the phone can re-find us via scan.
+    // Without this, loop() immediately suppresses advertising when claimed
+    // and not visible, leaving the board radio-silent after every disconnect.
+    if (claimed) {
+      bleVisible    = true;
+      visibilityEnd = millis() + 60000UL;
+      Serial.println("Visibility: disconnect -> 60s window");
+    }
+  }
+};
+
+// Fire initial state push when client subscribes to C_STATE — more reliable
+// than a fixed timer since CCCD write confirms the client is ready to receive.
+class StateCharCB : public NimBLECharacteristicCallbacks {
+  void onSubscribe(NimBLECharacteristic* c, NimBLEConnInfo& connInfo, uint16_t subValue) override {
+    if (subValue == 0) return;  // unsubscribe — ignore
+    if (bleConnected) {
+      pushScheduled = millis() + 50;  // tiny debounce, fire on next loop tick
+    }
   }
 };
 
@@ -317,6 +463,12 @@ class TimeSyncCB : public NimBLECharacteristicCallbacks {
       syncedEpoch = (uint32_t)d[0] | ((uint32_t)d[1]<<8)
                   | ((uint32_t)d[2]<<16) | ((uint32_t)d[3]<<24);
       Serial.printf("TimeSync: epoch=%u\n", syncedEpoch);
+      // App sends time-sync after confirming firmware version — safe to validate here.
+      if (!fwValidated) {
+        esp_ota_mark_app_valid_cancel_rollback();
+        fwValidated = true;
+        Serial.printf("OTA: firmware v%s validated (app time-synced)\n", FW_VERSION);
+      }
     }
   }
 };
@@ -362,7 +514,9 @@ class OtaCB : public NimBLEOtaCallbacks {
     Serial.printf("BLE-OTA: stopped reason=%d\n", reason); otaActive = false;
   }
   void onComplete(NimBLEOta*) override {
-    Serial.println("BLE-OTA: complete — rebooting in 2s"); delay(2000); esp_restart();
+    Serial.println("BLE-OTA: complete — scheduling restart in 2s");
+    pendingRestart = true;
+    restartAt = millis() + 2000;
   }
   void onError(NimBLEOta*, esp_err_t err, NimBLEOta::Reason reason) override {
     Serial.printf("BLE-OTA: error 0x%x reason=%d\n", err, reason); otaActive = false;
@@ -398,18 +552,54 @@ bool getInlet() {
 
 float getTankLevel() {
 #if USE_SENSOR == 1
-  return tankPct;  // TODO: JSN-SR04T (F-SENSOR milestone)
+  // JSN-SR04T ultrasonic sensor on GPIO_TRIG (5) and GPIO_ECHO (18)
+  digitalWrite(GPIO_TRIG, LOW);
+  delayMicroseconds(4);
+  digitalWrite(GPIO_TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(GPIO_TRIG, LOW);
+
+  unsigned long duration = pulseIn(GPIO_ECHO, HIGH, SENSOR_TIMEOUT_US);
+
+  float distance = 0.0f;
+  if (duration > 0) {
+    distance = (duration * 0.0343f) / 2.0f;  // speed of sound ~0.0343 cm/us at 20°C
+  }
+
+  // Median filter — store reading and compute median of last N samples
+  sensorReadings[sensorSampleIdx] = distance;
+  sensorSampleIdx = (sensorSampleIdx + 1) % SENSOR_SAMPLE_COUNT;
+
+  float sorted[SENSOR_SAMPLE_COUNT];
+  memcpy(sorted, sensorReadings, sizeof(sorted));
+  qsort(sorted, SENSOR_SAMPLE_COUNT, sizeof(float), cmpFloat);
+  float medianDist = sorted[SENSOR_SAMPLE_COUNT / 2];
+
+  // Reject wildly invalid readings; fall back to last known tankPct
+  if (medianDist <= 0.0f || medianDist > (TANK_HEIGHT_CM + 50.0f)) {
+    return tankPct;
+  }
+
+  // Clamp to valid range and convert to percentage via linear interpolation
+  float effectiveDist = constrain(medianDist, TANK_FULL_DIST_CM, TANK_EMPTY_DIST_CM);
+  float range = TANK_EMPTY_DIST_CM - TANK_FULL_DIST_CM;
+  float newPct = 100.0f * (1.0f - (effectiveDist - TANK_FULL_DIST_CM) / range);
+
+  // Exponential moving average (alpha=0.3) for smooth readings
+  return tankPct * 0.7f + newPct * 0.3f;
 #else
-  if (relayOn) tankPct = constrain(tankPct + FILL_STEP_PCT, 0.0f, 100.0f);
-  else         tankPct = constrain(tankPct - DRAIN_STEP_PCT, 0.0f, 100.0f);
-  return tankPct;
+  float next = tankPct;
+  if (relayOn) next = constrain(tankPct + FILL_STEP_PCT, 0.0f, 100.0f);
+  else         next = constrain(tankPct - DRAIN_STEP_PCT, 0.0f, 100.0f);
+  return next;
 #endif
 }
 
 // ── Event logging ─────────────────────────────────────────────────────────────
 
 void pushEvent(uint8_t type, float tank, uint32_t dur, uint8_t stop) {
-  LogEvent& e   = eventBuf[eventHead];
+  uint8_t idx    = eventHead;  // capture head before increment
+  LogEvent& e   = eventBuf[idx];
   e.id          = nextEventId++;
   e.epoch       = syncedEpoch > 0 ? syncedEpoch : (millis() / 1000);
   e.type        = type;
@@ -418,6 +608,12 @@ void pushEvent(uint8_t type, float tank, uint32_t dur, uint8_t stop) {
   e.stopReason  = stop;
   eventHead = (eventHead + 1) % EVENT_BUF_SIZE;
   if (eventCount < EVENT_BUF_SIZE) eventCount++;
+
+  // Persist to NVS so events survive power cycles
+  nvsWriteEvent(idx);
+  prefs.putUChar("evt_head", eventHead);
+  prefs.putUChar("evt_cnt",  eventCount);
+  prefs.putUInt ("evt_nextid", nextEventId);
 }
 
 // ── Automation state machine ──────────────────────────────────────────────────
@@ -449,8 +645,8 @@ void tickAutomation() {
     } else if (!inlet && pumpState==3) { pumpState=0; }
   } else {
     bool shouldStop=false; uint8_t stopReason=0;
-    if (!inlet)              { shouldStop=true; stopReason=2; }
-    else if (tankPct>=fullTankPct) { shouldStop=true; stopReason=1; }
+    if (tankPct >= fullTankPct)    { shouldStop=true; stopReason=1; }
+    else if (!inlet)               { shouldStop=true; stopReason=2; }
     if (shouldStop) {
       uint32_t now=syncedEpoch>0?syncedEpoch:(millis()/1000);
       uint32_t dur=motorStartEpoch>0&&now>motorStartEpoch?now-motorStartEpoch:0;
@@ -503,13 +699,9 @@ void pushState() {
   charTank->notify();
   lastNotify = millis();
   digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-  if (!fwValidated) {
-    esp_ota_mark_app_valid_cancel_rollback();
-    fwValidated = true;
-    Serial.printf("OTA: firmware v%s validated\n", FW_VERSION);
-  }
 }
 
+#if USE_WIFI == 1
 // ── WiFi watchdog ─────────────────────────────────────────────────────────────
 
 void checkWifi() {
@@ -529,6 +721,7 @@ void checkWifi() {
     Serial.println("WiFi: reconnect failed");
   }
 }
+#endif
 
 // ── setup ─────────────────────────────────────────────────────────────────────
 
@@ -555,9 +748,11 @@ void setup() {
   prefs.begin("watertank", false);
   fullTankPct = constrain(prefs.getFloat("fill_pct", FULL_TANK_PCT_DEFAULT), 1.0f, 98.0f);
   nvsLoadAuth();
+  nvsLoadEvents();
   Serial.printf("Auth: claimed=%s name='%s' sessions=%d\n",
                 claimed?"yes":"no", deviceName, sessionCount);
 
+#if USE_WIFI == 1
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASS);
   int tries = 0;
@@ -572,6 +767,7 @@ void setup() {
     Serial.println("WiFi: failed — OTA via AP 'StormBoard'");
     wfConfigOTA("StormBoard", "esp32ota", WF_AP);
   }
+#endif
 
   // BLE channel encryption — Just Works bonding (transparent to user)
   NimBLEDevice::setSecurityAuth(true, false, true);  // bonding, no MITM, secure connections
@@ -588,6 +784,7 @@ void setup() {
 
   // Existing characteristics
   charState = svc->createCharacteristic(C_STATE, NIMBLE_PROPERTY::NOTIFY);
+  charState->setCallbacks(new StateCharCB());
   charTank  = svc->createCharacteristic(C_TANK,  NIMBLE_PROPERTY::NOTIFY);
 
   NimBLECharacteristic* logCtrl = svc->createCharacteristic(
@@ -648,6 +845,16 @@ void setup() {
   adv->enableScanResponse(true);
   adv->setScanResponseData(scanRsp);
 
+  // Check for vis_boot flag written by BOOT short-press: open 60s window on this reboot.
+  // Doing this here (rather than nvsLoadAuth) ensures millis() is valid and adv->start()
+  // runs through the normal path with service UUID already configured above.
+  if (prefs.getBool("vis_boot", false)) {
+    prefs.remove("vis_boot");
+    bleVisible    = true;
+    visibilityEnd = millis() + 60000UL;
+    Serial.println("Visibility: vis_boot reboot -> 60s window");
+  }
+
   if (bleVisible) {
     adv->start();
     Serial.printf("BLE: advertising as '%s' v%s\n", deviceName, FW_VERSION);
@@ -659,7 +866,16 @@ void setup() {
 // ── loop ──────────────────────────────────────────────────────────────────────
 
 void loop() {
+  if (pendingRestart) {
+    if (millis() >= restartAt) {
+      Serial.println("OTA: pending restart — rebooting");
+      esp_restart();
+    }
+    return;
+  }
+#if USE_WIFI == 1
   wfHandleOTA();
+#endif
   unsigned long now = millis();
 
   // ── Factory reset: hold BOOT button for 10s ──────────────────────────────
@@ -675,13 +891,20 @@ void loop() {
   } else {
     if (btnHoldStart > 0) {
       unsigned long holdMs = now - btnHoldStart;
-      // Short press (0.5s–10s): open a 60s visibility window so the app can reconnect
-      // without a full factory reset (e.g. after the user cleared app data).
-      if (holdMs >= 500 && holdMs < FACTORY_RESET_MS) {
-        bleVisible    = true;
-        visibilityEnd = now + 60000UL;
-        if (!bleConnected) NimBLEDevice::startAdvertising();
-        Serial.printf("Visibility: BOOT short-press (%lums) -> 60s window\n", holdMs);
+      // Short press (100ms–10s): reboot into a 60s visibility window so the app can
+      // reconnect without factory reset (e.g. after clearing app data).
+      // Reboot approach avoids NimBLE 2.x bug where startAdvertising() from loop()
+      // produces a bare packet (no service UUID) on the first call.
+      if (holdMs >= 100 && holdMs < FACTORY_RESET_MS) {
+        Serial.printf("Visibility: BOOT short-press (%lums) -> vis_boot reboot\n", holdMs);
+        // 3 quick blinks confirm the press was registered before reboot
+        for (int i = 0; i < 3; i++) {
+          digitalWrite(LED_PIN, HIGH); delay(100);
+          digitalWrite(LED_PIN, LOW);  delay(100);
+        }
+        prefs.putBool("vis_boot", true);
+        delay(200);
+        esp_restart();
       }
     }
     btnHoldStart = 0;
@@ -717,10 +940,12 @@ void loop() {
 
   loopLogStream();
 
+#if USE_WIFI == 1
   if (now - lastWifiCheck >= WIFI_CHECK_MS) {
     lastWifiCheck = now;
     checkWifi();
   }
+#endif
 
   // ── Stall watchdog ───────────────────────────────────────────────────────
   if (bleConnected && lastNotify > 0 && (now - lastNotify) > STALL_TIMEOUT_MS) {
@@ -728,9 +953,14 @@ void loop() {
     bleConnected = false;
     connAuthed   = false;
     logStreaming  = false;
+    // Open visibility window so phone can re-find us after a stall
+    if (claimed) {
+      bleVisible    = true;
+      visibilityEnd = millis() + 60000UL;
+    }
     NimBLEDevice::stopAdvertising();
     delay(100);
-    if (!claimed || bleVisible) NimBLEDevice::startAdvertising();
+    NimBLEDevice::startAdvertising();
     lastNotify = now;
   }
 

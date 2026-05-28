@@ -9,6 +9,7 @@
  */
 
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
 
 import {
@@ -56,6 +57,13 @@ type ConnectedDevice = {
   monitorCharacteristicForService(svc: string, char: string, cb: (err: unknown, char: unknown) => void): { remove(): void };
 };
 
+export type DiscoveredDevice = {
+  id: string;
+  name?: string;
+  localName?: string;
+  rssi?: number;
+};
+
 let BleManagerClass: unknown = null;
 let bleModuleAvailable = false;
 
@@ -92,9 +100,6 @@ export function resetBleManager(): void { _managerInstance = null; }
 export function getBleService(): BLEService | null { return _bleServiceInstance; }
 export function registerBleService(svc: BLEService): void { _bleServiceInstance = svc; }
 
-let eventIdCounter = Date.now();
-function nextId(): number { return eventIdCounter++; }
-
 export class BLEService implements IDeviceService {
   private state: DeviceState = { ...DEFAULT_DEVICE_STATE };
   private listeners: Listener[] = [];
@@ -107,7 +112,10 @@ export class BLEService implements IDeviceService {
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private logStreamTimer: ReturnType<typeof setTimeout> | null = null;
+  private logStreamInProgress = false;
   private subscriptions: Array<{ remove(): void }> = [];
+  private discoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  private discoveryResolver: ((devices: DiscoveredDevice[]) => void) | null = null;
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -153,7 +161,123 @@ export class BLEService implements IDeviceService {
   getBleLog(): string[] { return [...this.logMessages]; }
 
   triggerSync(): void {
-    if (this.device && this.running) this.requestLogStream().catch(() => {});
+    if (this.device && this.running && !this.logStreamInProgress) this.requestLogStream().catch(() => {});
+  }
+
+  // ── Manual device discovery (user-initiated scan) ──────────────────────────
+
+  // Scan for nearby WaterTank devices without auto-connecting.
+  // Returns the list when the timeout expires or stopDiscovery() is called.
+  async discoverDevices(timeoutMs: number = 10000): Promise<DiscoveredDevice[]> {
+    this.stopDiscovery();
+    const mgr = getBleManager() as {
+      startDeviceScan(uuids: string[] | null, opts: null, cb: (err: unknown, device: unknown) => void): void;
+      stopDeviceScan(): void;
+      state(): Promise<string>;
+    } | null;
+    if (!mgr) return [];
+
+    // Cancel any auto-connect scan in progress
+    if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+    try { mgr.stopDeviceScan(); } catch {}
+
+    const seen = new Set<string>();
+    const devices: DiscoveredDevice[] = [];
+
+    return new Promise((resolve) => {
+      this.discoveryResolver = resolve;
+
+      const doDiscovery = () => {
+        this.discoveryTimer = setTimeout(() => {
+          try { mgr.stopDeviceScan(); } catch {}
+          this.discoveryTimer = null;
+          if (this.discoveryResolver) {
+            this.discoveryResolver(devices);
+            this.discoveryResolver = null;
+          }
+        }, timeoutMs);
+
+        try {
+          mgr.startDeviceScan(null, null, (err, device) => {
+            if (err) {
+              this.log(`Discovery scan error: ${String(err)}`);
+              return;
+            }
+            const dev = device as {
+              name?: string; localName?: string; id: string; rssi?: number;
+              serviceUUIDs?: string[];
+            } | null;
+            if (!dev?.id || seen.has(dev.id)) return;
+            const hasServiceUUID = dev.serviceUUIDs?.some(
+              (u) => u.toLowerCase() === BLE_SERVICE_UUID.toLowerCase(),
+            );
+            const hasName = (dev.name ?? dev.localName ?? "").toLowerCase().includes("watertank");
+            if (!hasServiceUUID && !hasName) return;
+            seen.add(dev.id);
+            devices.push({
+              id: dev.id,
+              name: dev.name,
+              localName: dev.localName,
+              rssi: dev.rssi,
+            });
+            this.log(`Discovered: ${dev.name ?? dev.localName ?? "WaterTank"} (${dev.id}) RSSI=${dev.rssi ?? "?"}`);
+          });
+        } catch (e) {
+          this.log(`startDeviceScan threw: ${String(e)}`);
+          if (this.discoveryResolver) {
+            this.discoveryResolver(devices);
+            this.discoveryResolver = null;
+          }
+        }
+      };
+
+      mgr.state().then((s) => {
+        if (s !== "PoweredOn") {
+          this.log(`BLE not ready (${s})`);
+          resolve([]);
+          return;
+        }
+        doDiscovery();
+      }).catch(() => doDiscovery());
+    });
+  }
+
+  stopDiscovery(): void {
+    if (this.discoveryTimer) { clearTimeout(this.discoveryTimer); this.discoveryTimer = null; }
+    if (this.discoveryResolver) {
+      this.discoveryResolver([]);
+      this.discoveryResolver = null;
+    }
+    const mgr = getBleManager() as { stopDeviceScan(): void } | null;
+    try { mgr?.stopDeviceScan(); } catch {}
+  }
+
+  // Connect to a specific device chosen by the user (from discoverDevices results).
+  async connectToDevice(deviceId: string): Promise<void> {
+    const mgr = getBleManager() as {
+      connectToDevice(id: string, opts: { timeout: number }): Promise<ConnectedDevice>;
+      cancelDeviceConnection(id: string): Promise<void>;
+    } | null;
+    if (!mgr) throw new Error("BLE not available");
+    // Cancel any pending reconnect/scan
+    if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    // Disconnect existing connection before connecting to a different device
+    if (this.device) {
+      this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
+      this.subscriptions = [];
+      try { await mgr.cancelDeviceConnection(this.device.id); } catch {}
+      this.device = null;
+    }
+    try {
+      const connected = await mgr.connectToDevice(deviceId, { timeout: 10000 });
+      await this.setupConnectedDevice(connected);
+    } catch (e) {
+      this.log(`Manual connect failed (${deviceId}): ${String(e)}`);
+      logBleError("manual connect failed", { deviceId, error: String(e) });
+      this.scheduleReconnect();
+      throw e;
+    }
   }
 
   // ── Auth public API ───────────────────────────────────────────────────────
@@ -232,16 +356,12 @@ export class BLEService implements IDeviceService {
     this.listeners.forEach((l) => l({ ...state }));
   }
 
-  private logEvent(event: Omit<WaterEvent, "id" | "synced">): void {
-    const waterEvent: WaterEvent = { ...event, id: nextId(), synced: true };
-    try { insertEvent(waterEvent); } catch {}
-    this.eventListeners.forEach((l) => l(waterEvent));
-  }
-
   private cleanup(): void {
     if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     if (this.logStreamTimer) { clearTimeout(this.logStreamTimer); this.logStreamTimer = null; }
+    if (this.discoveryTimer) { clearTimeout(this.discoveryTimer); this.discoveryTimer = null; }
+    if (this.discoveryResolver) { this.discoveryResolver([]); this.discoveryResolver = null; }
     this.subscriptions.forEach((s) => { try { s.remove(); } catch {} });
     this.subscriptions = [];
     const mgr = getBleManager() as {
@@ -282,12 +402,19 @@ export class BLEService implements IDeviceService {
   private async tryDirectConnect(): Promise<boolean> {
     const sessions = await AuthService.listSessions();
     if (sessions.length === 0) return false;
+
+    // If user has selected a preferred device, try it first.
+    const preferred = await AuthService.getPreferredDevice();
+    const ordered = preferred
+      ? sessions.filter(s => s.deviceMac === preferred).concat(sessions.filter(s => s.deviceMac !== preferred))
+      : sessions;
+
     const mgr = getBleManager() as {
       connectToDevice(id: string, opts: { timeout: number }): Promise<ConnectedDevice>;
     } | null;
     if (!mgr) return false;
 
-    for (const session of sessions) {
+    for (const session of ordered) {
       if (!this.running) return false;
       this.log(`Direct connect: ${session.deviceName} (${session.deviceMac})...`);
       this.emit({ ...this.state, connected: false });
@@ -460,6 +587,9 @@ export class BLEService implements IDeviceService {
         this.state = { ...this.state, firmwareVersion: version };
         connectedFwVersion = version;
         this.log(`Firmware: ${version}`);
+        AsyncStorage.setItem(`@watertank_fw_version_${connected.id}`, version).catch((e) => {
+          logBleError("fw version persist failed", { error: String(e) });
+        });
       }
     } catch {}
 
@@ -548,24 +678,30 @@ export class BLEService implements IDeviceService {
 
   private async requestLogStream(): Promise<void> {
     const connected = this.device;
-    if (!connected) return;
+    if (!connected || this.logStreamInProgress) return;
 
+    this.logStreamInProgress = true;
     this.log("Starting log stream...");
     const pendingEvents: WaterEvent[] = [];
+
+    const done = (acked: boolean) => {
+      this.logStreamInProgress = false;
+      if (!acked) {
+        this.log(`Log stream incomplete — ${pendingEvents.length} partial events saved`);
+        pendingEvents.forEach((e) => { try { insertEvent(e); } catch {} });
+      }
+      this.emit({ ...this.state, lastSyncAt: Math.floor(Date.now() / 1000) });
+      insertSyncLog(Math.floor(Date.now() / 1000));
+    };
 
     return new Promise<void>((resolve) => {
       let sub: { remove(): void };
 
       const timeoutHandle = setTimeout(() => {
-        this.log("Log stream timeout — sending ACK anyway");
+        this.log("Log stream timeout — partial sync, no ACK sent");
         sub.remove();
         this.subscriptions = this.subscriptions.filter((s) => s !== sub);
-        pendingEvents.forEach((e) => { try { insertEvent(e); } catch {} });
-        connected.writeCharacteristicWithResponseForService(
-          BLE_SERVICE_UUID, BLE_CHAR_LOG_CTRL, Buffer.from([BLE_LOG_ACK]).toString("base64"),
-        ).catch(() => {});
-        this.emit({ ...this.state, lastSyncAt: Math.floor(Date.now() / 1000) });
-        insertSyncLog(Math.floor(Date.now() / 1000));
+        done(false);
         resolve();
       }, BLE_LOG_STREAM_TIMEOUT);
 
@@ -574,6 +710,7 @@ export class BLEService implements IDeviceService {
           clearTimeout(timeoutHandle);
           sub.remove();
           this.subscriptions = this.subscriptions.filter((s) => s !== sub);
+          done(false);
           resolve();
           return;
         }
@@ -590,10 +727,12 @@ export class BLEService implements IDeviceService {
             connected.writeCharacteristicWithResponseForService(
               BLE_SERVICE_UUID, BLE_CHAR_LOG_CTRL, Buffer.from([BLE_LOG_ACK]).toString("base64"),
             ).then(() => {
-              this.emit({ ...this.state, lastSyncAt: Math.floor(Date.now() / 1000) });
-              insertSyncLog(Math.floor(Date.now() / 1000));
+              done(true);
               resolve();
-            }).catch(() => resolve());
+            }).catch(() => {
+              done(false);
+              resolve();
+            });
             return;
           }
           const ev = JSON.parse(str) as { id: number; t: number; type: number; tank: number; dur: number; stop: number };
@@ -611,6 +750,7 @@ export class BLEService implements IDeviceService {
       ).catch((e: unknown) => {
         this.log(`LOG_CTRL write failed: ${String(e)}`);
         clearTimeout(timeoutHandle);
+        done(false);
         resolve();
       });
     });
