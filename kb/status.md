@@ -1,5 +1,5 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-28_
+_Last updated: 2026-05-28 (v44)_
 
 ## Deepseek Audit (v43)
 `auditDeepseek.md` — 44 findings **ALL RESOLVED**.

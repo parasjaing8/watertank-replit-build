@@ -350,8 +350,9 @@ export default function DashboardScreen() {
             styles.card,
             {
               backgroundColor: motorOn ? colors.success + "1A" : colors.card,
-              borderColor:     colors.border,
-              borderWidth:     1,
+              borderWidth:     0,
+              shadowOpacity:   0,
+              elevation:       0,
             },
           ]}>
             <View style={[
@@ -404,8 +405,9 @@ export default function DashboardScreen() {
             styles.card,
             {
               backgroundColor: deviceState.inletActive ? colors.primary + "1A" : colors.card,
-              borderColor:     colors.border,
-              borderWidth:     1,
+              borderWidth:     0,
+              shadowOpacity:   0,
+              elevation:       0,
             },
           ]}>
             <View style={[

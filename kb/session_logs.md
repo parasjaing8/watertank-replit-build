@@ -1,5 +1,16 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — v44: BLE device scanner + keyboard fix + password uniformity
+
+- Branch: `deepseek`, commit ddaeaf2
+- **Device scanner**: New `DeviceScanSheet` bottom sheet — users can manually scan for ESP32 devices (like Android Bluetooth scan), see RSSI strength, pick one, then enter password. Auto-connect for known devices preserved.
+- **BLEService**: Added `discoverDevices(timeoutMs)` passive scan (no auto-connect), `connectToDevice(deviceId)` targeted connect, `stopDiscovery()` cancel. New `DiscoveredDevice` type with id/name/localName/rssi.
+- **DeviceContext**: Added `discoveredDevices`, `isScanning` state + `discoverDevices`, `connectToDevice`, `stopDiscovery` actions.
+- **Dashboard**: Disconnected card now shows "Scan for devices" button → opens DeviceScanSheet → select device → PairingSheet → connect.
+- **Keyboard fix**: Replaced `KeyboardAvoidingView` with `KeyboardAwareScrollViewCompat` (react-native-keyboard-controller) in PairingSheet and DeviceSetupModal. Content reliably moves above keyboard.
+- **Password uniformity**: Placeholder dots changed from 6→4 in DeviceSetupModal to match default "1234" password.
+- **i18n**: Added `scanForDevices`, `scanTitle`, `scanSearching`, `scanNoDevices`, `scanNoDevicesHint`, `scanAgain` in en/hi/mr/kn.
+
 ## 2026-05-28 — v43: Fix remaining 5 MEDIUM audit items
 
 - Branch: `deepseek`, commit 0242ed0
