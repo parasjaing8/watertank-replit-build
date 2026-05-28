@@ -1,5 +1,5 @@
 # WaterTank — Project Status
-_Last updated: 2026-05-28 (v44)_
+_Last updated: 2026-05-28 (deepseek merged to master)_
 
 ## Deepseek Audit (v43)
 `auditDeepseek.md` — 44 findings **ALL RESOLVED**.
@@ -16,7 +16,8 @@ _Last updated: 2026-05-28 (v44)_
 - Audit complete. Project is production-grade.
 
 ## App Version
-`1.0.0` (package.json) | Latest APK: v44 on `deepseek` branch (device scanner + keyboard fix + border cleanup)
+`1.0.0` (package.json) | Latest APK: v44 on `master` (deepseek merged 2026-05-28, opusp1.md audit clean)
+- Merged: deepseek → master. 28-finding opus audit (opusp1.md) all resolved. master is now production-grade.
 - v44: Device scan sheet, keyboard-aware scroll views, password dot uniformity, motor/inlet border removal
 - Phase 3 complete (pairing UI) — no new APK yet, needs firmware v1.3.0 on board first
 - v37: BOOT short-press → 60s visibility window (reconnect without factory reset); checkWifi() LED stuck-on fix; pressBootHint at 60s disconnect

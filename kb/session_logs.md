@@ -1,5 +1,13 @@
 # WaterTank — Session Logs
 
+## 2026-05-28 — deepseek merged to master
+
+- Opus audit (opusp1.md): 28 findings across CRITICAL/HIGH/MEDIUM/LOW — all resolved before merge
+- CRITICAL fixes (DS-01/02/03): reverted diagnostic `bleVisible=true`, removed boot-time `deleteAllBonds()`, fixed `module_from_spec` typo in e2e_test.py
+- HIGH fixes already in deepseek commits (DS-04–DS-10): per-device fw version key, disconnect-before-connect, NVS event ring, loop body gating during OTA, lockfile + jest-preset alignment
+- Verification fixes committed here: `firmware-update.tsx` timer shadowing `t` (TS2349), `FirmwareUpdateService.ts` BleManager type cast, `e2e_test.py` `record_skip()` + skip-aware pass counting
+- Merged: `deepseek` → `master` (no-ff), pushed. Master is now head at `901e8e3`.
+
 ## 2026-05-28 — v44 (continued): border fix + WittyFox OTA flash
 
 - Branch: `deepseek`, commit 3a117db
