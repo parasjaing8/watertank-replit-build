@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.watertank.app",
+      "bundleIdentifier": "com.aihomecloud.watertank",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "WaterTank uses Bluetooth to connect to the ESP32 water pump controller.",
         "NSBluetoothPeripheralUsageDescription": "WaterTank uses Bluetooth to connect to the ESP32 water pump controller."
       }
     },
     "android": {
-      "package": "com.watertank.app",
+      "package": "com.aihomecloud.watertank",
       "permissions": [
         "BLUETOOTH",
         "BLUETOOTH_ADMIN",
